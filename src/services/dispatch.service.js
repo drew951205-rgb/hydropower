@@ -4,6 +4,7 @@ const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
 const { assignmentMessage, assignedMessage } = require('../templates/technician-messages');
+const { assignedCustomerMessage } = require('../templates/customer-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
 function assertCanDispatch(order) {
@@ -57,6 +58,7 @@ async function acceptAssignment(assignmentId, technicianUser) {
     technician_id: technicianUser.id
   });
   await lineMessageService.pushMessages(technicianUser.line_user_id, assignedMessage(updated));
+  await notifyCustomerAssigned(updated, technicianUser);
   return updated;
 }
 
@@ -67,7 +69,16 @@ async function assignOrder(orderId, technicianId, operator = { role: 'admin', id
 
   const assignment = await assignmentRepository.createAssignment({ order_id: orderId, technician_id: technicianId, status: 'accepted' });
   await assignmentRepository.updateAssignment(assignment.id, { status: 'accepted' });
-  return orderService.transitionOrder(orderId, ORDER_STATUS.ASSIGNED, 'manual_assign_order', operator.role, operator.id, 'Admin manually assigned technician', { technician_id: technicianId });
+  const updated = await orderService.transitionOrder(orderId, ORDER_STATUS.ASSIGNED, 'manual_assign_order', operator.role, operator.id, 'Admin manually assigned technician', { technician_id: technicianId });
+  const technician = await userRepository.findById(technicianId);
+  await notifyCustomerAssigned(updated, technician);
+  return updated;
+}
+
+async function notifyCustomerAssigned(order, technician) {
+  const customer = await userRepository.findById(order.customer_id);
+  if (!customer?.line_user_id) return { skipped: true };
+  return lineMessageService.pushMessages(customer.line_user_id, assignedCustomerMessage(order, technician));
 }
 
 module.exports = { dispatchOrder, autoDispatchOrder, acceptAssignment, assignOrder };

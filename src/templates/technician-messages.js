@@ -5,19 +5,19 @@ function postbackAction(label, data, displayText = label) {
 }
 
 const technicianMessages = {
-  assignmentText: (order) => `有新的師傅抵嘉案件可接。\n\n${orderSummary(order)}`,
-  assignedText: (order) => `你已成功接單。\n地址：${order.address}\n聯絡電話：${order.contact_phone || '未提供'}`,
-  alreadyTaken: '案件已被接走或已失效。',
-  completed: '已送出完工回報，等待顧客確認。'
+  assignmentText: (order) => `有新的派單可以接。\n\n${orderSummary(order)}`,
+  assignedText: (order) => `接單成功。\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`,
+  alreadyTaken: '這張單已由其他師傅接走。',
+  completed: '已送出完工回報，請等待客戶確認。'
 };
 
 function assignmentMessage(order, assignment) {
   return {
     type: 'template',
-    altText: `新案件 ${order.order_no}`,
+    altText: `新派單 ${order.order_no}`,
     template: {
       type: 'buttons',
-      title: '新案件可接',
+      title: '新派單',
       text: `${order.service_type}｜${order.area}\n${order.issue_description}`.slice(0, 160),
       actions: [
         postbackAction('接單', `technician:accept_assignment:${assignment.id}`, '接單')

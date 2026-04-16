@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { welcomeMessage, quoteMessage, changeRequestMessage, completionMessage } = require('../src/templates/customer-messages');
+const { welcomeMessage, quoteMessage, changeRequestMessage, assignedCustomerMessage, completionMessage } = require('../src/templates/customer-messages');
 const { assignmentMessage, assignedMessage } = require('../src/templates/technician-messages');
 
 const order = {
@@ -30,6 +30,11 @@ test('customer LINE messages include postback actions', () => {
 
   const change = changeRequestMessage(order);
   assert.equal(change.template.actions[0].data, 'customer:accept_quote:12');
+
+  const assigned = assignedCustomerMessage(order, { name: 'Test Technician', phone: '0911222333' });
+  assert.equal(assigned.type, 'text');
+  assert.match(assigned.text, /師傅已接單/);
+  assert.match(assigned.text, /Test Technician/);
 
   const completion = completionMessage(order);
   assert.equal(completion.template.actions[0].data, 'customer:confirm_completion:12');

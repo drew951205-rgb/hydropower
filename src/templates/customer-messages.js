@@ -34,13 +34,13 @@ function quoteMessage(order) {
   const amount = Number(order.quote_amount || 0);
   return {
     type: 'template',
-    altText: `師傅報價 ${amount} 元`,
+    altText: `報價 ${amount} 元`,
     template: {
       type: 'buttons',
-      title: '師傅報價',
+      title: '報價確認',
       text: `${order.order_no}\n報價金額：${amount} 元`,
       actions: [
-        postbackAction('同意報價', `customer:accept_quote:${order.id}`, '同意報價'),
+        postbackAction('接受報價', `customer:accept_quote:${order.id}`, '接受報價'),
         postbackAction('拒絕報價', `customer:reject_quote:${order.id}`, '拒絕報價')
       ]
     }
@@ -57,10 +57,27 @@ function changeRequestMessage(order) {
       title: '追加報價',
       text: `${order.order_no}\n追加金額：${amount} 元\n${order.change_request_reason || ''}`.slice(0, 160),
       actions: [
-        postbackAction('同意追加', `customer:accept_quote:${order.id}`, '同意追加'),
+        postbackAction('接受追加', `customer:accept_quote:${order.id}`, '接受追加'),
         postbackAction('拒絕追加', `customer:reject_quote:${order.id}`, '拒絕追加')
       ]
     }
+  };
+}
+
+function assignedCustomerMessage(order, technician) {
+  const technicianName = technician?.name || '師傅';
+  const technicianPhone = technician?.phone || '未提供';
+
+  return {
+    type: 'text',
+    text: [
+      '師傅已接單，將前往處理。',
+      '',
+      `案件編號：${order.order_no}`,
+      `服務類型：${order.service_type}`,
+      `師傅：${technicianName}`,
+      `師傅電話：${technicianPhone}`
+    ].join('\n')
   };
 }
 
@@ -72,10 +89,10 @@ function completionMessage(order) {
     template: {
       type: 'buttons',
       title: '完工確認',
-      text: `${order.order_no}\n最終金額：${amount} 元\n請確認施工結果。`,
+      text: `${order.order_no}\n實付金額：${amount} 元\n請確認是否完成。`,
       actions: [
-        postbackAction('確認完工', `customer:confirm_completion:${order.id}`, '確認完工'),
-        postbackAction('我要反映問題', `customer:dispute_completion:${order.id}`, '我要反映問題')
+        postbackAction('確認結案', `customer:confirm_completion:${order.id}`, '確認結案'),
+        postbackAction('我要申訴', `customer:dispute_completion:${order.id}`, '我要申訴')
       ]
     }
   };
@@ -86,6 +103,7 @@ module.exports = {
   welcomeMessage,
   quoteMessage,
   changeRequestMessage,
+  assignedCustomerMessage,
   completionMessage,
   textWithQuickReply,
   postbackAction
