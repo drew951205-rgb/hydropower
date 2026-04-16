@@ -3,10 +3,21 @@ const { textMessage } = require('../utils/format-message');
 const { hasReplyToken } = require('../utils/reply-token');
 
 async function sendLineMessage(endpoint, body) {
+  const mode = endpoint.includes('/reply') ? 'reply' : endpoint.includes('/push') ? 'push' : 'unknown';
+  const messageTypes = (body.messages || []).map((message) => message.type).join(',');
+
   if (!lineConfig.channelAccessToken) {
-    console.log('[line:dry-run]', JSON.stringify({ endpoint, body }));
+    console.log('[line:dry-run]', JSON.stringify({ mode, messageTypes, endpoint, body }));
     return { dryRun: true };
   }
+
+  console.log('[line:send]', JSON.stringify({
+    mode,
+    messageTypes,
+    messageCount: body.messages?.length || 0,
+    hasReplyToken: Boolean(body.replyToken),
+    hasTo: Boolean(body.to)
+  }));
 
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -17,7 +28,15 @@ async function sendLineMessage(endpoint, body) {
     body: JSON.stringify(body)
   });
 
-  if (!response.ok) console.error('[line:error]', response.status, await response.text());
+  const responseText = await response.text();
+  console.log('[line:response]', JSON.stringify({
+    mode,
+    status: response.status,
+    ok: response.ok,
+    body: responseText || null
+  }));
+
+  if (!response.ok) console.error('[line:error]', response.status, responseText);
   return { ok: response.ok };
 }
 
