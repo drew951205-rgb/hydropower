@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>師傅抵嘉管理台</title>
+    <link rel="stylesheet" href="/admin/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">師傅抵嘉</p>
+        <h1>案件管理</h1>
+      </div>
+      <div class="auth">
+        <label for="adminKey">管理金鑰</label>
+        <input id="adminKey" type="password" autocomplete="current-password" placeholder="x-admin-api-key">
+        <button id="saveKeyButton" type="button">套用</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="orders-section" aria-labelledby="ordersTitle">
+        <div class="section-head">
+          <div>
+            <h2 id="ordersTitle">訂單</h2>
+            <p id="statusText">尚未載入</p>
+          </div>
+          <div class="filters">
+            <select id="statusFilter" aria-label="訂單狀態">
+              <option value="">全部狀態</option>
+              <option value="pending_review">待審核</option>
+              <option value="pending_dispatch">待派單</option>
+              <option value="dispatching">派單中</option>
+              <option value="assigned">已接單</option>
+              <option value="arrived">已到場</option>
+              <option value="quoted">已報價</option>
+              <option value="in_progress">施工中</option>
+              <option value="completed_pending_customer">待顧客確認</option>
+              <option value="closed">已結案</option>
+              <option value="platform_review">平台介入</option>
+              <option value="dispute_review">爭議審核</option>
+            </select>
+            <button id="refreshButton" type="button">重新整理</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>編號</th>
+                <th>狀態</th>
+                <th>區域</th>
+                <th>類型</th>
+                <th>師傅</th>
+                <th>建立時間</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-labelledby="detailTitle">
+        <img class="panel-image" src="/admin/tools.svg" alt="">
+
+        <section class="detail-section">
+          <div class="section-head compact">
+            <div>
+              <h2 id="detailTitle">案件詳情</h2>
+              <p id="detailHint">選擇一筆訂單</p>
+            </div>
+          </div>
+          <dl id="orderDetail" class="detail-list"></dl>
+        </section>
+
+        <section class="actions-section" aria-labelledby="actionsTitle">
+          <h2 id="actionsTitle">操作</h2>
+          <div id="actions" class="actions"></div>
+        </section>
+
+        <section class="technicians-section" aria-labelledby="techniciansTitle">
+          <div class="section-head compact">
+            <div>
+              <h2 id="techniciansTitle">師傅</h2>
+              <p id="technicianStatus">尚未載入</p>
+            </div>
+            <button id="loadTechniciansButton" type="button">載入</button>
+          </div>
+
+          <div id="technicianList" class="technician-list"></div>
+
+          <form id="createTechnicianForm" class="stack-form">
+            <h3>新增師傅</h3>
+            <label>
+              LINE user ID
+              <input name="line_user_id" required placeholder="U-test-technician-001">
+            </label>
+            <label>
+              姓名
+              <input name="name" required placeholder="王師傅">
+            </label>
+            <label>
+              電話
+              <input name="phone" placeholder="0911222333">
+            </label>
+            <label>
+              服務區域
+              <input name="service_areas" placeholder="西區,東區">
+            </label>
+            <label>
+              服務類型
+              <input name="service_types" placeholder="漏水,馬桶堵塞">
+            </label>
+            <button type="submit">建立師傅</button>
+          </form>
+        </section>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/admin/app.js"></script>
+  </body>
+</html>

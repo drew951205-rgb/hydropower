@@ -1,0 +1,20 @@
+{
+  "name": "shi-fu-di-jia-platform",
+  "version": "0.1.0",
+  "description": "師傅抵嘉：嘉義在地水電緊急維修媒合 MVP",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "dev:watch": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0"
+  }
+}
