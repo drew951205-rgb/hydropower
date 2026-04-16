@@ -4,6 +4,8 @@ const http = require('node:http');
 
 process.env.SUPABASE_URL = '';
 process.env.SUPABASE_SERVICE_ROLE_KEY = '';
+process.env.LINE_CHANNEL_ACCESS_TOKEN = '';
+process.env.LINE_CHANNEL_SECRET = '';
 
 const { app } = require('../src/app');
 
@@ -72,6 +74,36 @@ test('admin can create a technician', async () => {
     assert.equal(response.status, 201);
     assert.equal(response.body.data.role, 'technician');
     assert.equal(response.body.data.available, true);
+  } finally {
+    server.close();
+  }
+});
+
+test('LINE user can join as a technician', async () => {
+  const server = app.listen(0);
+  try {
+    const lineUserId = `U-line-technician-${Date.now()}`;
+    const response = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'join-tech-1',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '\u52a0\u5165\u5e2b\u5085 \u738b\u5e2b\u5085 0911222333' }
+        }
+      ]
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.results[0].technicianJoined, true);
+    assert.equal(response.body.results[0].user.role, 'technician');
+    assert.equal(response.body.results[0].user.available, true);
+
+    const technicians = await request(server, 'GET', '/api/technicians');
+    assert.equal(technicians.status, 200);
+    const technician = technicians.body.data.find((item) => item.line_user_id === lineUserId);
+    assert.equal(technician.name, '\u738b\u5e2b\u5085');
+    assert.equal(technician.phone, '0911222333');
   } finally {
     server.close();
   }

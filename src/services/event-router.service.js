@@ -1,6 +1,7 @@
 const userRepository = require('../repositories/user.repository');
 const customerFlow = require('./customer-flow.service');
 const technicianFlow = require('./technician-flow.service');
+const technicianOnboarding = require('./technician-onboarding.service');
 const quoteService = require('./quote.service');
 const completionService = require('./completion.service');
 const disputeService = require('./dispute.service');
@@ -18,11 +19,15 @@ async function routeEvent(event) {
   }
 
   if (event.type === 'message' && event.message?.type === 'text') {
+    const text = event.message.text || '';
+    const technicianJoin = technicianOnboarding.parseTechnicianJoinText(text);
+    if (technicianJoin) return technicianOnboarding.joinAsTechnician(user, event, technicianJoin);
+
     if (user.role === 'technician') {
-      await lineMessageService.replyText(event, '請使用案件按鈕操作，或由管理後台提交報價與完工。');
+      await lineMessageService.replyText(event, '請使用案件按鈕操作；若要重新啟用師傅身分，請輸入「加入師傅」。');
       return { technicianMessage: true };
     }
-    return customerFlow.handleCustomerText(user, event, event.message.text);
+    return customerFlow.handleCustomerText(user, event, text);
   }
 
   if (event.type === 'postback') return handlePostback(user, event, event.postback?.data || '');
@@ -34,13 +39,13 @@ async function handlePostback(user, event, data) {
 
   if (data.startsWith('customer:accept_quote:')) {
     const order = await quoteService.confirmQuote(data.split(':')[2], true, user.id);
-    await lineMessageService.replyText(event, '已收到確認，師傅會繼續處理。');
+    await lineMessageService.replyText(event, '已確認報價，請等待師傅前往處理。');
     return { order };
   }
 
   if (data.startsWith('customer:reject_quote:')) {
     const order = await quoteService.confirmQuote(data.split(':')[2], false, user.id);
-    await lineMessageService.replyText(event, '已收到回覆，平台會協助處理。');
+    await lineMessageService.replyText(event, '已拒絕報價，平台會協助後續處理。');
     return { order };
   }
 
@@ -51,13 +56,13 @@ async function handlePostback(user, event, data) {
       rating: null,
       comment: 'LINE customer confirmation'
     }, user.id);
-    await lineMessageService.replyText(event, '已確認完工，感謝你的使用。');
+    await lineMessageService.replyText(event, '已確認結案，謝謝你的回覆。');
     return { order };
   }
 
   if (data.startsWith('customer:dispute_completion:')) {
     const order = await disputeService.customerDispute(data.split(':')[2], 'Customer reported completion issue from LINE', user.id);
-    await lineMessageService.replyText(event, '已收到問題回報，平台會協助確認。');
+    await lineMessageService.replyText(event, '已收到你的異議，平台會協助審核。');
     return { order };
   }
 
