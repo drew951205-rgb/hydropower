@@ -27,6 +27,7 @@ async function listOrders(filters = {}) {
   if (hasSupabase()) {
     let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (filters.status) query = query.eq('status', filters.status);
+    if (filters.technician_id) query = query.eq('technician_id', filters.technician_id);
     if (filters.area) query = query.eq('area', filters.area);
     if (filters.service_type) query = query.eq('service_type', filters.service_type);
     if (filters.date_from) query = query.gte('created_at', filters.date_from);
@@ -40,6 +41,7 @@ async function listOrders(filters = {}) {
 
   return store.filter('orders', (order) => {
     if (filters.status && order.status !== filters.status) return false;
+    if (filters.technician_id && String(order.technician_id) !== String(filters.technician_id)) return false;
     if (filters.area && order.area !== filters.area) return false;
     if (filters.service_type && order.service_type !== filters.service_type) return false;
     return true;

@@ -23,10 +23,7 @@ async function routeEvent(event) {
     const technicianJoin = technicianOnboarding.parseTechnicianJoinText(text);
     if (technicianJoin) return technicianOnboarding.joinAsTechnician(user, event, technicianJoin);
 
-    if (user.role === 'technician') {
-      await lineMessageService.replyText(event, '請使用案件按鈕操作；若要重新啟用師傅身分，請輸入「加入師傅」。');
-      return { technicianMessage: true };
-    }
+    if (user.role === 'technician') return technicianFlow.handleTechnicianText(user, event, text);
     return customerFlow.handleCustomerText(user, event, text);
   }
 

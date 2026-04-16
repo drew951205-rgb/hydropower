@@ -2,7 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { welcomeMessage, quoteMessage, changeRequestMessage, assignedCustomerMessage, completionMessage } = require('../src/templates/customer-messages');
-const { assignmentMessage, assignedMessage } = require('../src/templates/technician-messages');
+const { assignmentMessage, assignedMessage, quotePromptMessage } = require('../src/templates/technician-messages');
+const { parseQuoteText } = require('../src/services/technician-flow.service');
 
 const order = {
   id: 12,
@@ -41,12 +42,32 @@ test('customer LINE messages include postback actions', () => {
   assert.equal(completion.template.actions[1].data, 'customer:dispute_completion:12');
 });
 
-test('technician LINE messages include assignment actions', () => {
+test('technician LINE messages include assignment and quote actions', () => {
   const assignment = assignmentMessage(order, { id: 34 });
   assert.equal(assignment.type, 'template');
   assert.equal(assignment.template.actions[0].data, 'technician:accept_assignment:34');
 
   const assigned = assignedMessage(order);
   assert.equal(assigned.template.actions[0].data, 'technician:arrived:12');
-  assert.equal(assigned.template.actions[1].data, 'technician:complete:12');
+  assert.equal(assigned.template.actions[1].data, 'technician:quote:12');
+  assert.equal(assigned.template.actions[2].data, 'technician:complete:12');
+
+  const quotePrompt = quotePromptMessage(order);
+  assert.equal(quotePrompt.type, 'template');
+  assert.equal(quotePrompt.template.actions[0].type, 'message');
+  assert.equal(quotePrompt.template.actions[0].text, '報價 1500');
+});
+
+test('technician quote text can omit order id', () => {
+  assert.deepEqual(parseQuoteText('報價 1500'), {
+    orderId: null,
+    amount: 1500,
+    note: 'Technician submitted quote from LINE'
+  });
+
+  assert.deepEqual(parseQuoteText('報價 12 1500 更換水龍頭'), {
+    orderId: '12',
+    amount: 1500,
+    note: '更換水龍頭'
+  });
 });

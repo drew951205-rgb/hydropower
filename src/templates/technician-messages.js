@@ -33,13 +33,29 @@ function assignedMessage(order) {
     template: {
       type: 'buttons',
       title: '已接單',
-      text: `地址：${order.address}\n電話：${order.contact_phone || '未提供'}`.slice(0, 160),
+      text: `案件：${order.order_no}\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`.slice(0, 160),
       actions: [
         postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'),
+        postbackAction('報價', `technician:quote:${order.id}`, '報價'),
         postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')
       ]
     }
   };
 }
 
-module.exports = { technicianMessages, assignmentMessage, assignedMessage };
+function quotePromptMessage(order) {
+  return {
+    type: 'template',
+    altText: `請回報報價 ${order.order_no}`,
+    template: {
+      type: 'buttons',
+      title: '回報報價',
+      text: `案件：${order.order_no}\n請輸入：報價 1500`,
+      actions: [
+        { type: 'message', label: '填寫範例', text: '報價 1500' }
+      ]
+    }
+  };
+}
+
+module.exports = { technicianMessages, assignmentMessage, assignedMessage, quotePromptMessage };
