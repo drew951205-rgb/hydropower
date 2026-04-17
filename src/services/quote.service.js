@@ -3,6 +3,7 @@ const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
 const { quoteMessage, changeRequestMessage } = require('../templates/customer-messages');
+const { acceptedQuoteTechnicianMessage } = require('../templates/technician-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
 async function submitQuote(orderId, payload, technicianId = null) {
@@ -28,7 +29,7 @@ async function confirmQuote(orderId, accepted, customerId = null) {
     ? { change_request_status: accepted ? 'approved' : 'rejected' }
     : {};
 
-  return orderService.transitionOrder(
+  const updated = await orderService.transitionOrder(
     orderId,
     accepted ? ORDER_STATUS.IN_PROGRESS : ORDER_STATUS.PLATFORM_REVIEW,
     accepted ? 'customer_accept_quote' : 'customer_reject_quote',
@@ -37,6 +38,9 @@ async function confirmQuote(orderId, accepted, customerId = null) {
     accepted ? 'Customer accepted quote or change request' : 'Customer rejected quote or change request',
     extra
   );
+
+  if (accepted) await pushToTechnician(updated, acceptedQuoteTechnicianMessage(updated));
+  return updated;
 }
 
 async function submitChangeRequest(orderId, payload, technicianId = null) {
@@ -57,6 +61,11 @@ async function submitChangeRequest(orderId, payload, technicianId = null) {
 async function pushToCustomer(order, message) {
   const customer = await userRepository.findById(order.customer_id);
   if (customer?.line_user_id) await lineMessageService.pushMessages(customer.line_user_id, message);
+}
+
+async function pushToTechnician(order, message) {
+  const technician = await userRepository.findById(order.technician_id);
+  if (technician?.line_user_id) await lineMessageService.pushMessages(technician.line_user_id, message);
 }
 
 module.exports = { submitQuote, confirmQuote, submitChangeRequest };

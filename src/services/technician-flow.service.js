@@ -25,7 +25,7 @@ async function findQuoteOrder(user, quote) {
 
   const orders = await orderRepository.listOrders({
     technician_id: user.id,
-    status: ORDER_STATUS.ARRIVED
+    status: ORDER_STATUS.ASSIGNED
   });
 
   if (orders.length === 1) return { order: orders[0], explicitOrderId: false };
@@ -46,16 +46,16 @@ async function submitLineQuote(user, event, quote) {
   if (!order) {
     if (activeOrders?.length > 1) {
       await lineMessageService.replyText(event, [
-        '你目前有多張已到場案件，請加上案件 ID。',
+        '你目前有多張待報價案件，請加上案件 ID。',
         '',
         ...activeOrders.map((item) => `${item.id}：${item.order_no}`),
         '',
         '例如：報價 3 1500'
       ].join('\n'));
-      return { quoteSubmitted: false, reason: 'multiple_arrived_orders' };
+      return { quoteSubmitted: false, reason: 'multiple_assigned_orders' };
     }
 
-    await lineMessageService.replyText(event, explicitOrderId ? '找不到這張案件，請確認案件 ID 是否正確。' : '目前找不到已到場案件，請先按「已到場」。');
+    await lineMessageService.replyText(event, explicitOrderId ? '找不到這張案件，請確認案件 ID 是否正確。' : '目前找不到待報價案件，請先接單。');
     return { quoteSubmitted: false, reason: 'order_not_found' };
   }
 
@@ -64,9 +64,9 @@ async function submitLineQuote(user, event, quote) {
     return { quoteSubmitted: false, reason: 'wrong_technician' };
   }
 
-  if (order.status !== ORDER_STATUS.ARRIVED) {
-    await lineMessageService.replyText(event, '請先按「已到場」，到場後才能送出報價。');
-    return { quoteSubmitted: false, reason: 'not_arrived' };
+  if (order.status !== ORDER_STATUS.ASSIGNED) {
+    await lineMessageService.replyText(event, '這張案件目前不能報價，請確認是否已報價或已進入施工流程。');
+    return { quoteSubmitted: false, reason: 'not_assigned' };
   }
 
   const updated = await quoteService.submitQuote(order.id, {
@@ -84,16 +84,13 @@ async function handleTechnicianPostback(user, event, data) {
 
   if (action === 'accept_assignment') {
     const order = await dispatchService.acceptAssignment(id, user);
-    await lineMessageService.replyText(event, '接單成功，請依案件資訊前往現場。');
+    await lineMessageService.replyText(event, '接單成功，請先回報報價，客戶接受後再前往。');
     return order;
   }
 
   if (action === 'arrived') {
     const order = await completionService.arrive(id, user.id);
-    await lineMessageService.replyMessages(event, [
-      { type: 'text', text: '已記錄到場。請回報報價給客戶確認。' },
-      quotePromptMessage(order)
-    ]);
+    await lineMessageService.replyText(event, '已記錄到場。完工後請按「完工回報」。');
     return order;
   }
 
@@ -104,8 +101,8 @@ async function handleTechnicianPostback(user, event, data) {
       return null;
     }
 
-    if (order.status !== ORDER_STATUS.ARRIVED) {
-      await lineMessageService.replyText(event, '請先按「已到場」，到場後才能送出報價。');
+    if (order.status !== ORDER_STATUS.ASSIGNED) {
+      await lineMessageService.replyText(event, '這張案件目前不能報價，請確認是否已報價或已進入施工流程。');
       return order;
     }
 
@@ -115,7 +112,12 @@ async function handleTechnicianPostback(user, event, data) {
 
   if (action === 'complete') {
     const order = await orderRepository.findById(id);
-    const amount = Number(order?.quote_amount || 0) + Number(order?.change_request_amount || 0);
+    if (order?.status !== ORDER_STATUS.ARRIVED) {
+      await lineMessageService.replyText(event, '請先按「已到場」，到場後才能送出完工回報。');
+      return order;
+    }
+
+    const amount = Number(order.quote_amount || 0) + Number(order.change_request_amount || 0);
     const completed = await completionService.complete(id, {
       final_amount: amount,
       summary: 'Technician completed from LINE button',

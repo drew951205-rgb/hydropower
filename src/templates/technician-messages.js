@@ -33,11 +33,9 @@ function assignedMessage(order) {
     template: {
       type: 'buttons',
       title: '已接單',
-      text: `案件：${order.order_no}\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`.slice(0, 160),
+      text: `案件：${order.order_no}\n請先回報報價，客戶接受後再前往。`.slice(0, 160),
       actions: [
-        postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'),
-        postbackAction('報價', `technician:quote:${order.id}`, '報價'),
-        postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')
+        postbackAction('報價', `technician:quote:${order.id}`, '報價')
       ]
     }
   };
@@ -58,4 +56,26 @@ function quotePromptMessage(order) {
   };
 }
 
-module.exports = { technicianMessages, assignmentMessage, assignedMessage, quotePromptMessage };
+function acceptedQuoteTechnicianMessage(order) {
+  return {
+    type: 'template',
+    altText: `客戶已接受報價 ${order.order_no}`,
+    template: {
+      type: 'buttons',
+      title: '客戶已接受報價',
+      text: `案件：${order.order_no}\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`.slice(0, 160),
+      actions: [
+        postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'),
+        postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')
+      ]
+    }
+  };
+}
+
+module.exports = {
+  technicianMessages,
+  assignmentMessage,
+  assignedMessage,
+  quotePromptMessage,
+  acceptedQuoteTechnicianMessage
+};

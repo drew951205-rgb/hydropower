@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { welcomeMessage, quoteMessage, changeRequestMessage, assignedCustomerMessage, completionMessage } = require('../src/templates/customer-messages');
-const { assignmentMessage, assignedMessage, quotePromptMessage } = require('../src/templates/technician-messages');
+const { assignmentMessage, assignedMessage, quotePromptMessage, acceptedQuoteTechnicianMessage } = require('../src/templates/technician-messages');
 const { parseQuoteText } = require('../src/services/technician-flow.service');
 
 const order = {
@@ -48,14 +48,17 @@ test('technician LINE messages include assignment and quote actions', () => {
   assert.equal(assignment.template.actions[0].data, 'technician:accept_assignment:34');
 
   const assigned = assignedMessage(order);
-  assert.equal(assigned.template.actions[0].data, 'technician:arrived:12');
-  assert.equal(assigned.template.actions[1].data, 'technician:quote:12');
-  assert.equal(assigned.template.actions[2].data, 'technician:complete:12');
+  assert.equal(assigned.template.actions.length, 1);
+  assert.equal(assigned.template.actions[0].data, 'technician:quote:12');
 
   const quotePrompt = quotePromptMessage(order);
   assert.equal(quotePrompt.type, 'template');
   assert.equal(quotePrompt.template.actions[0].type, 'message');
   assert.equal(quotePrompt.template.actions[0].text, '報價 1500');
+
+  const acceptedQuote = acceptedQuoteTechnicianMessage(order);
+  assert.equal(acceptedQuote.template.actions[0].data, 'technician:arrived:12');
+  assert.equal(acceptedQuote.template.actions[1].data, 'technician:complete:12');
 });
 
 test('technician quote text can omit order id', () => {
