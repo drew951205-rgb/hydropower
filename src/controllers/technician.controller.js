@@ -17,6 +17,7 @@ async function createTechnician(req, res, next) {
       available: req.body.available ?? true,
       service_areas: req.body.service_areas || [],
       service_types: req.body.service_types || [],
+      available_time_text: req.body.available_time_text || null,
     });
 
     res.status(201).json({ data });
@@ -44,6 +45,7 @@ async function toggleAvailability(req, res, next) {
       available: Boolean(req.body.available),
       service_areas: req.body.service_areas || [],
       service_types: req.body.service_types || [],
+      available_time_text: req.body.available_time_text || undefined,
     });
     if (!updated)
       return res.status(404).json({ error: 'Technician not found' });

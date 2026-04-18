@@ -46,7 +46,8 @@ test('customer webhook creates an order through repair flow', async () => {
       { type: 'message', replyToken: 'r3', source: { userId }, message: { type: 'text', text: '\u897f\u5340' } },
       { type: 'message', replyToken: 'r4', source: { userId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def100\u865f' } },
       { type: 'message', replyToken: 'r5', source: { userId }, message: { type: 'text', text: '\u5eda\u623f\u6c34\u69fd\u4e0b\u65b9\u6301\u7e8c\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'r6', source: { userId }, message: { type: 'text', text: '0912345678' } }
+      { type: 'message', replyToken: 'r6', source: { userId }, message: { type: 'text', text: '\u8d8a\u5feb\u8d8a\u597d' } },
+      { type: 'message', replyToken: 'r7', source: { userId }, message: { type: 'text', text: '0912345678' } }
     ];
 
     for (const event of events) {
@@ -58,6 +59,8 @@ test('customer webhook creates an order through repair flow', async () => {
     assert.equal(orders.status, 200);
     assert.equal(orders.body.data.length, 1);
     assert.equal(orders.body.data[0].status, 'pending_review');
+    assert.equal(orders.body.data[0].service_mode, 'urgent');
+    assert.equal(orders.body.data[0].preferred_time_text, '\u8d8a\u5feb\u8d8a\u597d');
   } finally {
     server.close();
   }
@@ -72,12 +75,14 @@ test('admin can create a technician', async () => {
       phone: '0911222333',
       available: true,
       service_areas: ['west'],
-      service_types: ['leak']
+      service_types: ['leak'],
+      available_time_text: '平日 18:00 後'
     });
 
     assert.equal(response.status, 201);
     assert.equal(response.body.data.role, 'technician');
     assert.equal(response.body.data.available, true);
+    assert.equal(response.body.data.available_time_text, '平日 18:00 後');
   } finally {
     server.close();
   }
@@ -125,7 +130,8 @@ test('technician acceptance notifies the customer and moves order to assigned', 
       { type: 'message', replyToken: 'ca3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
       { type: 'message', replyToken: 'ca4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def200\u865f' } },
       { type: 'message', replyToken: 'ca5', source: { userId: customerId }, message: { type: 'text', text: '\u6c34\u7ba1\u6ef2\u6c34' } },
-      { type: 'message', replyToken: 'ca6', source: { userId: customerId }, message: { type: 'text', text: '0912000000' } }
+      { type: 'message', replyToken: 'ca6', source: { userId: customerId }, message: { type: 'text', text: '\u4eca\u5929\u4e0b\u5348' } },
+      { type: 'message', replyToken: 'ca7', source: { userId: customerId }, message: { type: 'text', text: '0912000000' } }
     ];
 
     for (const event of intakeEvents) {
@@ -190,7 +196,8 @@ test('dispatch timeout expires pending assignments and returns order to dispatch
       { type: 'message', replyToken: 'to3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
       { type: 'message', replyToken: 'to4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def500\u865f' } },
       { type: 'message', replyToken: 'to5', source: { userId: customerId }, message: { type: 'text', text: '\u967d\u53f0\u6c34\u9f8d\u982d\u6ef4\u6c34' } },
-      { type: 'message', replyToken: 'to6', source: { userId: customerId }, message: { type: 'text', text: '0912666888' } }
+      { type: 'message', replyToken: 'to6', source: { userId: customerId }, message: { type: 'text', text: '\u660e\u5929\u4e0b\u5348 2-5 \u9ede' } },
+      { type: 'message', replyToken: 'to7', source: { userId: customerId }, message: { type: 'text', text: '0912666888' } }
     ];
 
     for (const event of intakeEvents) {
@@ -255,7 +262,8 @@ test('technician can quote, arrive, and complete after customer accepts', async 
       { type: 'message', replyToken: 'tf4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u5fe0\u7fa9\u8857123\u865f' } },
       { type: 'message', replyToken: 'tf5', source: { userId: customerId }, message: { type: 'text', text: '\u6d17\u624b\u53f0\u4e0b\u65b9\u6f0f\u6c34' } },
       { type: 'message', replyToken: 'tf-img1', source: { userId: customerId }, message: { type: 'image', id: 'line-image-tech-flow-1' } },
-      { type: 'message', replyToken: 'tf6', source: { userId: customerId }, message: { type: 'text', text: phone } }
+      { type: 'message', replyToken: 'tf6', source: { userId: customerId }, message: { type: 'text', text: '\u9031\u516d\u4e0a\u5348' } },
+      { type: 'message', replyToken: 'tf7', source: { userId: customerId }, message: { type: 'text', text: phone } }
     ];
 
     for (const event of intakeEvents) {
@@ -266,6 +274,8 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     const orders = await request(server, 'GET', '/api/orders');
     const order = orders.body.data.find((item) => item.contact_phone === phone);
     assert.equal(order.status, 'pending_review');
+    assert.equal(order.service_mode, 'scheduled');
+    assert.equal(order.preferred_time_text, '\u9031\u516d\u4e0a\u5348');
 
     const technician = await request(server, 'POST', '/api/technicians', {
       line_user_id: technicianId,
@@ -492,7 +502,8 @@ test('admin CRM lists customers with profile and order summary', async () => {
       { type: 'message', replyToken: 'crm3', source: { userId }, message: { type: 'text', text: '\u6771\u5340' } },
       { type: 'message', replyToken: 'crm4', source: { userId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u6771\u5340\u5f4c\u9640\u8def66\u865f' } },
       { type: 'message', replyToken: 'crm5', source: { userId }, message: { type: 'text', text: '\u71b1\u6c34\u5668\u5ffd\u51b7\u5ffd\u71b1' } },
-      { type: 'message', replyToken: 'crm6', source: { userId }, message: { type: 'text', text: '0922333444' } }
+      { type: 'message', replyToken: 'crm6', source: { userId }, message: { type: 'text', text: '\u660e\u5929\u665a\u4e0a' } },
+      { type: 'message', replyToken: 'crm7', source: { userId }, message: { type: 'text', text: '0922333444' } }
     ];
 
     for (const event of events) {

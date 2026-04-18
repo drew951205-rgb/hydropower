@@ -16,6 +16,7 @@ const STEPS = [
   'area',
   'address',
   'issue_description',
+  'preferred_time_text',
   'contact_phone',
 ];
 
@@ -25,6 +26,7 @@ function promptForStep(step) {
     area: customerMessages.askArea,
     address: customerMessages.askAddress,
     issue_description: customerMessages.askIssueDescription,
+    preferred_time_text: customerMessages.askPreferredTime,
     contact_phone: customerMessages.askPhone,
   }[step];
 }
@@ -43,6 +45,11 @@ function validateStep(step, value) {
     return '電話格式看起來不正確，請輸入市話或手機。';
   if (step === 'address' && text.length < 6) return '地址請再完整一點。';
   return null;
+}
+
+function resolveServiceMode(preferredTimeText = '') {
+  const text = String(preferredTimeText || '').trim();
+  return /越快|馬上|立即|急|現在|今天/.test(text) ? 'urgent' : 'scheduled';
 }
 
 async function resolveLineImageUrl(message) {
@@ -140,6 +147,9 @@ async function handleCustomerText(user, event, text) {
     ...(session.temp_payload || {}),
     [step]: String(text).trim(),
   };
+  if (step === 'preferred_time_text') {
+    nextPayload.service_mode = resolveServiceMode(text);
+  }
   const nextStep = STEPS[STEPS.indexOf(step) + 1];
   if (nextStep) {
     await sessionRepository.upsertForUser(user.id, {

@@ -72,6 +72,10 @@ function photoLabel(order) {
   return count ? `${count} 張` : '未提供';
 }
 
+function preferredTimeLabel(order) {
+  return order.preferred_time_text || '越快越好';
+}
+
 function technicianCard({ altText, title, status, summary, rows, actions = [] }) {
   return {
     type: 'flex',
@@ -133,6 +137,7 @@ function assignmentMessage(order, assignment) {
       infoRow('案件編號', order.order_no),
       infoRow('服務類型', order.service_type),
       infoRow('區域', order.area),
+      infoRow('時間需求', preferredTimeLabel(order)),
       infoRow('顧客照片', photoLabel(order)),
       infoRow('問題', order.issue_description),
     ],
@@ -155,6 +160,7 @@ function assignedMessage(order) {
       infoRow('案件編號', order.order_no),
       infoRow('服務類型', order.service_type),
       infoRow('區域', order.area),
+      infoRow('時間需求', preferredTimeLabel(order)),
       infoRow('地址', order.address),
       infoRow('電話', order.contact_phone || '未提供'),
       infoRow('顧客照片', photoLabel(order)),
@@ -177,6 +183,7 @@ function quotePromptMessage(order) {
       infoRow('案件編號', order.order_no),
       infoRow('服務類型', order.service_type),
       infoRow('區域', order.area),
+      infoRow('時間需求', preferredTimeLabel(order)),
       infoRow('地址', order.address),
       infoRow('電話', order.contact_phone || '未提供'),
       infoRow('顧客照片', photoLabel(order)),
@@ -216,6 +223,7 @@ function acceptedQuoteTechnicianMessage(order) {
     summary: '請依案件資訊前往。若現場有額外項目，請按「追加報價」讓客戶確認。',
     rows: [
       infoRow('案件編號', order.order_no),
+      infoRow('時間需求', preferredTimeLabel(order)),
       infoRow('地址', order.address),
       infoRow('電話', order.contact_phone || '未提供'),
     ],

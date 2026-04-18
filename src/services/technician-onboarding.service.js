@@ -25,6 +25,7 @@ async function joinAsTechnician(user, event, input = {}) {
     available: true,
     name: input.name || user.name || 'LINE 師傅',
     phone: input.phone || user.phone,
+    available_time_text: user.available_time_text || '請由後台補充可接時段',
     service_areas: user.service_areas || [],
     service_types: user.service_types || [],
   });

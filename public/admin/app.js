@@ -149,7 +149,7 @@ async function loadOrders() {
 
 function renderOrders() {
   if (!state.orders.length) {
-    els.ordersTable.innerHTML = '<tr><td colspan="7" class="empty">沒有案件</td></tr>';
+    els.ordersTable.innerHTML = '<tr><td colspan="8" class="empty">沒有案件</td></tr>';
     return;
   }
 
@@ -159,6 +159,7 @@ function renderOrders() {
       <td><span class="status-pill">${statusText(order.status)}</span></td>
       <td>${escapeHtml(order.area || '')}</td>
       <td>${escapeHtml(order.service_type || '')}</td>
+      <td>${escapeHtml(order.preferred_time_text || '越快越好')}</td>
       <td>${escapeHtml(order.technician_id || '')}</td>
       <td>${escapeHtml(nextStepText(order))}</td>
       <td>${formatDate(order.created_at)}</td>
@@ -192,6 +193,8 @@ function renderDetail() {
     ['下一步', nextStepText(order)],
     ['案件編號', order.order_no],
     ['服務類型', order.service_type],
+    ['服務模式', order.service_mode === 'scheduled' ? '預約' : '急件'],
+    ['時間需求', order.preferred_time_text || '越快越好'],
     ['區域', order.area],
     ['地址', order.address],
     ['問題', order.issue_description],
@@ -352,6 +355,7 @@ function renderTechnicians() {
       <div>
         <strong>${escapeHtml(technician.name || technician.line_user_id)}</strong>
         <span>ID ${escapeHtml(technician.id)} ｜ ${technician.available ? '可接案' : '暫停'}</span>
+        <span>可接時段：${escapeHtml(technician.available_time_text || '未填')}</span>
       </div>
       <button type="button" data-copy-technician="${technician.id}">使用</button>
     </div>
@@ -468,7 +472,8 @@ els.createTechnicianForm.addEventListener('submit', async (event) => {
       phone: formData.get('phone'),
       available: true,
       service_areas: normalizeListInput(formData.get('service_areas')),
-      service_types: normalizeListInput(formData.get('service_types'))
+      service_types: normalizeListInput(formData.get('service_types')),
+      available_time_text: formData.get('available_time_text')
     })
   });
   event.target.reset();

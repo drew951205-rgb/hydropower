@@ -9,6 +9,8 @@ const customerMessages = {
   askAddress: '請輸入完整地址，方便師傅前往。',
   askIssueDescription:
     '請描述問題狀況與發生位置，例如：廚房水槽下方漏水、浴室排水不順。也可以直接傳照片補充現場狀況。',
+  askPreferredTime:
+    '請輸入希望服務時間，例如：越快越好、今天下午、明天下午 2-5 點、週六上午。',
   askPhone: '請輸入聯絡電話。',
   orderCreated: (order) =>
     `已建立報修案件，平台會先審核資料。\n\n${orderSummary(order)}`,
@@ -145,6 +147,7 @@ function reviewApprovedMessage(order) {
       infoRow('案件編號', order.order_no),
       infoRow('服務類型', order.service_type),
       infoRow('區域', order.area),
+      infoRow('時間需求', order.preferred_time_text || '越快越好'),
     ],
   });
 }
@@ -201,6 +204,7 @@ function assignedCustomerMessage(order, technician) {
       infoRow('服務類型', order.service_type),
       infoRow('師傅', technicianName),
       infoRow('師傅電話', technicianPhone),
+      infoRow('時間需求', order.preferred_time_text || '越快越好'),
     ],
   });
 }
@@ -215,6 +219,7 @@ function dispatchTimeoutMessage(order) {
       infoRow('案件編號', order.order_no),
       infoRow('服務類型', order.service_type),
       infoRow('區域', order.area),
+      infoRow('時間需求', order.preferred_time_text || '越快越好'),
     ],
   });
 }
