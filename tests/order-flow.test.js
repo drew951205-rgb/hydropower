@@ -265,6 +265,48 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     assert.equal(customerAccepted.status, 200);
     assert.equal(customerAccepted.body.results[0].order.status, 'in_progress');
 
+    const changePrompt = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-change-prompt',
+          source: { userId: technicianId },
+          postback: { data: `technician:change_request:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(changePrompt.status, 200);
+    assert.equal(changePrompt.body.results[0].status, 'in_progress');
+
+    const changeRequest = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'tf-change-request',
+          source: { userId: technicianId },
+          message: { type: 'text', text: '\u8ffd\u52a0 500 \u66f4\u63db\u96f6\u4ef6' }
+        }
+      ]
+    });
+    assert.equal(changeRequest.status, 200);
+    assert.equal(changeRequest.body.results[0].changeRequestSubmitted, true);
+    assert.equal(changeRequest.body.results[0].order.status, 'platform_review');
+    assert.equal(changeRequest.body.results[0].order.change_request_amount, 500);
+
+    const customerAcceptedChange = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-customer-accept-change',
+          source: { userId: customerId },
+          postback: { data: `customer:accept_quote:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(customerAcceptedChange.status, 200);
+    assert.equal(customerAcceptedChange.body.results[0].order.status, 'in_progress');
+    assert.equal(customerAcceptedChange.body.results[0].order.change_request_status, 'approved');
+
     const arrived = await request(server, 'POST', '/webhook', {
       events: [
         {
@@ -290,7 +332,7 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     });
     assert.equal(completed.status, 200);
     assert.equal(completed.body.results[0].status, 'completed_pending_customer');
-    assert.equal(completed.body.results[0].final_amount, 1500);
+    assert.equal(completed.body.results[0].final_amount, 2000);
 
     const technicianReview = await request(server, 'POST', '/webhook', {
       events: [

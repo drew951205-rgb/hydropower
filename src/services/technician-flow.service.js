@@ -6,7 +6,10 @@ const orderRepository = require('../repositories/order.repository');
 const userRepository = require('../repositories/user.repository');
 const sessionRepository = require('../repositories/session.repository');
 const lineMessageService = require('./line-message.service');
-const { quotePromptMessage } = require('../templates/technician-messages');
+const {
+  quotePromptMessage,
+  changeRequestPromptMessage,
+} = require('../templates/technician-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
 function parseQuoteText(text) {
@@ -19,6 +22,19 @@ function parseQuoteText(text) {
     orderId: match[1] || null,
     amount: Number(match[2]),
     note: match[3] || 'Technician submitted quote from LINE',
+  };
+}
+
+function parseChangeRequestText(text) {
+  const match = String(text || '')
+    .trim()
+    .match(/^(?:追加|追價|追加報價)\s+(?:(\d+)\s+)?(\d+)(?:\s+(.+))?$/);
+  if (!match) return null;
+
+  return {
+    orderId: match[1] || null,
+    amount: Number(match[2]),
+    reason: match[3] || 'Technician submitted change request from LINE',
   };
 }
 
@@ -37,17 +53,43 @@ async function findQuoteOrder(user, quote) {
   return { order: null, activeOrders: orders, explicitOrderId: false };
 }
 
+async function findChangeRequestOrder(user, changeRequest) {
+  if (changeRequest.orderId) {
+    const order = await orderRepository.findById(changeRequest.orderId);
+    return { order, explicitOrderId: true };
+  }
+
+  const orders = (
+    await Promise.all([
+      orderRepository.listOrders({
+        technician_id: user.id,
+        status: ORDER_STATUS.IN_PROGRESS,
+      }),
+      orderRepository.listOrders({
+        technician_id: user.id,
+        status: ORDER_STATUS.ARRIVED,
+      }),
+    ])
+  ).flat();
+
+  if (orders.length === 1) return { order: orders[0], explicitOrderId: false };
+  return { order: null, activeOrders: orders, explicitOrderId: false };
+}
+
 async function handleTechnicianText(user, event, text) {
   const session = await sessionRepository.findByUserId(user.id);
   if (session?.flow_type === 'technician_review')
     return handleTechnicianReviewText(user, event, session, text);
+
+  const changeRequest = parseChangeRequestText(text);
+  if (changeRequest) return submitLineChangeRequest(user, event, changeRequest);
 
   const quote = parseQuoteText(text);
   if (quote) return submitLineQuote(user, event, quote);
 
   await lineMessageService.replyText(
     event,
-    '如果要回報報價，請輸入「報價 1500」。'
+    '如果要回報報價，請輸入「報價 1500」。如果要追加報價，請輸入「追加 500 更換零件」。'
   );
   return { technicianMessage: true };
 }
@@ -127,6 +169,69 @@ async function submitLineQuote(user, event, quote) {
   return { quoteSubmitted: true, order: updated };
 }
 
+async function submitLineChangeRequest(user, event, changeRequest) {
+  const { order, activeOrders, explicitOrderId } = await findChangeRequestOrder(
+    user,
+    changeRequest
+  );
+
+  if (!order) {
+    if (activeOrders?.length > 1) {
+      await lineMessageService.replyText(
+        event,
+        [
+          '你目前有多張進行中案件，請加上案件 ID。',
+          '',
+          ...activeOrders.map((item) => `${item.id}：${item.order_no}`),
+          '',
+          '範例：追加 3 500 更換零件',
+        ].join('\n')
+      );
+      return { changeRequestSubmitted: false, reason: 'multiple_active_orders' };
+    }
+
+    await lineMessageService.replyText(
+      event,
+      explicitOrderId
+        ? '找不到這張案件，請確認案件 ID 是否正確。'
+        : '目前沒有可追加報價的進行中案件。'
+    );
+    return { changeRequestSubmitted: false, reason: 'order_not_found' };
+  }
+
+  if (String(order.technician_id) !== String(user.id)) {
+    await lineMessageService.replyText(
+      event,
+      '這張案件不是由你接單，不能追加報價。'
+    );
+    return { changeRequestSubmitted: false, reason: 'wrong_technician' };
+  }
+
+  if (![ORDER_STATUS.IN_PROGRESS, ORDER_STATUS.ARRIVED].includes(order.status)) {
+    await lineMessageService.replyText(
+      event,
+      '這張案件目前不能追加報價，請等客戶同意原報價後再操作。'
+    );
+    return { changeRequestSubmitted: false, reason: 'invalid_status' };
+  }
+
+  const updated = await quoteService.submitChangeRequest(
+    order.id,
+    {
+      amount: changeRequest.amount,
+      reason: changeRequest.reason,
+      images: [],
+    },
+    user.id
+  );
+
+  await lineMessageService.replyText(
+    event,
+    `已送出追加報價 ${changeRequest.amount} 元，等待客戶確認。`
+  );
+  return { changeRequestSubmitted: true, order: updated };
+}
+
 async function cancelByTechnician(user, event, orderId) {
   const order = await orderRepository.findById(orderId);
   if (!order) {
@@ -191,7 +296,7 @@ async function handleTechnicianPostback(user, event, data) {
     const order = await completionService.arrive(id, user.id);
     await lineMessageService.replyText(
       event,
-      '已記錄到場。完工後請按「完工回報」。'
+      '已記錄到場。若現場有額外項目，請輸入「追加 500 更換零件」；完工後請按「完工回報」。'
     );
     return order;
   }
@@ -212,6 +317,25 @@ async function handleTechnicianPostback(user, event, data) {
     }
 
     await lineMessageService.replyMessages(event, quotePromptMessage(order));
+    return order;
+  }
+
+  if (action === 'change_request') {
+    const order = await orderRepository.findById(id);
+    if (!order) {
+      await lineMessageService.replyText(event, '找不到這張案件。');
+      return null;
+    }
+
+    if (![ORDER_STATUS.IN_PROGRESS, ORDER_STATUS.ARRIVED].includes(order.status)) {
+      await lineMessageService.replyText(
+        event,
+        '這張案件目前不能追加報價，請等客戶同意原報價後再操作。'
+      );
+      return order;
+    }
+
+    await lineMessageService.replyMessages(event, changeRequestPromptMessage(order));
     return order;
   }
 
@@ -249,4 +373,5 @@ module.exports = {
   handleTechnicianText,
   handleTechnicianPostback,
   parseQuoteText,
+  parseChangeRequestText,
 };

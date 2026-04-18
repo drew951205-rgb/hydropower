@@ -13,9 +13,13 @@ const {
   assignmentMessage,
   assignedMessage,
   quotePromptMessage,
+  changeRequestPromptMessage,
   acceptedQuoteTechnicianMessage,
 } = require('../src/templates/technician-messages');
-const { parseQuoteText } = require('../src/services/technician-flow.service');
+const {
+  parseQuoteText,
+  parseChangeRequestText,
+} = require('../src/services/technician-flow.service');
 
 const order = {
   id: 12,
@@ -72,7 +76,7 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   assert.equal(footerActions(completion)[1].data, 'customer:dispute_completion:12');
 });
 
-test('technician LINE messages use clearer cards and actions', () => {
+test('technician LINE messages include quote, change request, and cancel actions', () => {
   const assignment = assignmentMessage(order, { id: 34 });
   assert.equal(assignment.type, 'flex');
   assert.equal(footerActions(assignment)[0].data, 'technician:accept_assignment:34');
@@ -88,14 +92,20 @@ test('technician LINE messages use clearer cards and actions', () => {
   assert.equal(footerActions(quotePrompt)[0].text, '報價 1500');
   assert.equal(footerActions(quotePrompt)[1].data, 'technician:cancel:12');
 
+  const changePrompt = changeRequestPromptMessage(order);
+  assert.equal(changePrompt.type, 'flex');
+  assert.equal(footerActions(changePrompt)[0].type, 'message');
+  assert.equal(footerActions(changePrompt)[0].text, '追加 500 更換零件');
+
   const acceptedQuote = acceptedQuoteTechnicianMessage(order);
   assert.equal(acceptedQuote.type, 'flex');
   assert.equal(footerActions(acceptedQuote)[0].data, 'technician:arrived:12');
-  assert.equal(footerActions(acceptedQuote)[1].data, 'technician:complete:12');
-  assert.equal(footerActions(acceptedQuote)[2].data, 'technician:cancel:12');
+  assert.equal(footerActions(acceptedQuote)[1].data, 'technician:change_request:12');
+  assert.equal(footerActions(acceptedQuote)[2].data, 'technician:complete:12');
+  assert.equal(footerActions(acceptedQuote)[3].data, 'technician:cancel:12');
 });
 
-test('technician quote text can omit order id', () => {
+test('technician quote and change request text can omit order id', () => {
   assert.deepEqual(parseQuoteText('報價 1500'), {
     orderId: null,
     amount: 1500,
@@ -106,5 +116,17 @@ test('technician quote text can omit order id', () => {
     orderId: '12',
     amount: 1500,
     note: '更換止水閥',
+  });
+
+  assert.deepEqual(parseChangeRequestText('追加 500 更換零件'), {
+    orderId: null,
+    amount: 500,
+    reason: '更換零件',
+  });
+
+  assert.deepEqual(parseChangeRequestText('追價 12 800 管線加長'), {
+    orderId: '12',
+    amount: 800,
+    reason: '管線加長',
   });
 });

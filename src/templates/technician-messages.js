@@ -126,7 +126,10 @@ function assignmentMessage(order, assignment) {
       infoRow('問題', order.issue_description),
     ],
     actions: [
-      button(postbackAction('接單', `technician:accept_assignment:${assignment.id}`, '接單'), 'primary'),
+      button(
+        postbackAction('接單', `technician:accept_assignment:${assignment.id}`, '接單'),
+        'primary'
+      ),
     ],
   });
 }
@@ -166,12 +169,30 @@ function quotePromptMessage(order) {
   });
 }
 
+function changeRequestPromptMessage(order) {
+  return technicianCard({
+    altText: `請輸入追加報價 ${order.order_no}`,
+    status: '追加報價',
+    title: '請輸入追加金額與原因',
+    summary: '請用「追加 金額 原因」送出，例如：追加 500 更換止水閥。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('目前報價', `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`),
+      infoRow('輸入範例', '追加 500 更換零件'),
+    ],
+    actions: [
+      button(messageAction('填入範例', '追加 500 更換零件'), 'primary'),
+      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+    ],
+  });
+}
+
 function acceptedQuoteTechnicianMessage(order) {
   return technicianCard({
     altText: `客戶已接受報價 ${order.order_no}`,
     status: '客戶已接受報價',
     title: '可以前往現場',
-    summary: '請依案件資訊前往，到場後按「已到場」。',
+    summary: '請依案件資訊前往。若現場有額外項目，請按「追加報價」讓客戶確認。',
     rows: [
       infoRow('案件編號', order.order_no),
       infoRow('地址', order.address),
@@ -179,6 +200,7 @@ function acceptedQuoteTechnicianMessage(order) {
     ],
     actions: [
       button(postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'), 'primary'),
+      button(postbackAction('追加報價', `technician:change_request:${order.id}`, '追加報價')),
       button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
       button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
     ],
@@ -190,6 +212,7 @@ module.exports = {
   assignmentMessage,
   assignedMessage,
   quotePromptMessage,
+  changeRequestPromptMessage,
   acceptedQuoteTechnicianMessage,
   technicianCard,
 };
