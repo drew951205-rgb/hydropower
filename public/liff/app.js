@@ -56,12 +56,17 @@ async function initLineProfile() {
   state.config = config;
 
   if (window.liff && config.liffId) {
-    await window.liff.init({ liffId: config.liffId });
-    if (!window.liff.isLoggedIn()) {
-      window.liff.login({ redirectUri: window.location.href });
-      return;
+    try {
+      await window.liff.init({ liffId: config.liffId });
+      if (!window.liff.isLoggedIn()) {
+        window.liff.login({ redirectUri: window.location.href });
+        return;
+      }
+      state.profile = await window.liff.getProfile();
+    } catch (error) {
+      console.error('[liff:init:error]', error);
+      setStatus(`LIFF 載入失敗：${error.message || '請確認 LIFF ID 與 Endpoint URL 是否一致'}`, true);
     }
-    state.profile = await window.liff.getProfile();
   }
 
   if (lineUserId()) localStorage.setItem('line_user_id', lineUserId());

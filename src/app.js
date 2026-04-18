@@ -17,10 +17,28 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      'connect-src': [
+        "'self'",
+        'https://api.line.me',
+        'https://access.line.me',
+        'https://liff.line.me',
+        'https://*.line.me',
+      ],
+      'frame-ancestors': [
+        "'self'",
+        'https://line.me',
+        'https://*.line.me',
+        'https://liff.line.me',
+      ],
+      'frame-src': [
+        "'self'",
+        'https://access.line.me',
+        'https://liff.line.me',
+        'https://*.line.me',
+      ],
       'img-src': ["'self'", 'data:', 'https:'],
       'script-src': ["'self'", 'https://static.line-scdn.net'],
       'style-src': ["'self'"],
-      'connect-src': ["'self'", 'https://api.line.me']
     }
   }
 }));
