@@ -1,11 +1,8 @@
 const { orderSummary } = require('../utils/format-message');
+const { uriAction } = require('../utils/liff-url');
 
 function postbackAction(label, data, displayText = label) {
   return { type: 'postback', label, data, displayText };
-}
-
-function messageAction(label, text) {
-  return { type: 'message', label, text };
 }
 
 const technicianMessages = {
@@ -167,7 +164,10 @@ function assignedMessage(order) {
       infoRow('問題描述', order.issue_description),
     ],
     actions: [
-      button(postbackAction('報價', `technician:quote:${order.id}`, '報價'), 'primary'),
+      button(
+        uriAction('報價', '/liff/quote', { order_id: order.id }),
+        'primary'
+      ),
       button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
     ],
   });
@@ -191,7 +191,10 @@ function quotePromptMessage(order) {
       infoRow('輸入範例', '報價 1500 基本檢修含更換墊片'),
     ],
     actions: [
-      button(messageAction('填入範例', '報價 1500 基本檢修含更換墊片'), 'primary'),
+      button(
+        uriAction('開啟報價頁', '/liff/quote', { order_id: order.id }),
+        'primary'
+      ),
       button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
     ],
   });
@@ -209,7 +212,10 @@ function changeRequestPromptMessage(order) {
       infoRow('輸入範例', '追加 500 更換零件'),
     ],
     actions: [
-      button(messageAction('填入範例', '追加 500 更換零件'), 'primary'),
+      button(
+        uriAction('開啟追加頁', '/liff/change-request', { order_id: order.id }),
+        'primary'
+      ),
       button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
     ],
   });
@@ -229,7 +235,7 @@ function acceptedQuoteTechnicianMessage(order) {
     ],
     actions: [
       button(postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'), 'primary'),
-      button(postbackAction('追加報價', `technician:change_request:${order.id}`, '追加報價')),
+      button(uriAction('追加報價', '/liff/change-request', { order_id: order.id })),
       button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
       button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
     ],

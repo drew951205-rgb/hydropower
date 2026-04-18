@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>師傅報價｜師傅抵嘉</title>
+  <link rel="stylesheet" href="/liff/styles.css">
+</head>
+<body data-page="quote">
+  <main class="page">
+    <p class="eyebrow">師傅抵嘉</p>
+    <h1>師傅報價</h1>
+    <p class="lead">請先看完整案件資料，再填寫費用。顧客同意後再前往現場。</p>
+    <p id="status" class="notice" hidden></p>
+    <section id="order-panel" class="panel">載入案件中...</section>
+    <section id="photos" class="photo-grid"></section>
+    <form id="quote-form">
+      <div class="row">
+        <label>基本費
+          <input name="basic_fee" type="number" min="0" value="0" required>
+        </label>
+        <label>材料費
+          <input name="material_fee" type="number" min="0" value="0" required>
+        </label>
+      </div>
+      <label>工資
+        <input name="labor_fee" type="number" min="0" value="0" required>
+      </label>
+      <p class="notice">報價合計：<strong id="quote-total">0 元</strong></p>
+      <label>預計到場時間
+        <input name="estimated_arrival_time" placeholder="例如：今天 16:00 前、明天上午">
+      </label>
+      <label>備註
+        <textarea name="note" placeholder="例如：含基本檢修與材料，現場若有其他狀況需另行確認。"></textarea>
+      </label>
+      <button type="submit">送出報價給顧客</button>
+    </form>
+  </main>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="/liff/app.js"></script>
+</body>
+</html>

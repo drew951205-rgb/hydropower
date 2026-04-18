@@ -6,6 +6,7 @@ const webhookRoutes = require('./routes/webhook.routes');
 const orderRoutes = require('./routes/order.routes');
 const technicianRoutes = require('./routes/technician.routes');
 const adminRoutes = require('./routes/admin.routes');
+const liffRoutes = require('./routes/liff.routes');
 const { rateLimit } = require('./middlewares/rate-limit');
 const { requestLogger } = require('./middlewares/request-logger');
 const { notFound, errorHandler } = require('./middlewares/error-handler');
@@ -17,8 +18,9 @@ app.use(helmet({
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       'img-src': ["'self'", 'data:', 'https:'],
-      'script-src': ["'self'"],
-      'style-src': ["'self'"]
+      'script-src': ["'self'", 'https://static.line-scdn.net'],
+      'style-src': ["'self'"],
+      'connect-src': ["'self'", 'https://api.line.me']
     }
   }
 }));
@@ -39,11 +41,27 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('/admin', (req, res) => {
   res.redirect('/admin/');
 });
+app.get('/liff', (req, res) => {
+  res.redirect('/liff/repair');
+});
+[
+  'repair',
+  'quote',
+  'change-request',
+  'confirm',
+  'my-cases',
+  'review',
+].forEach((page) => {
+  app.get(`/liff/${page}`, (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
+  });
+});
 
 app.use('/webhook', webhookRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/technicians', technicianRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/liff', liffRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

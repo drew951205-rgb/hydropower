@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>撰寫評價｜師傅抵嘉</title>
+  <link rel="stylesheet" href="/liff/styles.css">
+</head>
+<body data-page="review">
+  <main class="page">
+    <p class="eyebrow">師傅抵嘉</p>
+    <h1>撰寫評價</h1>
+    <p class="lead">留下這次服務紀錄，讓平台後續媒合更準確。</p>
+    <p id="status" class="notice" hidden></p>
+    <section id="order-panel" class="panel">載入案件中...</section>
+    <form id="review-form">
+      <label id="rating-field">評分
+        <select name="rating">
+          <option value="5">5 分，非常滿意</option>
+          <option value="4">4 分，滿意</option>
+          <option value="3">3 分，普通</option>
+          <option value="2">2 分，不太滿意</option>
+          <option value="1">1 分，不滿意</option>
+        </select>
+      </label>
+      <label>評語
+        <textarea name="comment" placeholder="可以寫下這次服務心得、現場狀況或後續提醒。"></textarea>
+      </label>
+      <button type="submit">送出評價</button>
+    </form>
+  </main>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="/liff/app.js"></script>
+</body>
+</html>

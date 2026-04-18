@@ -1,4 +1,5 @@
 const { orderSummary } = require('../utils/format-message');
+const { uriAction } = require('../utils/liff-url');
 
 const customerMessages = {
   welcome:
@@ -133,7 +134,7 @@ function orderCard({ altText, title, status, summary, rows, actions = [] }) {
 
 function welcomeMessage() {
   return textWithQuickReply(customerMessages.welcome, [
-    postbackAction('我要報修', 'customer:start_repair', '我要報修'),
+    uriAction('我要報修', '/liff/repair'),
   ]);
 }
 
@@ -164,8 +165,13 @@ function quoteMessage(order) {
       infoRow('報價金額', `${amount.toLocaleString('zh-TW')} 元`),
     ],
     actions: [
-      button(postbackAction('同意報價', `customer:accept_quote:${order.id}`, '同意報價'), 'primary'),
-      button(postbackAction('拒絕報價', `customer:reject_quote:${order.id}`, '拒絕報價')),
+      button(
+        uriAction('查看並確認', '/liff/confirm', {
+          order_id: order.id,
+          mode: 'quote',
+        }),
+        'primary'
+      ),
       button(postbackAction('取消案件', `customer:cancel_order:${order.id}`, '取消案件')),
     ],
   });
@@ -183,8 +189,13 @@ function changeRequestMessage(order) {
       infoRow('追加金額', `${amount.toLocaleString('zh-TW')} 元`),
     ],
     actions: [
-      button(postbackAction('同意追加', `customer:accept_quote:${order.id}`, '同意追加'), 'primary'),
-      button(postbackAction('拒絕追加', `customer:reject_quote:${order.id}`, '拒絕追加')),
+      button(
+        uriAction('查看並確認', '/liff/confirm', {
+          order_id: order.id,
+          mode: 'change',
+        }),
+        'primary'
+      ),
       button(postbackAction('取消案件', `customer:cancel_order:${order.id}`, '取消案件')),
     ],
   });
@@ -236,7 +247,13 @@ function completionMessage(order) {
       infoRow('實付金額', `${amount.toLocaleString('zh-TW')} 元`),
     ],
     actions: [
-      button(postbackAction('確認結案', `customer:confirm_completion:${order.id}`, '確認結案'), 'primary'),
+      button(
+        uriAction('確認結案與評價', '/liff/confirm', {
+          order_id: order.id,
+          mode: 'completion',
+        }),
+        'primary'
+      ),
       button(postbackAction('我要申訴', `customer:dispute_completion:${order.id}`, '我要申訴')),
     ],
   });
