@@ -7,14 +7,25 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "dev:watch": "node --watch src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "eslint src/**/*.js",
+    "format": "prettier --write src/**/*.js",
+    "build": "npm run lint && npm run format"
   },
   "license": "UNLICENSED",
   "dependencies": {
+    "@line/bot-sdk": "^9.2.2",
     "@supabase/supabase-js": "^2.49.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "helmet": "^8.1.0"
+    "helmet": "^8.1.0",
+    "joi": "^17.13.3",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0",
+    "prettier": "^3.3.3"
   }
 }

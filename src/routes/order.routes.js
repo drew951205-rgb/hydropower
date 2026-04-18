@@ -15,8 +15,20 @@ router.post('/:id/arrive', authAdmin, orderController.arrive);
 router.post('/:id/quote', authAdmin, orderController.quote);
 router.post('/:id/change-request', authAdmin, orderController.changeRequest);
 router.post('/:id/complete', authAdmin, orderController.complete);
-router.post('/:id/customer-confirm-quote', authAdmin, orderController.customerConfirmQuote);
-router.post('/:id/customer-confirm-completion', authAdmin, orderController.customerConfirmCompletion);
-router.post('/:id/customer-dispute', authAdmin, orderController.customerDispute);
+router.post(
+  '/:id/customer-confirm-quote',
+  authAdmin,
+  orderController.customerConfirmQuote
+);
+router.post(
+  '/:id/customer-confirm-completion',
+  authAdmin,
+  orderController.customerConfirmCompletion
+);
+router.post(
+  '/:id/customer-dispute',
+  authAdmin,
+  orderController.customerDispute
+);
 
 module.exports = router;

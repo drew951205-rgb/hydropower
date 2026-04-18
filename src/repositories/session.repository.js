@@ -1,12 +1,23 @@
 const store = require('./store');
-const { supabase, hasSupabase, cleanPayload, throwIfSupabaseError, singleOrNull } = require('./supabase.helpers');
+const {
+  supabase,
+  hasSupabase,
+  cleanPayload,
+  throwIfSupabaseError,
+  singleOrNull,
+} = require('./supabase.helpers');
 
 async function findByUserId(userId) {
   if (hasSupabase()) {
-    return singleOrNull(supabase.from('customer_sessions').select('*').eq('user_id', userId));
+    return singleOrNull(
+      supabase.from('customer_sessions').select('*').eq('user_id', userId)
+    );
   }
 
-  return store.find('customer_sessions', (session) => String(session.user_id) === String(userId));
+  return store.find(
+    'customer_sessions',
+    (session) => String(session.user_id) === String(userId)
+  );
 }
 
 async function upsertForUser(userId, payload) {
@@ -15,7 +26,7 @@ async function upsertForUser(userId, payload) {
       user_id: userId,
       flow_type: payload.flow_type || null,
       current_step: payload.current_step || null,
-      temp_payload: payload.temp_payload || {}
+      temp_payload: payload.temp_payload || {},
     });
 
     const { data, error } = await supabase
@@ -33,18 +44,24 @@ async function upsertForUser(userId, payload) {
     user_id: userId,
     flow_type: payload.flow_type || null,
     current_step: payload.current_step || null,
-    temp_payload: payload.temp_payload || {}
+    temp_payload: payload.temp_payload || {},
   });
 }
 
 async function clearForUser(userId) {
   if (hasSupabase()) {
-    const { error } = await supabase.from('customer_sessions').delete().eq('user_id', userId);
+    const { error } = await supabase
+      .from('customer_sessions')
+      .delete()
+      .eq('user_id', userId);
     throwIfSupabaseError(error);
     return;
   }
 
-  store.removeWhere('customer_sessions', (session) => String(session.user_id) === String(userId));
+  store.removeWhere(
+    'customer_sessions',
+    (session) => String(session.user_id) === String(userId)
+  );
 }
 
 module.exports = { findByUserId, upsertForUser, clearForUser };

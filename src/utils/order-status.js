@@ -13,7 +13,7 @@ const ORDER_STATUS = Object.freeze({
   TECHNICIAN_CANCELLED: 'technician_cancelled',
   PLATFORM_CANCELLED: 'platform_cancelled',
   PLATFORM_REVIEW: 'platform_review',
-  DISPUTE_REVIEW: 'dispute_review'
+  DISPUTE_REVIEW: 'dispute_review',
 });
 
 module.exports = { ORDER_STATUS };

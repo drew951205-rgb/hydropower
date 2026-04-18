@@ -28,4 +28,10 @@ async function singleOrNull(query) {
   return data || null;
 }
 
-module.exports = { supabase, hasSupabase, cleanPayload, throwIfSupabaseError, singleOrNull };
+module.exports = {
+  supabase,
+  hasSupabase,
+  cleanPayload,
+  throwIfSupabaseError,
+  singleOrNull,
+};

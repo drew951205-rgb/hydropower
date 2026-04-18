@@ -1,43 +1,58 @@
+const { Client } = require('@line/bot-sdk');
 const { lineConfig } = require('../config/line');
 const { textMessage } = require('../utils/format-message');
 const { hasReplyToken } = require('../utils/reply-token');
 
-async function sendLineMessage(endpoint, body) {
-  const mode = endpoint.includes('/reply') ? 'reply' : endpoint.includes('/push') ? 'push' : 'unknown';
-  const messageTypes = (body.messages || []).map((message) => message.type).join(',');
+let lineClient = null;
+if (lineConfig.channelAccessToken && lineConfig.channelSecret) {
+  lineClient = new Client({
+    channelAccessToken: lineConfig.channelAccessToken,
+    channelSecret: lineConfig.channelSecret,
+  });
+}
 
-  if (!lineConfig.channelAccessToken) {
-    console.log('[line:dry-run]', JSON.stringify({ mode, messageTypes, endpoint, body }));
+async function replyMessages(event, messagesOrText) {
+  if (!lineClient) {
+    console.log('[line:dry-run] reply', JSON.stringify(messagesOrText));
     return { dryRun: true };
   }
 
-  console.log('[line:send]', JSON.stringify({
-    mode,
-    messageTypes,
-    messageCount: body.messages?.length || 0,
-    hasReplyToken: Boolean(body.replyToken),
-    hasTo: Boolean(body.to)
-  }));
+  if (!hasReplyToken(event)) {
+    throw new Error('No reply token available');
+  }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${lineConfig.channelAccessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
+  const messages = Array.isArray(messagesOrText)
+    ? messagesOrText
+    : [messagesOrText];
+  console.log('[line:reply]', `Sending ${messages.length} messages`);
 
-  const responseText = await response.text();
-  console.log('[line:response]', JSON.stringify({
-    mode,
-    status: response.status,
-    ok: response.ok,
-    body: responseText || null
-  }));
+  return lineClient.replyMessage(event.replyToken, messages);
+}
 
-  if (!response.ok) console.error('[line:error]', response.status, responseText);
-  return { ok: response.ok };
+async function replyText(event, text) {
+  return replyMessages(event, textMessage(text));
+}
+
+async function pushMessages(to, messagesOrText) {
+  if (!lineClient) {
+    console.log('[line:dry-run] push', JSON.stringify({ to, messagesOrText }));
+    return { dryRun: true };
+  }
+
+  const messages = Array.isArray(messagesOrText)
+    ? messagesOrText
+    : [messagesOrText];
+  console.log('[line:push]', `Pushing ${messages.length} messages to ${to}`);
+
+  return lineClient.pushMessage(to, messages);
+}
+
+async function sendLineMessage() {
+  // Legacy function for backward compatibility
+  console.warn(
+    '[line] sendLineMessage is deprecated, use replyMessages or pushMessages instead'
+  );
+  return { deprecated: true };
 }
 
 function normalizeMessages(messagesOrText) {
@@ -46,28 +61,10 @@ function normalizeMessages(messagesOrText) {
   return [messagesOrText];
 }
 
-async function replyMessages(event, messagesOrText) {
-  if (!hasReplyToken(event)) return { skipped: true };
-  return sendLineMessage(lineConfig.replyEndpoint, {
-    replyToken: event.replyToken,
-    messages: normalizeMessages(messagesOrText)
-  });
-}
-
-async function pushMessages(lineUserId, messagesOrText) {
-  if (!lineUserId) return { skipped: true };
-  return sendLineMessage(lineConfig.pushEndpoint, {
-    to: lineUserId,
-    messages: normalizeMessages(messagesOrText)
-  });
-}
-
-async function replyText(event, text) {
-  return replyMessages(event, text);
-}
-
-async function pushText(lineUserId, text) {
-  return pushMessages(lineUserId, text);
-}
-
-module.exports = { replyMessages, pushMessages, replyText, pushText };
+module.exports = {
+  replyMessages,
+  replyText,
+  pushMessages,
+  sendLineMessage,
+  normalizeMessages,
+};

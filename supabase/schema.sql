@@ -47,7 +47,7 @@ create table if not exists orders (
 create table if not exists assignments (
   id bigint generated always as identity primary key,
   order_id bigint not null references orders(id),
-  technician_id bigint not null references users(id),
+  technician_id bigint references users(id) on delete set null,
   status text not null default 'pending' check (status in ('pending', 'accepted', 'rejected', 'expired')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -86,7 +86,7 @@ create table if not exists order_logs (
 
 create table if not exists customer_sessions (
   id bigint generated always as identity primary key,
-  user_id bigint not null references users(id) unique,
+  user_id bigint not null references users(id) on delete cascade unique,
   flow_type text,
   current_step text,
   temp_payload jsonb not null default '{}',

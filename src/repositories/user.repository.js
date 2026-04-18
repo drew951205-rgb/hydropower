@@ -1,9 +1,17 @@
 const store = require('./store');
-const { supabase, hasSupabase, cleanPayload, throwIfSupabaseError, singleOrNull } = require('./supabase.helpers');
+const {
+  supabase,
+  hasSupabase,
+  cleanPayload,
+  throwIfSupabaseError,
+  singleOrNull,
+} = require('./supabase.helpers');
 
 async function findByLineUserId(lineUserId) {
   if (hasSupabase()) {
-    return singleOrNull(supabase.from('users').select('*').eq('line_user_id', lineUserId));
+    return singleOrNull(
+      supabase.from('users').select('*').eq('line_user_id', lineUserId)
+    );
   }
 
   return store.find('users', (user) => user.line_user_id === lineUserId);
@@ -30,11 +38,15 @@ async function findOrCreateByLineUserId(lineUserId, defaults = {}) {
     status: 'active',
     available: false,
     service_areas: [],
-    service_types: []
+    service_types: [],
   };
 
   if (hasSupabase()) {
-    const { data, error } = await supabase.from('users').insert(payload).select('*').single();
+    const { data, error } = await supabase
+      .from('users')
+      .insert(payload)
+      .select('*')
+      .single();
     if (error && error.code === '23505') return findByLineUserId(lineUserId);
     throwIfSupabaseError(error);
     return data;
@@ -68,7 +80,7 @@ async function createUser(payload) {
     status: payload.status || 'active',
     available: Boolean(payload.available),
     service_areas: payload.service_areas || [],
-    service_types: payload.service_types || []
+    service_types: payload.service_types || [],
   };
 
   if (hasSupabase()) {
@@ -86,10 +98,17 @@ async function createUser(payload) {
 
 async function listUsers(filters = {}) {
   if (hasSupabase()) {
-    let query = supabase.from('users').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
     if (filters.role) query = query.eq('role', filters.role);
     if (filters.status) query = query.eq('status', filters.status);
-    if (filters.available !== undefined) query = query.eq('available', filters.available === true || filters.available === 'true');
+    if (filters.available !== undefined)
+      query = query.eq(
+        'available',
+        filters.available === true || filters.available === 'true'
+      );
 
     const { data, error } = await query;
     throwIfSupabaseError(error);
@@ -99,7 +118,12 @@ async function listUsers(filters = {}) {
   return store.filter('users', (user) => {
     if (filters.role && user.role !== filters.role) return false;
     if (filters.status && user.status !== filters.status) return false;
-    if (filters.available !== undefined && user.available !== (filters.available === true || filters.available === 'true')) return false;
+    if (
+      filters.available !== undefined &&
+      user.available !==
+        (filters.available === true || filters.available === 'true')
+    )
+      return false;
     return true;
   });
 }
@@ -117,16 +141,31 @@ async function listAvailableTechnicians({ area, serviceType } = {}) {
     throwIfSupabaseError(error);
 
     return (data || []).filter((user) => {
-      const areaMatch = !area || !user.service_areas?.length || user.service_areas.includes(area);
-      const typeMatch = !serviceType || !user.service_types?.length || user.service_types.includes(serviceType);
+      const areaMatch =
+        !area ||
+        !user.service_areas?.length ||
+        user.service_areas.includes(area);
+      const typeMatch =
+        !serviceType ||
+        !user.service_types?.length ||
+        user.service_types.includes(serviceType);
       return areaMatch && typeMatch;
     });
   }
 
   return store.filter('users', (user) => {
-    if (user.role !== 'technician' || user.status !== 'active' || !user.available) return false;
-    const areaMatch = !area || !user.service_areas?.length || user.service_areas.includes(area);
-    const typeMatch = !serviceType || !user.service_types?.length || user.service_types.includes(serviceType);
+    if (
+      user.role !== 'technician' ||
+      user.status !== 'active' ||
+      !user.available
+    )
+      return false;
+    const areaMatch =
+      !area || !user.service_areas?.length || user.service_areas.includes(area);
+    const typeMatch =
+      !serviceType ||
+      !user.service_types?.length ||
+      user.service_types.includes(serviceType);
     return areaMatch && typeMatch;
   });
 }
@@ -138,5 +177,5 @@ module.exports = {
   updateUser,
   createUser,
   listUsers,
-  listAvailableTechnicians
+  listAvailableTechnicians,
 };

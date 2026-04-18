@@ -2,7 +2,10 @@ const processedKeys = new Map();
 const ttlMs = 10 * 60 * 1000;
 
 function getEventKey(event) {
-  return event.webhookEventId || `${event.type}:${event.replyToken || ''}:${event.timestamp || ''}`;
+  return (
+    event.webhookEventId ||
+    `${event.type}:${event.replyToken || ''}:${event.timestamp || ''}`
+  );
 }
 
 function wasProcessed(key) {

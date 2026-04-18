@@ -26,10 +26,13 @@ async function joinAsTechnician(user, event, input = {}) {
     name: input.name || user.name || 'LINE 師傅',
     phone: input.phone || user.phone,
     service_areas: user.service_areas || [],
-    service_types: user.service_types || []
+    service_types: user.service_types || [],
   });
 
-  await lineMessageService.replyText(event, '已加入師傅名單。管理員派單後，你會在 LINE 收到接單按鈕。');
+  await lineMessageService.replyText(
+    event,
+    '已加入師傅名單。管理員派單後，你會在 LINE 收到接單按鈕。'
+  );
   return { technicianJoined: true, user: updated };
 }
 

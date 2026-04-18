@@ -1,5 +1,10 @@
 const store = require('./store');
-const { supabase, hasSupabase, cleanPayload, throwIfSupabaseError } = require('./supabase.helpers');
+const {
+  supabase,
+  hasSupabase,
+  cleanPayload,
+  throwIfSupabaseError,
+} = require('./supabase.helpers');
 
 async function createMessage(payload) {
   if (hasSupabase()) {
