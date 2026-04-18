@@ -252,6 +252,24 @@ tbody tr.selected {
   gap: 12px;
 }
 
+.action-guide {
+  border: 1px solid #b9d8ce;
+  border-radius: 6px;
+  padding: 12px;
+  background: #edf6f2;
+}
+
+.action-guide strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--green-dark);
+}
+
+.action-guide p {
+  margin-bottom: 0;
+  color: var(--ink);
+}
+
 .action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

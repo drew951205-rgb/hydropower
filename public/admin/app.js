@@ -89,6 +89,30 @@ function statusText(status) {
   return statusLabels[status] || status || '';
 }
 
+function nextStepText(order) {
+  if (!order) return '';
+
+  const messages = {
+    pending_review: '請審核案件內容，確認後按「審核通過」。',
+    waiting_customer_info: '請等待顧客補齊案件資料。',
+    pending_dispatch: '請選擇合適師傅並送出派單。',
+    dispatching: '已通知師傅，請等待師傅接單。',
+    assigned: '師傅已接單，請等待師傅先提供報價。',
+    quoted: '已送出報價，請等待顧客同意報價。',
+    in_progress: '顧客已同意報價，請等待師傅前往並回報到場。',
+    arrived: '師傅已到場，請等待師傅完工回報。',
+    completed_pending_customer: '師傅已完工，請等待顧客確認結案。',
+    closed: '案件已結案，可查看紀錄或客戶評價。',
+    customer_cancelled: '顧客已取消案件，請確認是否需要人工追蹤。',
+    technician_cancelled: '師傅已取消案件，請重新派單或人工聯繫。',
+    platform_cancelled: '平台已取消案件，可查看取消原因。',
+    platform_review: '案件需要平台審核，請確認報價、追加或異常原因。',
+    dispute_review: '顧客提出爭議，請人工聯繫雙方確認。'
+  };
+
+  return messages[order.status] || '請查看案件紀錄確認下一步。';
+}
+
 function normalizeListInput(value) {
   return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
 }
@@ -125,7 +149,7 @@ async function loadOrders() {
 
 function renderOrders() {
   if (!state.orders.length) {
-    els.ordersTable.innerHTML = '<tr><td colspan="6" class="empty">沒有案件</td></tr>';
+    els.ordersTable.innerHTML = '<tr><td colspan="7" class="empty">沒有案件</td></tr>';
     return;
   }
 
@@ -136,6 +160,7 @@ function renderOrders() {
       <td>${escapeHtml(order.area || '')}</td>
       <td>${escapeHtml(order.service_type || '')}</td>
       <td>${escapeHtml(order.technician_id || '')}</td>
+      <td>${escapeHtml(nextStepText(order))}</td>
       <td>${formatDate(order.created_at)}</td>
     </tr>
   `).join('');
@@ -160,6 +185,7 @@ function renderDetail() {
 
   const rows = [
     ['狀態', statusText(order.status)],
+    ['下一步', nextStepText(order)],
     ['案件編號', order.order_no],
     ['服務類型', order.service_type],
     ['區域', order.area],
@@ -188,6 +214,13 @@ function renderActions() {
   }
 
   const blocks = [];
+  blocks.push(`
+    <div class="action-guide">
+      <strong>下一步</strong>
+      <p>${escapeHtml(nextStepText(order))}</p>
+    </div>
+  `);
+
   if (can(order, 'approve')) {
     blocks.push('<button type="button" data-action="approve">審核通過</button>');
   }
