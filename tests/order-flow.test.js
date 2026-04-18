@@ -118,6 +118,117 @@ test('LINE user can join as a technician', async () => {
   }
 });
 
+test('LINE technician can leave technician role when no active orders exist', async () => {
+  const server = app.listen(0);
+  try {
+    const lineUserId = `U-line-tech-leave-${Date.now()}`;
+    const joined = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'leave-join-1',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '\u52a0\u5165\u5e2b\u5085 \u9673\u5e2b\u5085 0911999888' }
+        }
+      ]
+    });
+    assert.equal(joined.status, 200);
+    assert.equal(joined.body.results[0].technicianJoined, true);
+
+    const left = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'leave-tech-1',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '\u9000\u51fa\u5e2b\u5085' }
+        }
+      ]
+    });
+    assert.equal(left.status, 200);
+    assert.equal(left.body.results[0].technicianLeft, true);
+    assert.equal(left.body.results[0].user.role, 'customer');
+    assert.equal(left.body.results[0].user.available, false);
+  } finally {
+    server.close();
+  }
+});
+
+test('technician with active orders is paused but cannot leave role', async () => {
+  const server = app.listen(0);
+  try {
+    const customerId = `U-customer-active-leave-${Date.now()}`;
+    const technicianId = `U-technician-active-leave-${Date.now()}`;
+
+    const intakeEvents = [
+      { type: 'message', replyToken: 'al1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
+      { type: 'message', replyToken: 'al2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'al3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
+      { type: 'message', replyToken: 'al4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def600\u865f' } },
+      { type: 'message', replyToken: 'al5', source: { userId: customerId }, message: { type: 'text', text: '\u6d74\u5ba4\u6c34\u9f8d\u982d\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'al6', source: { userId: customerId }, message: { type: 'text', text: '\u4eca\u5929\u4e0b\u5348' } },
+      { type: 'message', replyToken: 'al7', source: { userId: customerId }, message: { type: 'text', text: '0912888999' } }
+    ];
+
+    for (const event of intakeEvents) {
+      const response = await request(server, 'POST', '/webhook', { events: [event] });
+      assert.equal(response.status, 200);
+    }
+
+    const orders = await request(server, 'GET', '/api/orders');
+    const order = orders.body.data.find((item) => item.contact_phone === '0912888999');
+
+    const technician = await request(server, 'POST', '/api/technicians', {
+      line_user_id: technicianId,
+      name: 'Active Leave Technician',
+      phone: '0911888777',
+      available: true,
+      service_areas: [],
+      service_types: []
+    });
+    assert.equal(technician.status, 201);
+
+    await request(server, 'POST', `/api/orders/${order.id}/review`, {
+      action: 'approve',
+      note: 'ok'
+    });
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [technician.body.data.id]
+    });
+    const assignment = dispatched.body.data[0];
+
+    const accepted = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'al-accept',
+          source: { userId: technicianId },
+          postback: { data: `technician:accept_assignment:${assignment.id}` }
+        }
+      ]
+    });
+    assert.equal(accepted.body.results[0].status, 'assigned');
+
+    const left = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'al-leave',
+          source: { userId: technicianId },
+          message: { type: 'text', text: '\u9000\u51fa\u5e2b\u5085' }
+        }
+      ]
+    });
+    assert.equal(left.status, 200);
+    assert.equal(left.body.results[0].technicianLeft, false);
+    assert.equal(left.body.results[0].reason, 'active_orders');
+    assert.equal(left.body.results[0].user.role, 'technician');
+    assert.equal(left.body.results[0].user.available, false);
+  } finally {
+    server.close();
+  }
+});
+
 test('technician acceptance notifies the customer and moves order to assigned', async () => {
   const server = app.listen(0);
   try {

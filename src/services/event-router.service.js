@@ -29,6 +29,9 @@ async function routeEvent(event) {
 
   if (event.type === 'message' && event.message?.type === 'text') {
     const text = event.message.text || '';
+    if (technicianOnboarding.parseTechnicianLeaveText(text))
+      return technicianOnboarding.leaveAsTechnician(user, event);
+
     const technicianJoin = technicianOnboarding.parseTechnicianJoinText(text);
     if (technicianJoin)
       return technicianOnboarding.joinAsTechnician(user, event, technicianJoin);
