@@ -39,9 +39,11 @@ test('customer LINE messages include postback actions', () => {
   assert.equal(quote.type, 'template');
   assert.equal(quote.template.actions[0].data, 'customer:accept_quote:12');
   assert.equal(quote.template.actions[1].data, 'customer:reject_quote:12');
+  assert.equal(quote.template.actions[2].data, 'customer:cancel_order:12');
 
   const change = changeRequestMessage(order);
   assert.equal(change.template.actions[0].data, 'customer:accept_quote:12');
+  assert.equal(change.template.actions[2].data, 'customer:cancel_order:12');
 
   const assigned = assignedCustomerMessage(order, { name: 'Test Technician', phone: '0911222333' });
   assert.equal(assigned.type, 'text');
@@ -53,23 +55,25 @@ test('customer LINE messages include postback actions', () => {
   assert.equal(completion.template.actions[1].data, 'customer:dispute_completion:12');
 });
 
-test('technician LINE messages include quote-before-arrival actions', () => {
+test('technician LINE messages include quote and cancel actions', () => {
   const assignment = assignmentMessage(order, { id: 34 });
   assert.equal(assignment.type, 'template');
   assert.equal(assignment.template.actions[0].data, 'technician:accept_assignment:34');
 
   const assigned = assignedMessage(order);
-  assert.equal(assigned.template.actions.length, 1);
   assert.equal(assigned.template.actions[0].data, 'technician:quote:12');
+  assert.equal(assigned.template.actions[1].data, 'technician:cancel:12');
 
   const quotePrompt = quotePromptMessage(order);
   assert.equal(quotePrompt.type, 'template');
   assert.equal(quotePrompt.template.actions[0].type, 'message');
   assert.equal(quotePrompt.template.actions[0].text, '報價 1500');
+  assert.equal(quotePrompt.template.actions[1].data, 'technician:cancel:12');
 
   const acceptedQuote = acceptedQuoteTechnicianMessage(order);
   assert.equal(acceptedQuote.template.actions[0].data, 'technician:arrived:12');
   assert.equal(acceptedQuote.template.actions[1].data, 'technician:complete:12');
+  assert.equal(acceptedQuote.template.actions[2].data, 'technician:cancel:12');
 });
 
 test('technician quote text can omit order id', () => {

@@ -35,7 +35,8 @@ function assignedMessage(order) {
       title: '已接單',
       text: `案件：${order.order_no}\n請先回報報價，客戶接受後再前往。`.slice(0, 160),
       actions: [
-        postbackAction('報價', `technician:quote:${order.id}`, '報價')
+        postbackAction('報價', `technician:quote:${order.id}`, '報價'),
+        postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')
       ]
     }
   };
@@ -50,7 +51,8 @@ function quotePromptMessage(order) {
       title: '回報報價',
       text: `案件：${order.order_no}\n請輸入：報價 1500`,
       actions: [
-        { type: 'message', label: '填寫範例', text: '報價 1500' }
+        { type: 'message', label: '填寫範例', text: '報價 1500' },
+        postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')
       ]
     }
   };
@@ -66,7 +68,8 @@ function acceptedQuoteTechnicianMessage(order) {
       text: `案件：${order.order_no}\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`.slice(0, 160),
       actions: [
         postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'),
-        postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')
+        postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報'),
+        postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')
       ]
     }
   };

@@ -1,7 +1,9 @@
 const userRepository = require('../repositories/user.repository');
+const orderRepository = require('../repositories/order.repository');
 const customerFlow = require('./customer-flow.service');
 const technicianFlow = require('./technician-flow.service');
 const technicianOnboarding = require('./technician-onboarding.service');
+const orderService = require('./order.service');
 const quoteService = require('./quote.service');
 const completionService = require('./completion.service');
 const disputeService = require('./dispute.service');
@@ -31,6 +33,24 @@ async function routeEvent(event) {
   return { ignored: true };
 }
 
+async function cancelByCustomer(user, event, orderId) {
+  const cancelled = await orderService.cancelOrder(orderId, {
+    cancelled_by: 'customer',
+    reason_code: 'line_customer_cancel',
+    reason_text: 'Customer cancelled from LINE'
+  }, 'customer', user.id);
+
+  if (cancelled.technician_id) {
+    const technician = await userRepository.findById(cancelled.technician_id);
+    if (technician?.line_user_id) {
+      await lineMessageService.pushMessages(technician.line_user_id, `顧客已取消案件 ${cancelled.order_no}。`);
+    }
+  }
+
+  await lineMessageService.replyText(event, '已取消案件，平台會停止後續派工。');
+  return { cancelled: true, order: cancelled };
+}
+
 async function handlePostback(user, event, data) {
   if (data === 'customer:start_repair') return customerFlow.startRepairFlow(user, event);
 
@@ -44,6 +64,16 @@ async function handlePostback(user, event, data) {
     const order = await quoteService.confirmQuote(data.split(':')[2], false, user.id);
     await lineMessageService.replyText(event, '已拒絕報價，平台會協助後續處理。');
     return { order };
+  }
+
+  if (data.startsWith('customer:cancel_order:')) {
+    const orderId = data.split(':')[2];
+    const order = await orderRepository.findById(orderId);
+    if (!order || String(order.customer_id) !== String(user.id)) {
+      await lineMessageService.replyText(event, '找不到可取消的案件，請聯絡平台協助。');
+      return { cancelled: false };
+    }
+    return cancelByCustomer(user, event, orderId);
   }
 
   if (data.startsWith('customer:confirm_completion:')) {
