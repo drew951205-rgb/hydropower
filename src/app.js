@@ -69,6 +69,20 @@ app.use('/api/technicians', technicianRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/liff', liffRoutes);
 
+app.get('*', (req, res, next) => {
+  const isApiRoute =
+    req.path.startsWith('/api') ||
+    req.path.startsWith('/webhook') ||
+    req.path.startsWith('/health');
+  const acceptsHtml = req.accepts('html');
+
+  if (isApiRoute || !acceptsHtml) {
+    return next();
+  }
+
+  return res.sendFile(path.join(__dirname, '..', 'public', 'liff', 'repair.html'));
+});
+
 app.use(notFound);
 app.use(errorHandler);
 
