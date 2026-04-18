@@ -1,4 +1,5 @@
 const sessionRepository = require('../repositories/session.repository');
+const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
 const { customerMessages } = require('../templates/customer-messages');
@@ -84,12 +85,31 @@ async function handleCustomerText(user, event, text) {
   }
 
   const order = await orderService.createRepairOrder(user, nextPayload);
+  await updateCustomerProfileFromRepair(user, nextPayload);
   await sessionRepository.clearForUser(user.id);
   await lineMessageService.replyText(
     event,
     customerMessages.orderCreated(order)
   );
   return { order };
+}
+
+async function updateCustomerProfileFromRepair(user, payload) {
+  const changes = {
+    phone: payload.contact_phone,
+    default_address: payload.address
+  };
+
+  try {
+    await userRepository.updateUser(user.id, changes);
+  } catch (error) {
+    console.warn('[customer-profile:update:fallback]', JSON.stringify({
+      userId: user.id,
+      message: error.message
+    }));
+
+    await userRepository.updateUser(user.id, { phone: payload.contact_phone });
+  }
 }
 
 module.exports = { startRepairFlow, handleCustomerText };

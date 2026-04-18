@@ -278,6 +278,46 @@ tbody tr.selected {
   margin-bottom: 12px;
 }
 
+.customer-list,
+.mini-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.customer-item,
+.mini-list button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.customer-item:hover,
+.mini-list button:hover {
+  background: #edf6f2;
+  color: var(--ink);
+}
+
+.customer-item span {
+  font-weight: 700;
+}
+
+.customer-item small {
+  color: var(--muted);
+}
+
+.customer-detail {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
 .technician-item {
   display: grid;
   grid-template-columns: 1fr auto;

@@ -173,3 +173,37 @@ test('technician acceptance notifies the customer and moves order to assigned', 
     server.close();
   }
 });
+
+test('admin CRM lists customers with profile and order summary', async () => {
+  const server = app.listen(0);
+  try {
+    const userId = `U-crm-customer-${Date.now()}`;
+    const events = [
+      { type: 'message', replyToken: 'crm1', source: { userId }, message: { type: 'text', text: '\u5831\u4fee' } },
+      { type: 'message', replyToken: 'crm2', source: { userId }, message: { type: 'text', text: '\u71b1\u6c34\u5668' } },
+      { type: 'message', replyToken: 'crm3', source: { userId }, message: { type: 'text', text: '\u6771\u5340' } },
+      { type: 'message', replyToken: 'crm4', source: { userId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u6771\u5340\u5f4c\u9640\u8def66\u865f' } },
+      { type: 'message', replyToken: 'crm5', source: { userId }, message: { type: 'text', text: '\u71b1\u6c34\u5668\u5ffd\u51b7\u5ffd\u71b1' } },
+      { type: 'message', replyToken: 'crm6', source: { userId }, message: { type: 'text', text: '0922333444' } }
+    ];
+
+    for (const event of events) {
+      const response = await request(server, 'POST', '/webhook', { events: [event] });
+      assert.equal(response.status, 200);
+    }
+
+    const customers = await request(server, 'GET', '/api/admin/customers');
+    assert.equal(customers.status, 200);
+    const customer = customers.body.data.find((item) => item.line_user_id === userId);
+
+    assert.equal(customer.phone, '0922333444');
+    assert.equal(customer.default_address, '\u5609\u7fa9\u5e02\u6771\u5340\u5f4c\u9640\u8def66\u865f');
+    assert.equal(customer.order_count, 1);
+
+    const detail = await request(server, 'GET', `/api/admin/customers/${customer.id}`);
+    assert.equal(detail.status, 200);
+    assert.equal(detail.body.data.orders.length, 1);
+  } finally {
+    server.close();
+  }
+});

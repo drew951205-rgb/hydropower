@@ -2,6 +2,7 @@ const state = {
   adminKey: localStorage.getItem('shiFuDiJiaAdminKey') || 'change-me',
   orders: [],
   technicians: [],
+  customers: [],
   selectedOrderId: null,
   selectedOrder: null
 };
@@ -16,6 +17,10 @@ const els = {
   detailHint: document.querySelector('#detailHint'),
   orderDetail: document.querySelector('#orderDetail'),
   actions: document.querySelector('#actions'),
+  customerStatus: document.querySelector('#customerStatus'),
+  customerList: document.querySelector('#customerList'),
+  customerDetail: document.querySelector('#customerDetail'),
+  loadCustomersButton: document.querySelector('#loadCustomersButton'),
   technicianStatus: document.querySelector('#technicianStatus'),
   technicianList: document.querySelector('#technicianList'),
   loadTechniciansButton: document.querySelector('#loadTechniciansButton'),
@@ -29,22 +34,16 @@ const statusLabels = {
   pending_dispatch: '待派單',
   dispatching: '派單中',
   assigned: '已接單',
-  arrived: '已到場',
   quoted: '已報價',
-  in_progress: '施工中',
-  completed_pending_customer: '待顧客確認',
+  in_progress: '客戶已接受報價',
+  arrived: '已到場',
+  completed_pending_customer: '待客戶確認',
   closed: '已結案',
-  customer_cancelled: '顧客取消',
+  customer_cancelled: '客戶取消',
   technician_cancelled: '師傅取消',
   platform_cancelled: '平台取消',
-  platform_review: '平台介入',
+  platform_review: '平台審核',
   dispute_review: '爭議審核'
-};
-
-const changeRequestLabels = {
-  pending: '待確認',
-  approved: '已同意',
-  rejected: '已拒絕'
 };
 
 function headers() {
@@ -81,25 +80,17 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function money(value) {
+  const amount = Number(value || 0);
+  return amount ? `$${amount.toLocaleString('zh-TW')}` : '';
+}
+
 function statusText(status) {
   return statusLabels[status] || status || '';
 }
 
-function changeRequestText(status) {
-  return changeRequestLabels[status] || status || '';
-}
-
 function normalizeListInput(value) {
   return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
-}
-
-function toNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
-
-function suggestedTotal(order) {
-  return toNumber(order?.quote_amount) + toNumber(order?.change_request_amount);
 }
 
 function escapeHtml(value) {
@@ -115,15 +106,9 @@ function can(order, action) {
   if (!order) return false;
   const status = order.status;
   if (action === 'approve') return status === 'pending_review';
-  if (action === 'platform-review') return !['closed', 'customer_cancelled', 'technician_cancelled', 'platform_cancelled'].includes(status);
   if (action === 'dispatch') return ['pending_dispatch', 'dispatching'].includes(status);
-  if (action === 'arrive') return status === 'assigned';
-  if (action === 'quote') return status === 'arrived';
-  if (action === 'accept-quote') return status === 'quoted';
-  if (action === 'change-request') return status === 'in_progress';
-  if (action === 'accept-change-request') return status === 'platform_review' && order.change_request_status === 'pending';
-  if (action === 'complete') return status === 'in_progress';
-  if (action === 'confirm-completion') return status === 'completed_pending_customer';
+  if (action === 'accept-quote') return ['quoted', 'platform_review'].includes(status);
+  if (action === 'cancel') return !['closed', 'customer_cancelled', 'technician_cancelled', 'platform_cancelled'].includes(status);
   return false;
 }
 
@@ -140,7 +125,7 @@ async function loadOrders() {
 
 function renderOrders() {
   if (!state.orders.length) {
-    els.ordersTable.innerHTML = '<tr><td colspan="6" class="empty">沒有訂單</td></tr>';
+    els.ordersTable.innerHTML = '<tr><td colspan="6" class="empty">沒有案件</td></tr>';
     return;
   }
 
@@ -175,7 +160,7 @@ function renderDetail() {
 
   const rows = [
     ['狀態', statusText(order.status)],
-    ['訂單編號', order.order_no],
+    ['案件編號', order.order_no],
     ['服務類型', order.service_type],
     ['區域', order.area],
     ['地址', order.address],
@@ -183,11 +168,9 @@ function renderDetail() {
     ['電話', order.contact_phone],
     ['客戶 ID', order.customer_id],
     ['師傅 ID', order.technician_id || ''],
-    ['報價', order.quote_amount || ''],
-    ['追加', order.change_request_amount || ''],
-    ['追加狀態', changeRequestText(order.change_request_status)],
-    ['預估總額', suggestedTotal(order) || ''],
-    ['實收', order.paid_amount || order.final_amount || ''],
+    ['報價', money(order.quote_amount)],
+    ['追加', money(order.change_request_amount)],
+    ['實收', money(order.paid_amount || order.final_amount)],
     ['紀錄', `${order.logs?.length || 0} 筆`]
   ];
 
@@ -200,22 +183,13 @@ function renderDetail() {
 function renderActions() {
   const order = state.selectedOrder;
   if (!order) {
-    els.actions.innerHTML = '<p class="empty">選擇一筆訂單</p>';
+    els.actions.innerHTML = '<p class="empty">選擇案件後可以操作</p>';
     return;
   }
 
-  const total = suggestedTotal(order);
-  const finalAmount = order.final_amount || total || order.quote_amount || '';
-  const paidAmount = order.paid_amount || order.final_amount || total || order.quote_amount || '';
   const blocks = [];
-
   if (can(order, 'approve')) {
-    blocks.push(`
-      <div class="action-row">
-        <button type="button" data-action="approve">審核通過</button>
-        <button type="button" data-action="platform-review" class="secondary">平台介入</button>
-      </div>
-    `);
+    blocks.push('<button type="button" data-action="approve">審核通過</button>');
   }
 
   if (can(order, 'dispatch')) {
@@ -228,68 +202,66 @@ function renderActions() {
     `);
   }
 
-  if (can(order, 'arrive')) {
-    blocks.push('<button type="button" data-action="arrive">到場</button>');
-  }
-
-  if (can(order, 'quote')) {
-    blocks.push(`
-      <form class="quick-form" data-form="quote">
-        <h3>報價</h3>
-        <label>金額<input name="amount" type="number" min="1" placeholder="1500"></label>
-        <label>備註<textarea name="note" placeholder="漏水檢測與管線處理"></textarea></label>
-        <button type="submit">提交報價</button>
-      </form>
-    `);
-  }
-
   if (can(order, 'accept-quote')) {
-    blocks.push('<button type="button" data-action="accept-quote">顧客同意報價</button>');
+    blocks.push('<button type="button" data-action="accept-quote">客戶接受報價</button>');
   }
 
-  if (can(order, 'change-request')) {
-    blocks.push(`
-      <form class="quick-form" data-form="change-request">
-        <h3>追加報價</h3>
-        <label>追加金額<input name="amount" type="number" min="1" placeholder="600"></label>
-        <label>原因<textarea name="reason" placeholder="拆開後發現額外零件需要更換"></textarea></label>
-        <button type="submit">提出追加</button>
-      </form>
-    `);
+  if (can(order, 'cancel')) {
+    blocks.push('<button class="warn" type="button" data-action="cancel">平台取消案件</button>');
   }
 
-  if (can(order, 'accept-change-request')) {
-    blocks.push('<button type="button" data-action="accept-quote">顧客同意追加</button>');
+  els.actions.innerHTML = blocks.length ? blocks.join('') : '<p class="empty">目前沒有可用操作</p>';
+}
+
+async function loadCustomers() {
+  els.customerStatus.textContent = '載入中';
+  const result = await api('/api/admin/customers');
+  state.customers = result.data || [];
+  els.customerStatus.textContent = `${state.customers.length} 位`;
+  renderCustomers();
+}
+
+function customerName(customer) {
+  return customer.name || customer.line_display_name || customer.line_user_id || `客戶 ${customer.id}`;
+}
+
+function renderCustomers() {
+  if (!state.customers.length) {
+    els.customerList.innerHTML = '<p class="empty">沒有客戶資料</p>';
+    return;
   }
 
-  if (can(order, 'complete')) {
-    blocks.push(`
-      <form class="quick-form" data-form="complete">
-        <h3>完工</h3>
-        <label>最終金額<input name="final_amount" type="number" min="0" value="${escapeHtml(finalAmount)}"></label>
-        <label>完工摘要<textarea name="summary" placeholder="已完成施工，現場測試正常"></textarea></label>
-        <button type="submit">完工回報</button>
-      </form>
-    `);
-  }
+  els.customerList.innerHTML = state.customers.map((customer) => `
+    <button class="customer-item" type="button" data-customer-id="${customer.id}">
+      <span>${escapeHtml(customerName(customer))}</span>
+      <small>${escapeHtml(customer.phone || '未留電話')}｜${customer.order_count || 0} 件｜${formatDate(customer.last_interaction_at)}</small>
+    </button>
+  `).join('');
+}
 
-  if (can(order, 'confirm-completion')) {
-    blocks.push(`
-      <form class="quick-form" data-form="confirm-completion">
-        <h3>顧客確認</h3>
-        <label>實付金額<input name="paid_amount" type="number" min="0" value="${escapeHtml(paidAmount)}"></label>
-        <label>評分<input name="rating" type="number" min="1" max="5" value="${escapeHtml(order.rating || 5)}"></label>
-        <label>評語<textarea name="comment" placeholder="處理很快，問題已解決"></textarea></label>
-        <button type="submit">確認結案</button>
-      </form>
-    `);
-  }
+async function selectCustomer(customerId) {
+  const result = await api(`/api/admin/customers/${customerId}`);
+  const customer = result.data;
+  const orders = customer.orders || [];
 
-  if (!blocks.length) {
-    blocks.push('<p class="empty">目前沒有可用操作</p>');
-  }
-
-  els.actions.innerHTML = blocks.join('');
+  els.customerDetail.innerHTML = `
+    <dl class="detail-list">
+      <dt>名稱</dt><dd>${escapeHtml(customerName(customer))}</dd>
+      <dt>電話</dt><dd>${escapeHtml(customer.phone || '')}</dd>
+      <dt>常用地址</dt><dd>${escapeHtml(customer.default_address || '')}</dd>
+      <dt>LINE ID</dt><dd>${escapeHtml(customer.line_user_id || '')}</dd>
+      <dt>累計案件</dt><dd>${customer.order_count || 0} 件</dd>
+      <dt>成交金額</dt><dd>${money(customer.total_amount)}</dd>
+    </dl>
+    <h3>歷史案件</h3>
+    <div class="mini-list">
+      ${orders.length ? orders.map((order) => `
+        <button type="button" data-order-id="${order.id}">
+          ${escapeHtml(order.order_no)}｜${escapeHtml(order.service_type)}｜${statusText(order.status)}
+        </button>
+      `).join('') : '<p class="empty">沒有歷史案件</p>'}
+    </div>
+  `;
 }
 
 async function loadTechnicians() {
@@ -310,9 +282,9 @@ function renderTechnicians() {
     <div class="technician-item">
       <div>
         <strong>${escapeHtml(technician.name || technician.line_user_id)}</strong>
-        <span>ID ${escapeHtml(technician.id)} · ${technician.available ? '可接單' : '暫停接單'}</span>
+        <span>ID ${escapeHtml(technician.id)} ｜ ${technician.available ? '可接案' : '暫停'}</span>
       </div>
-      <button type="button" data-copy-technician="${technician.id}">選用</button>
+      <button type="button" data-copy-technician="${technician.id}">使用</button>
     </div>
   `).join('');
 }
@@ -329,25 +301,9 @@ async function runOrderAction(action) {
   if (action === 'approve') {
     await api(`/api/orders/${order.id}/review`, {
       method: 'POST',
-      body: JSON.stringify({ action: 'approve', note: '資料完整，進入派單' })
+      body: JSON.stringify({ action: 'approve', note: '審核通過' })
     });
     showToast('已通過審核');
-  }
-
-  if (action === 'platform-review') {
-    await api(`/api/orders/${order.id}/platform-review`, {
-      method: 'POST',
-      body: JSON.stringify({ reason: 'manual_review' })
-    });
-    showToast('已標記平台介入');
-  }
-
-  if (action === 'arrive') {
-    await api(`/api/orders/${order.id}/arrive`, {
-      method: 'POST',
-      body: JSON.stringify({ technician_id: order.technician_id })
-    });
-    showToast('已記錄到場');
   }
 
   if (action === 'accept-quote') {
@@ -355,7 +311,19 @@ async function runOrderAction(action) {
       method: 'POST',
       body: JSON.stringify({ accepted: true, customer_id: order.customer_id })
     });
-    showToast(order.change_request_status === 'pending' ? '顧客已同意追加' : '顧客已同意報價');
+    showToast('已接受報價');
+  }
+
+  if (action === 'cancel') {
+    await api(`/api/orders/${order.id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({
+        cancelled_by: 'platform',
+        reason_code: 'admin_cancel',
+        reason_text: 'Admin cancelled from CRM'
+      })
+    });
+    showToast('已取消案件');
   }
 
   await refreshSelectedOrder();
@@ -376,58 +344,6 @@ async function handleActionForm(form) {
     showToast('已派單');
   }
 
-  if (kind === 'quote') {
-    await api(`/api/orders/${order.id}/quote`, {
-      method: 'POST',
-      body: JSON.stringify({
-        technician_id: order.technician_id,
-        amount: Number(formData.get('amount')),
-        note: formData.get('note')
-      })
-    });
-    showToast('已提交報價');
-  }
-
-  if (kind === 'change-request') {
-    await api(`/api/orders/${order.id}/change-request`, {
-      method: 'POST',
-      body: JSON.stringify({
-        technician_id: order.technician_id,
-        amount: Number(formData.get('amount')),
-        reason: formData.get('reason'),
-        images: []
-      })
-    });
-    showToast('已提出追加報價');
-  }
-
-  if (kind === 'complete') {
-    await api(`/api/orders/${order.id}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({
-        technician_id: order.technician_id,
-        final_amount: Number(formData.get('final_amount')),
-        summary: formData.get('summary'),
-        images: []
-      })
-    });
-    showToast('已回報完工');
-  }
-
-  if (kind === 'confirm-completion') {
-    await api(`/api/orders/${order.id}/customer-confirm-completion`, {
-      method: 'POST',
-      body: JSON.stringify({
-        confirmed: true,
-        customer_id: order.customer_id,
-        paid_amount: Number(formData.get('paid_amount')),
-        rating: Number(formData.get('rating')),
-        comment: formData.get('comment')
-      })
-    });
-    showToast('已結案');
-  }
-
   form.reset();
   await refreshSelectedOrder();
 }
@@ -436,30 +352,34 @@ els.adminKey.value = state.adminKey;
 els.saveKeyButton.addEventListener('click', () => {
   state.adminKey = els.adminKey.value.trim();
   localStorage.setItem('shiFuDiJiaAdminKey', state.adminKey);
-  showToast('管理金鑰已套用');
-  loadOrders().catch((error) => showToast(error.message));
+  showToast('管理金鑰已儲存');
+  loadAll();
 });
 
 els.refreshButton.addEventListener('click', () => loadOrders().catch((error) => showToast(error.message)));
 els.statusFilter.addEventListener('change', () => loadOrders().catch((error) => showToast(error.message)));
-
 els.ordersTable.addEventListener('click', (event) => {
   const row = event.target.closest('tr[data-order-id]');
   if (row) selectOrder(row.dataset.orderId).catch((error) => showToast(error.message));
 });
-
 els.actions.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-action]');
   if (button) runOrderAction(button.dataset.action).catch((error) => showToast(error.message));
 });
-
 els.actions.addEventListener('submit', (event) => {
   event.preventDefault();
   handleActionForm(event.target).catch((error) => showToast(error.message));
 });
-
+els.loadCustomersButton.addEventListener('click', () => loadCustomers().catch((error) => showToast(error.message)));
+els.customerList.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-customer-id]');
+  if (button) selectCustomer(button.dataset.customerId).catch((error) => showToast(error.message));
+});
+els.customerDetail.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-order-id]');
+  if (button) selectOrder(button.dataset.orderId).catch((error) => showToast(error.message));
+});
 els.loadTechniciansButton.addEventListener('click', () => loadTechnicians().catch((error) => showToast(error.message)));
-
 els.technicianList.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-copy-technician]');
   const input = document.querySelector('form[data-form="dispatch"] input[name="technician_ids"]');
@@ -468,7 +388,6 @@ els.technicianList.addEventListener('click', (event) => {
     showToast('已填入師傅 ID');
   }
 });
-
 els.createTechnicianForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
@@ -488,4 +407,8 @@ els.createTechnicianForm.addEventListener('submit', async (event) => {
   await loadTechnicians();
 });
 
-Promise.all([loadOrders(), loadTechnicians()]).catch((error) => showToast(error.message));
+function loadAll() {
+  Promise.all([loadOrders(), loadTechnicians(), loadCustomers()]).catch((error) => showToast(error.message));
+}
+
+loadAll();

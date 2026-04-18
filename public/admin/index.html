@@ -3,19 +3,19 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>師傅抵嘉管理台</title>
+    <title>師傅抵嘉後台</title>
     <link rel="stylesheet" href="/admin/styles.css">
   </head>
   <body>
     <header class="topbar">
       <div>
         <p class="eyebrow">師傅抵嘉</p>
-        <h1>案件管理</h1>
+        <h1>營運後台</h1>
       </div>
       <div class="auth">
         <label for="adminKey">管理金鑰</label>
         <input id="adminKey" type="password" autocomplete="current-password" placeholder="x-admin-api-key">
-        <button id="saveKeyButton" type="button">套用</button>
+        <button id="saveKeyButton" type="button">儲存</button>
       </div>
     </header>
 
@@ -23,22 +23,22 @@
       <section class="orders-section" aria-labelledby="ordersTitle">
         <div class="section-head">
           <div>
-            <h2 id="ordersTitle">訂單</h2>
-            <p id="statusText">尚未載入</p>
+            <h2 id="ordersTitle">案件</h2>
+            <p id="statusText">準備載入</p>
           </div>
           <div class="filters">
-            <select id="statusFilter" aria-label="訂單狀態">
+            <select id="statusFilter" aria-label="案件狀態">
               <option value="">全部狀態</option>
               <option value="pending_review">待審核</option>
               <option value="pending_dispatch">待派單</option>
               <option value="dispatching">派單中</option>
               <option value="assigned">已接單</option>
-              <option value="arrived">已到場</option>
               <option value="quoted">已報價</option>
-              <option value="in_progress">施工中</option>
-              <option value="completed_pending_customer">待顧客確認</option>
+              <option value="in_progress">客戶已接受報價</option>
+              <option value="arrived">已到場</option>
+              <option value="completed_pending_customer">待客戶確認</option>
               <option value="closed">已結案</option>
-              <option value="platform_review">平台介入</option>
+              <option value="platform_review">平台審核</option>
               <option value="dispute_review">爭議審核</option>
             </select>
             <button id="refreshButton" type="button">重新整理</button>
@@ -54,7 +54,7 @@
                 <th>區域</th>
                 <th>類型</th>
                 <th>師傅</th>
-                <th>建立時間</th>
+                <th>建立</th>
               </tr>
             </thead>
             <tbody id="ordersTable"></tbody>
@@ -69,22 +69,34 @@
           <div class="section-head compact">
             <div>
               <h2 id="detailTitle">案件詳情</h2>
-              <p id="detailHint">選擇一筆訂單</p>
+              <p id="detailHint">選擇一張案件</p>
             </div>
           </div>
           <dl id="orderDetail" class="detail-list"></dl>
         </section>
 
         <section class="actions-section" aria-labelledby="actionsTitle">
-          <h2 id="actionsTitle">操作</h2>
+          <h2 id="actionsTitle">案件操作</h2>
           <div id="actions" class="actions"></div>
+        </section>
+
+        <section class="crm-section" aria-labelledby="customersTitle">
+          <div class="section-head compact">
+            <div>
+              <h2 id="customersTitle">客戶名單</h2>
+              <p id="customerStatus">準備載入</p>
+            </div>
+            <button id="loadCustomersButton" type="button">載入</button>
+          </div>
+          <div id="customerList" class="customer-list"></div>
+          <div id="customerDetail" class="customer-detail"></div>
         </section>
 
         <section class="technicians-section" aria-labelledby="techniciansTitle">
           <div class="section-head compact">
             <div>
               <h2 id="techniciansTitle">師傅</h2>
-              <p id="technicianStatus">尚未載入</p>
+              <p id="technicianStatus">準備載入</p>
             </div>
             <button id="loadTechniciansButton" type="button">載入</button>
           </div>
@@ -95,7 +107,7 @@
             <h3>新增師傅</h3>
             <label>
               LINE user ID
-              <input name="line_user_id" required placeholder="U-test-technician-001">
+              <input name="line_user_id" required placeholder="Uxxxxxxxx">
             </label>
             <label>
               姓名
@@ -111,7 +123,7 @@
             </label>
             <label>
               服務類型
-              <input name="service_types" placeholder="漏水,馬桶堵塞">
+              <input name="service_types" placeholder="漏水,馬桶,熱水器">
             </label>
             <button type="submit">建立師傅</button>
           </form>

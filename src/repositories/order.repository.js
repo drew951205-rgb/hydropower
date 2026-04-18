@@ -40,6 +40,7 @@ async function listOrders(filters = {}) {
       query = query.not('status', 'in', `(${filters.status_not_in.join(',')})`);
     if (filters.technician_id)
       query = query.eq('technician_id', filters.technician_id);
+    if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
     if (filters.area) query = query.eq('area', filters.area);
     if (filters.service_type)
       query = query.eq('service_type', filters.service_type);
@@ -61,6 +62,11 @@ async function listOrders(filters = {}) {
     if (
       filters.technician_id &&
       String(order.technician_id) !== String(filters.technician_id)
+    )
+      return false;
+    if (
+      filters.customer_id &&
+      String(order.customer_id) !== String(filters.customer_id)
     )
       return false;
     if (filters.area && order.area !== filters.area) return false;
