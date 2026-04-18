@@ -3,16 +3,17 @@ const assert = require('node:assert/strict');
 
 const {
   welcomeMessage,
+  reviewApprovedMessage,
   quoteMessage,
   changeRequestMessage,
   assignedCustomerMessage,
-  completionMessage
+  completionMessage,
 } = require('../src/templates/customer-messages');
 const {
   assignmentMessage,
   assignedMessage,
   quotePromptMessage,
-  acceptedQuoteTechnicianMessage
+  acceptedQuoteTechnicianMessage,
 } = require('../src/templates/technician-messages');
 const { parseQuoteText } = require('../src/services/technician-flow.service');
 
@@ -27,13 +28,18 @@ const order = {
   quote_amount: 1800,
   change_request_amount: 600,
   change_request_reason: 'Need to replace valve',
-  final_amount: 2400
+  final_amount: 2400,
 };
 
 test('customer LINE messages include postback actions', () => {
   const welcome = welcomeMessage();
   assert.equal(welcome.type, 'text');
   assert.equal(welcome.quickReply.items[0].action.data, 'customer:start_repair');
+
+  const reviewApproved = reviewApprovedMessage(order);
+  assert.equal(reviewApproved.type, 'text');
+  assert.match(reviewApproved.text, /馬上幫你找附近的師傅/);
+  assert.match(reviewApproved.text, /CJ-TEST/);
 
   const quote = quoteMessage(order);
   assert.equal(quote.type, 'template');
@@ -45,7 +51,10 @@ test('customer LINE messages include postback actions', () => {
   assert.equal(change.template.actions[0].data, 'customer:accept_quote:12');
   assert.equal(change.template.actions[2].data, 'customer:cancel_order:12');
 
-  const assigned = assignedCustomerMessage(order, { name: 'Test Technician', phone: '0911222333' });
+  const assigned = assignedCustomerMessage(order, {
+    name: 'Test Technician',
+    phone: '0911222333',
+  });
   assert.equal(assigned.type, 'text');
   assert.match(assigned.text, /師傅已接單/);
   assert.match(assigned.text, /Test Technician/);
@@ -80,12 +89,12 @@ test('technician quote text can omit order id', () => {
   assert.deepEqual(parseQuoteText('報價 1500'), {
     orderId: null,
     amount: 1500,
-    note: 'Technician submitted quote from LINE'
+    note: 'Technician submitted quote from LINE',
   });
 
-  assert.deepEqual(parseQuoteText('報價 12 1500 更換水龍頭'), {
+  assert.deepEqual(parseQuoteText('報價 12 1500 更換止水閥'), {
     orderId: '12',
     amount: 1500,
-    note: '更換水龍頭'
+    note: '更換止水閥',
   });
 });

@@ -3,7 +3,39 @@ const dispatchService = require('../services/dispatch.service');
 const quoteService = require('../services/quote.service');
 const completionService = require('../services/completion.service');
 const disputeService = require('../services/dispute.service');
+const lineMessageService = require('../services/line-message.service');
+const userRepository = require('../repositories/user.repository');
+const { reviewApprovedMessage } = require('../templates/customer-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
+
+async function notifyCustomerReviewApproved(order) {
+  const customer = await userRepository.findById(order.customer_id);
+  if (!customer?.line_user_id) {
+    console.warn(
+      '[review:customer-approved-push:skip]',
+      JSON.stringify({
+        reason: 'missing_customer_line_user_id',
+        orderId: order.id,
+        customerId: order.customer_id,
+      })
+    );
+    return;
+  }
+
+  console.log(
+    '[review:customer-approved-push]',
+    JSON.stringify({
+      orderId: order.id,
+      orderNo: order.order_no,
+      customerId: customer.id,
+      customerLineUserId: customer.line_user_id,
+    })
+  );
+  await lineMessageService.pushMessages(
+    customer.line_user_id,
+    reviewApprovedMessage(order)
+  );
+}
 
 async function listOrders(req, res, next) {
   try {
@@ -38,6 +70,9 @@ async function reviewOrder(req, res, next) {
       null,
       req.body.note
     );
+    if (req.body.action === 'approve') {
+      await notifyCustomerReviewApproved(data);
+    }
     res.json({ data });
   } catch (error) {
     next(error);
