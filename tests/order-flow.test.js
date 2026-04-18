@@ -108,3 +108,68 @@ test('LINE user can join as a technician', async () => {
     server.close();
   }
 });
+
+test('technician acceptance notifies the customer and moves order to assigned', async () => {
+  const server = app.listen(0);
+  try {
+    const customerId = `U-customer-assign-${Date.now()}`;
+    const technicianId = `U-technician-assign-${Date.now()}`;
+
+    const intakeEvents = [
+      { type: 'message', replyToken: 'ca1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
+      { type: 'message', replyToken: 'ca2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'ca3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
+      { type: 'message', replyToken: 'ca4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def200\u865f' } },
+      { type: 'message', replyToken: 'ca5', source: { userId: customerId }, message: { type: 'text', text: '\u6c34\u7ba1\u6ef2\u6c34' } },
+      { type: 'message', replyToken: 'ca6', source: { userId: customerId }, message: { type: 'text', text: '0912000000' } }
+    ];
+
+    for (const event of intakeEvents) {
+      const response = await request(server, 'POST', '/webhook', { events: [event] });
+      assert.equal(response.status, 200);
+    }
+
+    const orders = await request(server, 'GET', '/api/orders');
+    const order = orders.body.data.find((item) => item.customer_id);
+    assert.equal(order.status, 'pending_review');
+
+    const technician = await request(server, 'POST', '/api/technicians', {
+      line_user_id: technicianId,
+      name: 'Notify Technician',
+      phone: '0911222444',
+      available: true,
+      service_areas: [],
+      service_types: []
+    });
+    assert.equal(technician.status, 201);
+
+    const reviewed = await request(server, 'POST', `/api/orders/${order.id}/review`, { action: 'approve', note: 'ok' });
+    assert.equal(reviewed.status, 200);
+
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [technician.body.data.id]
+    });
+    assert.equal(dispatched.status, 201);
+    const assignment = dispatched.body.data[0];
+
+    const accepted = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'accept-notify-1',
+          source: { userId: technicianId },
+          postback: { data: `technician:accept_assignment:${assignment.id}` }
+        }
+      ]
+    });
+
+    assert.equal(accepted.status, 200);
+    assert.equal(accepted.body.results[0].status, 'assigned');
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(detail.body.data.status, 'assigned');
+    assert.equal(detail.body.data.technician_id, technician.body.data.id);
+  } finally {
+    server.close();
+  }
+});

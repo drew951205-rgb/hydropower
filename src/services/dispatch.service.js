@@ -165,7 +165,25 @@ async function assignOrder(
 
 async function notifyCustomerAssigned(order, technician) {
   const customer = await userRepository.findById(order.customer_id);
-  if (!customer?.line_user_id) return { skipped: true };
+  if (!customer?.line_user_id) {
+    console.warn('[dispatch:customer-assigned-push:skip]', JSON.stringify({
+      orderId: order.id,
+      orderNo: order.order_no,
+      customerId: order.customer_id,
+      technicianId: technician?.id || order.technician_id,
+      reason: 'missing_customer_line_user_id'
+    }));
+    return { skipped: true };
+  }
+
+  console.log('[dispatch:customer-assigned-push]', JSON.stringify({
+    orderId: order.id,
+    orderNo: order.order_no,
+    customerId: customer.id,
+    customerLineUserId: customer.line_user_id,
+    technicianId: technician?.id || order.technician_id
+  }));
+
   return lineMessageService.pushMessages(
     customer.line_user_id,
     assignedCustomerMessage(order, technician)
