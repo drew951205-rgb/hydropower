@@ -89,6 +89,46 @@ async function pushMessages(to, messagesOrText) {
   });
 }
 
+async function getProfile(lineUserId) {
+  if (!lineUserId) return null;
+
+  if (!lineConfig.channelAccessToken) {
+    console.log('[line:dry-run]', JSON.stringify({
+      mode: 'profile',
+      lineUserId
+    }));
+    return null;
+  }
+
+  const endpoint = `https://api.line.me/v2/bot/profile/${encodeURIComponent(lineUserId)}`;
+  console.log('[line:profile]', JSON.stringify({ lineUserId }));
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${lineConfig.channelAccessToken}`
+      }
+    });
+
+    const responseText = await response.text();
+    console.log('[line:profile:response]', JSON.stringify({
+      status: response.status,
+      ok: response.ok,
+      body: responseText || null
+    }));
+
+    if (!response.ok) return null;
+    return responseText ? JSON.parse(responseText) : null;
+  } catch (error) {
+    console.error('[line:profile:error]', JSON.stringify({
+      lineUserId,
+      message: error.message
+    }));
+    return null;
+  }
+}
+
 async function sendLineMessageLegacy() {
   console.warn('[line] sendLineMessage is deprecated, use replyMessages or pushMessages instead');
   return { deprecated: true };
@@ -98,6 +138,7 @@ module.exports = {
   replyMessages,
   replyText,
   pushMessages,
+  getProfile,
   sendLineMessage: sendLineMessageLegacy,
   normalizeMessages
 };

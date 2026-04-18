@@ -3,6 +3,7 @@ const orderRepository = require('../repositories/order.repository');
 const customerFlow = require('./customer-flow.service');
 const technicianFlow = require('./technician-flow.service');
 const technicianOnboarding = require('./technician-onboarding.service');
+const lineProfileService = require('./line-profile.service');
 const orderService = require('./order.service');
 const quoteService = require('./quote.service');
 const completionService = require('./completion.service');
@@ -13,7 +14,9 @@ const { welcomeMessage } = require('../templates/customer-messages');
 async function routeEvent(event) {
   const lineUserId = event.source?.userId;
   if (!lineUserId) return { ignored: true };
-  const user = await userRepository.findOrCreateByLineUserId(lineUserId);
+
+  let user = await userRepository.findOrCreateByLineUserId(lineUserId);
+  user = await lineProfileService.syncLineProfile(user);
 
   if (event.type === 'follow') {
     await lineMessageService.replyMessages(event, welcomeMessage());
