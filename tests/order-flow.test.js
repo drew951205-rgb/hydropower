@@ -6,6 +6,7 @@ process.env.SUPABASE_URL = '';
 process.env.SUPABASE_SERVICE_ROLE_KEY = '';
 process.env.LINE_CHANNEL_ACCESS_TOKEN = '';
 process.env.LINE_CHANNEL_SECRET = '';
+process.env.ADMIN_API_KEY = 'change-me';
 
 const { app } = require('../src/app');
 
@@ -169,6 +170,127 @@ test('technician acceptance notifies the customer and moves order to assigned', 
     const detail = await request(server, 'GET', `/api/orders/${order.id}`);
     assert.equal(detail.body.data.status, 'assigned');
     assert.equal(detail.body.data.technician_id, technician.body.data.id);
+  } finally {
+    server.close();
+  }
+});
+
+test('technician can quote, arrive, and complete after customer accepts', async () => {
+  const server = app.listen(0);
+  try {
+    const stamp = Date.now();
+    const customerId = `U-customer-tech-flow-${stamp}`;
+    const technicianId = `U-technician-tech-flow-${stamp}`;
+    const phone = `09${String(stamp).slice(-8)}`;
+
+    const intakeEvents = [
+      { type: 'message', replyToken: 'tf1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
+      { type: 'message', replyToken: 'tf2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'tf3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
+      { type: 'message', replyToken: 'tf4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u5fe0\u7fa9\u8857123\u865f' } },
+      { type: 'message', replyToken: 'tf5', source: { userId: customerId }, message: { type: 'text', text: '\u6d17\u624b\u53f0\u4e0b\u65b9\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'tf6', source: { userId: customerId }, message: { type: 'text', text: phone } }
+    ];
+
+    for (const event of intakeEvents) {
+      const response = await request(server, 'POST', '/webhook', { events: [event] });
+      assert.equal(response.status, 200);
+    }
+
+    const orders = await request(server, 'GET', '/api/orders');
+    const order = orders.body.data.find((item) => item.contact_phone === phone);
+    assert.equal(order.status, 'pending_review');
+
+    const technician = await request(server, 'POST', '/api/technicians', {
+      line_user_id: technicianId,
+      name: 'Flow Technician',
+      phone: '0911555666',
+      available: true,
+      service_areas: [],
+      service_types: []
+    });
+    assert.equal(technician.status, 201);
+
+    const reviewed = await request(server, 'POST', `/api/orders/${order.id}/review`, {
+      action: 'approve',
+      note: 'ok'
+    });
+    assert.equal(reviewed.status, 200);
+    assert.equal(reviewed.body.data.status, 'pending_dispatch');
+
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [technician.body.data.id]
+    });
+    assert.equal(dispatched.status, 201);
+    const assignment = dispatched.body.data[0];
+
+    const accepted = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-accept',
+          source: { userId: technicianId },
+          postback: { data: `technician:accept_assignment:${assignment.id}` }
+        }
+      ]
+    });
+    assert.equal(accepted.status, 200);
+    assert.equal(accepted.body.results[0].status, 'assigned');
+
+    const quoted = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'tf-quote',
+          source: { userId: technicianId },
+          message: { type: 'text', text: '\u5831\u50f9 1500' }
+        }
+      ]
+    });
+    assert.equal(quoted.status, 200);
+    assert.equal(quoted.body.results[0].quoteSubmitted, true);
+    assert.equal(quoted.body.results[0].order.status, 'quoted');
+    assert.equal(quoted.body.results[0].order.quote_amount, 1500);
+
+    const customerAccepted = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-customer-accept',
+          source: { userId: customerId },
+          postback: { data: `customer:accept_quote:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(customerAccepted.status, 200);
+    assert.equal(customerAccepted.body.results[0].order.status, 'in_progress');
+
+    const arrived = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-arrived',
+          source: { userId: technicianId },
+          postback: { data: `technician:arrived:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(arrived.status, 200);
+    assert.equal(arrived.body.results[0].status, 'arrived');
+
+    const completed = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-complete',
+          source: { userId: technicianId },
+          postback: { data: `technician:complete:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(completed.status, 200);
+    assert.equal(completed.body.results[0].status, 'completed_pending_customer');
+    assert.equal(completed.body.results[0].final_amount, 1500);
   } finally {
     server.close();
   }
