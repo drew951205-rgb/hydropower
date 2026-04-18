@@ -91,14 +91,37 @@ async function submitChangeRequest(orderId, payload, technicianId = null) {
 
 async function pushToCustomer(order, message) {
   const customer = await userRepository.findById(order.customer_id);
-  if (customer?.line_user_id)
-    await lineMessageService.pushMessages(customer.line_user_id, message);
+  if (!customer?.line_user_id) {
+    console.warn('[quote:customer-push:skip]', JSON.stringify({
+      orderId: order.id,
+      customerId: order.customer_id,
+      reason: 'missing_customer_line_user_id'
+    }));
+    return { skipped: true };
+  }
+
+  return lineMessageService.pushMessages(customer.line_user_id, message);
 }
 
 async function pushToTechnician(order, message) {
   const technician = await userRepository.findById(order.technician_id);
-  if (technician?.line_user_id)
-    await lineMessageService.pushMessages(technician.line_user_id, message);
+  if (!technician?.line_user_id) {
+    console.warn('[quote:technician-push:skip]', JSON.stringify({
+      orderId: order.id,
+      technicianId: order.technician_id,
+      reason: 'missing_technician_line_user_id'
+    }));
+    return { skipped: true };
+  }
+
+  console.log('[quote:technician-push]', JSON.stringify({
+    orderId: order.id,
+    orderNo: order.order_no,
+    technicianId: technician.id,
+    lineUserId: technician.line_user_id
+  }));
+
+  return lineMessageService.pushMessages(technician.line_user_id, message);
 }
 
 module.exports = { submitQuote, confirmQuote, submitChangeRequest };

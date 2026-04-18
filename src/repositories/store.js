@@ -48,4 +48,8 @@ function filter(tableName, predicate = () => true) {
   return tables[tableName].filter(predicate);
 }
 
-module.exports = { tables, insert, update, removeWhere, find, filter };
+function getAll(tableName) {
+  return tables[tableName] || [];
+}
+
+module.exports = { tables, insert, update, removeWhere, find, filter, getAll };

@@ -1,8 +1,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { welcomeMessage, quoteMessage, changeRequestMessage, assignedCustomerMessage, completionMessage } = require('../src/templates/customer-messages');
-const { assignmentMessage, assignedMessage, quotePromptMessage, acceptedQuoteTechnicianMessage } = require('../src/templates/technician-messages');
+const {
+  welcomeMessage,
+  quoteMessage,
+  changeRequestMessage,
+  assignedCustomerMessage,
+  completionMessage
+} = require('../src/templates/customer-messages');
+const {
+  assignmentMessage,
+  assignedMessage,
+  quotePromptMessage,
+  acceptedQuoteTechnicianMessage
+} = require('../src/templates/technician-messages');
 const { parseQuoteText } = require('../src/services/technician-flow.service');
 
 const order = {
@@ -42,7 +53,7 @@ test('customer LINE messages include postback actions', () => {
   assert.equal(completion.template.actions[1].data, 'customer:dispute_completion:12');
 });
 
-test('technician LINE messages include assignment and quote actions', () => {
+test('technician LINE messages include quote-before-arrival actions', () => {
   const assignment = assignmentMessage(order, { id: 34 });
   assert.equal(assignment.type, 'template');
   assert.equal(assignment.template.actions[0].data, 'technician:accept_assignment:34');
