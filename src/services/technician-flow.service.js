@@ -12,6 +12,37 @@ const {
 } = require('../templates/technician-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
+const ACTIVE_TECHNICIAN_STATUSES = [
+  ORDER_STATUS.ASSIGNED,
+  ORDER_STATUS.IN_PROGRESS,
+  ORDER_STATUS.ARRIVED,
+  ORDER_STATUS.COMPLETED_PENDING_CUSTOMER,
+  ORDER_STATUS.PLATFORM_REVIEW,
+];
+
+function technicianIdleMessage() {
+  return [
+    '目前沒有需要你處理的案件。',
+    '案件還在尋找合適師傅中，收到派單後會直接在這裡通知你。',
+    '如果你想接案，請保持 LINE 通知開啟，看到派單卡片後按「接單」。',
+  ].join('\n');
+}
+
+function technicianActiveHelpMessage(orders) {
+  const orderLines = orders
+    .slice(0, 5)
+    .map((order) => `${order.id}：${order.order_no}（${order.status}）`);
+
+  return [
+    '你目前有案件正在處理。',
+    '',
+    ...orderLines,
+    '',
+    '已接單案件請輸入「報價 1500 基本檢修」。',
+    '客戶同意報價後，如需追加，請輸入「追加 500 更換零件」。',
+  ].join('\n');
+}
+
 function parseQuoteText(text) {
   const match = String(text || '')
     .trim()
@@ -76,6 +107,19 @@ async function findChangeRequestOrder(user, changeRequest) {
   return { order: null, activeOrders: orders, explicitOrderId: false };
 }
 
+async function listTechnicianActiveOrders(user) {
+  const lists = await Promise.all(
+    ACTIVE_TECHNICIAN_STATUSES.map((status) =>
+      orderRepository.listOrders({
+        technician_id: user.id,
+        status,
+      })
+    )
+  );
+
+  return lists.flat();
+}
+
 async function handleTechnicianText(user, event, text) {
   const session = await sessionRepository.findByUserId(user.id);
   if (session?.flow_type === 'technician_review')
@@ -87,9 +131,12 @@ async function handleTechnicianText(user, event, text) {
   const quote = parseQuoteText(text);
   if (quote) return submitLineQuote(user, event, quote);
 
+  const activeOrders = await listTechnicianActiveOrders(user);
   await lineMessageService.replyText(
     event,
-    '如果要回報報價，請輸入「報價 1500」。如果要追加報價，請輸入「追加 500 更換零件」。'
+    activeOrders.length
+      ? technicianActiveHelpMessage(activeOrders)
+      : technicianIdleMessage()
   );
   return { technicianMessage: true };
 }
@@ -135,7 +182,7 @@ async function submitLineQuote(user, event, quote) {
       event,
       explicitOrderId
         ? '找不到這張案件，請確認案件 ID 是否正確。'
-        : '目前沒有可報價的已接單案件。'
+        : technicianIdleMessage()
     );
     return { quoteSubmitted: false, reason: 'order_not_found' };
   }
@@ -194,7 +241,7 @@ async function submitLineChangeRequest(user, event, changeRequest) {
       event,
       explicitOrderId
         ? '找不到這張案件，請確認案件 ID 是否正確。'
-        : '目前沒有可追加報價的進行中案件。'
+        : technicianIdleMessage()
     );
     return { changeRequestSubmitted: false, reason: 'order_not_found' };
   }
@@ -374,4 +421,6 @@ module.exports = {
   handleTechnicianPostback,
   parseQuoteText,
   parseChangeRequestText,
+  technicianIdleMessage,
+  technicianActiveHelpMessage,
 };

@@ -19,6 +19,8 @@ const {
 const {
   parseQuoteText,
   parseChangeRequestText,
+  technicianIdleMessage,
+  technicianActiveHelpMessage,
 } = require('../src/services/technician-flow.service');
 
 const order = {
@@ -133,4 +135,17 @@ test('technician quote and change request text can omit order id', () => {
     amount: 800,
     reason: '管線加長',
   });
+});
+
+test('technician idle text does not ask for quote when there is no case', () => {
+  const idle = technicianIdleMessage();
+  assert.match(idle, /目前沒有需要你處理的案件/);
+  assert.match(idle, /案件還在尋找合適師傅中/);
+  assert.doesNotMatch(idle, /報價 1500/);
+
+  const active = technicianActiveHelpMessage([
+    { id: 12, order_no: 'CJ-TEST', status: 'assigned' },
+  ]);
+  assert.match(active, /你目前有案件正在處理/);
+  assert.match(active, /報價 1500/);
 });
