@@ -7,8 +7,11 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = '';
 process.env.LINE_CHANNEL_ACCESS_TOKEN = '';
 process.env.LINE_CHANNEL_SECRET = '';
 process.env.ADMIN_API_KEY = 'change-me';
+process.env.DISPATCH_TIMEOUT_MINUTES = '1';
 
 const { app } = require('../src/app');
+const assignmentRepository = require('../src/repositories/assignment.repository');
+const { runDispatchTimeoutJob } = require('../src/jobs/dispatch-timeout.job');
 
 function request(server, method, path, body, headers = {}) {
   return new Promise((resolve, reject) => {
@@ -170,6 +173,68 @@ test('technician acceptance notifies the customer and moves order to assigned', 
     const detail = await request(server, 'GET', `/api/orders/${order.id}`);
     assert.equal(detail.body.data.status, 'assigned');
     assert.equal(detail.body.data.technician_id, technician.body.data.id);
+  } finally {
+    server.close();
+  }
+});
+
+test('dispatch timeout expires pending assignments and returns order to dispatch queue', async () => {
+  const server = app.listen(0);
+  try {
+    const customerId = `U-customer-timeout-${Date.now()}`;
+    const technicianId = `U-technician-timeout-${Date.now()}`;
+
+    const intakeEvents = [
+      { type: 'message', replyToken: 'to1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
+      { type: 'message', replyToken: 'to2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'to3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
+      { type: 'message', replyToken: 'to4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def500\u865f' } },
+      { type: 'message', replyToken: 'to5', source: { userId: customerId }, message: { type: 'text', text: '\u967d\u53f0\u6c34\u9f8d\u982d\u6ef4\u6c34' } },
+      { type: 'message', replyToken: 'to6', source: { userId: customerId }, message: { type: 'text', text: '0912666888' } }
+    ];
+
+    for (const event of intakeEvents) {
+      const response = await request(server, 'POST', '/webhook', { events: [event] });
+      assert.equal(response.status, 200);
+    }
+
+    const orders = await request(server, 'GET', '/api/orders');
+    const order = orders.body.data.find((item) => item.contact_phone === '0912666888');
+
+    const technician = await request(server, 'POST', '/api/technicians', {
+      line_user_id: technicianId,
+      name: 'Timeout Technician',
+      phone: '0911777888',
+      available: true,
+      service_areas: [],
+      service_types: []
+    });
+    assert.equal(technician.status, 201);
+
+    const reviewed = await request(server, 'POST', `/api/orders/${order.id}/review`, {
+      action: 'approve',
+      note: 'ok'
+    });
+    assert.equal(reviewed.status, 200);
+
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [technician.body.data.id]
+    });
+    assert.equal(dispatched.status, 201);
+    assert.equal(dispatched.body.data[0].status, 'pending');
+
+    const staleTime = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    await assignmentRepository.updateAssignment(dispatched.body.data[0].id, {
+      created_at: staleTime
+    });
+
+    await runDispatchTimeoutJob();
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(detail.status, 200);
+    assert.equal(detail.body.data.status, 'pending_dispatch');
+    assert.equal(detail.body.data.assignments[0].status, 'expired');
+    assert.ok(detail.body.data.logs.some((log) => log.action === 'dispatch_timeout'));
   } finally {
     server.close();
   }

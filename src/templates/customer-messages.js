@@ -205,6 +205,20 @@ function assignedCustomerMessage(order, technician) {
   });
 }
 
+function dispatchTimeoutMessage(order) {
+  return orderCard({
+    altText: `案件正在重新媒合 ${order.order_no}`,
+    status: '重新媒合中',
+    title: '目前附近師傅都在忙',
+    summary: '我們正在協助尋找其他可接案師傅，會盡快通知你。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('服務類型', order.service_type),
+      infoRow('區域', order.area),
+    ],
+  });
+}
+
 function completionMessage(order) {
   const amount = Number(order.final_amount || order.quote_amount || 0);
   return orderCard({
@@ -249,6 +263,7 @@ module.exports = {
   quoteMessage,
   changeRequestMessage,
   assignedCustomerMessage,
+  dispatchTimeoutMessage,
   completionMessage,
   customerReviewRatingMessage,
   customerReviewCommentPrompt,

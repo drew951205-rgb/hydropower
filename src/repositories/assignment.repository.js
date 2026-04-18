@@ -8,8 +8,14 @@ const {
 } = require('./supabase.helpers');
 
 async function createAssignment(payload) {
+  const now = new Date().toISOString();
   if (hasSupabase()) {
-    const row = cleanPayload({ status: 'pending', ...payload });
+    const row = cleanPayload({
+      status: 'pending',
+      ...payload,
+      created_at: now,
+      updated_at: now,
+    });
     const { data, error } = await supabase
       .from('assignments')
       .upsert(row, { onConflict: 'order_id,technician_id' })
@@ -25,7 +31,13 @@ async function createAssignment(payload) {
       String(assignment.order_id) === String(payload.order_id) &&
       String(assignment.technician_id) === String(payload.technician_id)
   );
-  if (existing) return existing;
+  if (existing) {
+    return store.update('assignments', existing.id, {
+      status: 'pending',
+      ...payload,
+      created_at: now,
+    });
+  }
   return store.insert('assignments', { status: 'pending', ...payload });
 }
 

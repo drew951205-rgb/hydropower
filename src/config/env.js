@@ -13,6 +13,7 @@ const env = {
   adminApiKey: process.env.ADMIN_API_KEY || 'change-me',
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60000),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 120),
+  dispatchTimeoutMinutes: Number(process.env.DISPATCH_TIMEOUT_MINUTES || 10),
 };
 
 module.exports = { env };
