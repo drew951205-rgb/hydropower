@@ -38,6 +38,9 @@ app.get('/health', (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'liff', 'repair.html'));
+});
 app.get('/admin', (req, res) => {
   res.redirect('/admin/');
 });
@@ -53,6 +56,9 @@ app.get('/liff', (req, res) => {
   'review',
 ].forEach((page) => {
   app.get(`/liff/${page}`, (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
+  });
+  app.get(`/${page}`, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
   });
 });
