@@ -43,6 +43,40 @@ function technicianActiveHelpMessage(orders) {
   ].join('\n');
 }
 
+function isMyOrdersText(text = '') {
+  return /^(我的案件|我的案子|案件|查案件)$/i.test(String(text || '').trim());
+}
+
+function technicianOrderNextStep(order) {
+  const messages = {
+    [ORDER_STATUS.ASSIGNED]: '請先回報報價，例如：報價 1500 基本檢修',
+    [ORDER_STATUS.IN_PROGRESS]: '客戶已同意報價，請前往現場並按「已到場」',
+    [ORDER_STATUS.ARRIVED]: '已到場，完工後請按「完工回報」',
+    [ORDER_STATUS.COMPLETED_PENDING_CUSTOMER]: '已完工，等待客戶確認結案',
+    [ORDER_STATUS.PLATFORM_REVIEW]: '平台審核中，請等待客戶或平台確認',
+  };
+  return messages[order.status] || '請依案件狀態操作';
+}
+
+function myOrdersMessage(orders) {
+  if (!orders.length) return technicianIdleMessage();
+
+  const orderBlocks = orders.slice(0, 8).map((order) =>
+    [
+      `${order.id}：${order.order_no}`,
+      `狀態：${order.status}`,
+      `類型：${order.service_type || '未提供'}｜區域：${order.area || '未提供'}`,
+      `下一步：${technicianOrderNextStep(order)}`,
+    ].join('\n')
+  );
+
+  return [
+    `你目前有 ${orders.length} 張處理中案件：`,
+    '',
+    orderBlocks.join('\n\n'),
+  ].join('\n');
+}
+
 function parseQuoteText(text) {
   const match = String(text || '')
     .trim()
@@ -125,6 +159,8 @@ async function handleTechnicianText(user, event, text) {
   if (session?.flow_type === 'technician_review')
     return handleTechnicianReviewText(user, event, session, text);
 
+  if (isMyOrdersText(text)) return handleMyOrders(user, event);
+
   const changeRequest = parseChangeRequestText(text);
   if (changeRequest) return submitLineChangeRequest(user, event, changeRequest);
 
@@ -139,6 +175,12 @@ async function handleTechnicianText(user, event, text) {
       : technicianIdleMessage()
   );
   return { technicianMessage: true };
+}
+
+async function handleMyOrders(user, event) {
+  const activeOrders = await listTechnicianActiveOrders(user);
+  await lineMessageService.replyText(event, myOrdersMessage(activeOrders));
+  return { myOrders: true, count: activeOrders.length };
 }
 
 async function handleTechnicianReviewText(user, event, session, text) {
@@ -423,4 +465,5 @@ module.exports = {
   parseChangeRequestText,
   technicianIdleMessage,
   technicianActiveHelpMessage,
+  myOrdersMessage,
 };

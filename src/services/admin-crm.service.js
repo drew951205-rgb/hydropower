@@ -13,6 +13,10 @@ function summarizeCustomer(customer, orders) {
     const amount = Number(order.paid_amount || order.final_amount || order.quote_amount || 0);
     return sum + (Number.isFinite(amount) ? amount : 0);
   }, 0);
+  const ratedOrders = customerOrders.filter((order) => Number(order.rating));
+  const averageRating = ratedOrders.length
+    ? ratedOrders.reduce((sum, order) => sum + Number(order.rating), 0) / ratedOrders.length
+    : null;
 
   return {
     ...customer,
@@ -20,6 +24,7 @@ function summarizeCustomer(customer, orders) {
     closed_order_count: closedOrders.length,
     cancelled_order_count: cancelledOrders.length,
     total_amount: totalAmount,
+    average_rating: averageRating,
     last_order_at: latestDate(customerOrders.map((order) => order.created_at)),
     last_interaction_at: latestDate([
       customer.updated_at,

@@ -38,6 +38,17 @@ async function routeEvent(event) {
     return customerFlow.handleCustomerText(user, event, text);
   }
 
+  if (event.type === 'message' && event.message?.type === 'image') {
+    if (user.role === 'technician') {
+      await lineMessageService.replyText(
+        event,
+        '已收到圖片。師傅端照片回報會放在下一版，目前請先用文字回報案件狀況。'
+      );
+      return { technicianImageReceived: true };
+    }
+    return customerFlow.handleCustomerImage(user, event, event.message);
+  }
+
   if (event.type === 'postback')
     return handlePostback(user, event, event.postback?.data || '');
   return { ignored: true };

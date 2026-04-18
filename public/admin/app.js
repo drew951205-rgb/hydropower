@@ -207,10 +207,28 @@ function renderDetail() {
     ['紀錄', `${order.logs?.length || 0} 筆`]
   ];
 
+  const images = order.images || [];
+  const imageGallery = images.length
+    ? `
+      <dt>照片</dt>
+      <dd>
+        <div class="image-grid">
+          ${images.map((image) => {
+            const url = image.image_url || '';
+            const isImageUrl = /^https?:\/\//.test(url);
+            return isImageUrl
+              ? `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer"><img src="${escapeHtml(url)}" alt="案件照片"></a>`
+              : `<span class="image-token">${escapeHtml(url)}</span>`;
+          }).join('')}
+        </div>
+      </dd>
+    `
+    : '<dt>照片</dt><dd>未提供</dd>';
+
   els.orderDetail.innerHTML = rows.map(([label, value]) => `
     <dt>${escapeHtml(label)}</dt>
     <dd>${escapeHtml(value)}</dd>
-  `).join('');
+  `).join('') + imageGallery;
 }
 
 function renderActions() {
@@ -273,8 +291,11 @@ function renderCustomers() {
 
   els.customerList.innerHTML = state.customers.map((customer) => `
     <button class="customer-item" type="button" data-customer-id="${customer.id}">
-      <span>${escapeHtml(customerName(customer))}</span>
-      <small>${escapeHtml(customer.phone || '未留電話')}｜${customer.order_count || 0} 件｜${formatDate(customer.last_interaction_at)}</small>
+      <span class="customer-row">
+        ${customer.line_picture_url ? `<img src="${escapeHtml(customer.line_picture_url)}" alt="">` : '<b></b>'}
+        <span>${escapeHtml(customerName(customer))}</span>
+      </span>
+      <small>${escapeHtml(customer.phone || '未留電話')}｜${customer.order_count || 0} 件｜評分 ${customer.average_rating ? Number(customer.average_rating).toFixed(1) : '-'}｜${formatDate(customer.last_interaction_at)}</small>
     </button>
   `).join('');
 }
@@ -285,12 +306,20 @@ async function selectCustomer(customerId) {
   const orders = customer.orders || [];
 
   els.customerDetail.innerHTML = `
+    <div class="profile-head">
+      ${customer.line_picture_url ? `<img src="${escapeHtml(customer.line_picture_url)}" alt="">` : '<div class="avatar-fallback"></div>'}
+      <div>
+        <strong>${escapeHtml(customerName(customer))}</strong>
+        <span>${escapeHtml(customer.line_language || '')}</span>
+      </div>
+    </div>
     <dl class="detail-list">
       <dt>名稱</dt><dd>${escapeHtml(customerName(customer))}</dd>
       <dt>電話</dt><dd>${escapeHtml(customer.phone || '')}</dd>
       <dt>常用地址</dt><dd>${escapeHtml(customer.default_address || '')}</dd>
       <dt>LINE ID</dt><dd>${escapeHtml(customer.line_user_id || '')}</dd>
       <dt>累計案件</dt><dd>${customer.order_count || 0} 件</dd>
+      <dt>平均評分</dt><dd>${customer.average_rating ? Number(customer.average_rating).toFixed(1) : ''}</dd>
       <dt>成交金額</dt><dd>${money(customer.total_amount)}</dd>
     </dl>
     <h3>歷史案件</h3>

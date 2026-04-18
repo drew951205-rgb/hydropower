@@ -3,6 +3,9 @@ const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
 const completionService = require('./completion.service');
 const lineMessageService = require('./line-message.service');
+const fileUploadService = require('./file-upload.service');
+const orderRepository = require('../repositories/order.repository');
+const { ORDER_STATUS } = require('../utils/order-status');
 const {
   customerMessages,
   customerReviewCommentPrompt,
@@ -40,6 +43,63 @@ function validateStep(step, value) {
     return '電話格式看起來不正確，請輸入市話或手機。';
   if (step === 'address' && text.length < 6) return '地址請再完整一點。';
   return null;
+}
+
+async function resolveLineImageUrl(message) {
+  const externalUrl = message?.contentProvider?.originalContentUrl;
+  if (externalUrl) return externalUrl;
+
+  const fallbackUrl = `line-image:${message.id}`;
+  const content = await lineMessageService.getMessageContent(message.id);
+  if (!content?.buffer) return fallbackUrl;
+
+  try {
+    const uploaded = await fileUploadService.uploadImages(
+      [
+        {
+          buffer: content.buffer,
+          mimetype: content.mimetype,
+          size: content.size,
+        },
+      ],
+      'issue'
+    );
+    return uploaded[0]?.url || fallbackUrl;
+  } catch (error) {
+    console.warn('[line-image:upload:fallback]', JSON.stringify({
+      messageId: message.id,
+      message: error.message,
+    }));
+    return fallbackUrl;
+  }
+}
+
+async function findLatestCustomerOpenOrder(user) {
+  const activeStatuses = [
+    ORDER_STATUS.PENDING_REVIEW,
+    ORDER_STATUS.WAITING_CUSTOMER_INFO,
+    ORDER_STATUS.PENDING_DISPATCH,
+    ORDER_STATUS.DISPATCHING,
+    ORDER_STATUS.ASSIGNED,
+    ORDER_STATUS.QUOTED,
+    ORDER_STATUS.IN_PROGRESS,
+    ORDER_STATUS.ARRIVED,
+    ORDER_STATUS.PLATFORM_REVIEW,
+  ];
+  const lists = await Promise.all(
+    activeStatuses.map((status) =>
+      orderRepository.listOrders({ customer_id: user.id, status })
+    )
+  );
+
+  return (
+    lists
+      .flat()
+      .sort(
+        (a, b) =>
+          new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      )[0] || null
+  );
 }
 
 async function startRepairFlow(user, event) {
@@ -99,6 +159,48 @@ async function handleCustomerText(user, event, text) {
     customerMessages.orderCreated(order)
   );
   return { order };
+}
+
+async function handleCustomerImage(user, event, message) {
+  const session = await sessionRepository.findByUserId(user.id);
+  const imageUrl = await resolveLineImageUrl(message);
+
+  if (session?.flow_type === 'repair') {
+    const payload = session.temp_payload || {};
+    const images = [...(payload.images || []), imageUrl].slice(0, 5);
+    await sessionRepository.upsertForUser(user.id, {
+      flow_type: 'repair',
+      current_step: session.current_step,
+      temp_payload: {
+        ...payload,
+        images,
+      },
+    });
+    await lineMessageService.replyText(
+      event,
+      [
+        `已收到照片，目前共 ${images.length} 張。`,
+        `請繼續：${promptForStep(session.current_step)}`,
+      ].join('\n')
+    );
+    return { imageSavedToSession: true, imageCount: images.length };
+  }
+
+  const order = await findLatestCustomerOpenOrder(user);
+  if (!order) {
+    await lineMessageService.replyText(
+      event,
+      '已收到照片。如果要建立案件，請輸入「報修」開始。'
+    );
+    return { imageSaved: false, reason: 'no_active_order' };
+  }
+
+  await orderService.addImages(order.id, [imageUrl], 'issue');
+  await lineMessageService.replyText(
+    event,
+    `已把照片加入案件 ${order.order_no}，平台和師傅會看到這筆紀錄。`
+  );
+  return { imageSavedToOrder: true, orderId: order.id };
 }
 
 async function handleCustomerReviewText(user, event, session, text) {
@@ -162,4 +264,4 @@ async function updateCustomerProfileFromRepair(user, payload) {
   }
 }
 
-module.exports = { startRepairFlow, handleCustomerText };
+module.exports = { startRepairFlow, handleCustomerText, handleCustomerImage };

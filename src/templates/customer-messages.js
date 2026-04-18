@@ -8,7 +8,7 @@ const customerMessages = {
   askArea: '請輸入案件所在區域，例如：東區、西區、水上、民雄。',
   askAddress: '請輸入完整地址，方便師傅前往。',
   askIssueDescription:
-    '請描述問題狀況與發生位置，例如：廚房水槽下方漏水、浴室排水不順。',
+    '請描述問題狀況與發生位置，例如：廚房水槽下方漏水、浴室排水不順。也可以直接傳照片補充現場狀況。',
   askPhone: '請輸入聯絡電話。',
   orderCreated: (order) =>
     `已建立報修案件，平台會先審核資料。\n\n${orderSummary(order)}`,

@@ -117,6 +117,7 @@ async function createRepairOrder(customer, payload) {
     message_type: 'text',
     content: payload.issue_description,
   });
+  await addImages(order.id, payload.images || [], 'issue');
 
   return order;
 }

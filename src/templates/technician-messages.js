@@ -62,6 +62,16 @@ function button(action, style = 'secondary') {
   };
 }
 
+function photoCount(order) {
+  if (Array.isArray(order.images)) return order.images.length;
+  return Number(order.image_count || 0);
+}
+
+function photoLabel(order) {
+  const count = photoCount(order);
+  return count ? `${count} 張` : '未提供';
+}
+
 function technicianCard({ altText, title, status, summary, rows, actions = [] }) {
   return {
     type: 'flex',
@@ -123,6 +133,7 @@ function assignmentMessage(order, assignment) {
       infoRow('案件編號', order.order_no),
       infoRow('服務類型', order.service_type),
       infoRow('區域', order.area),
+      infoRow('顧客照片', photoLabel(order)),
       infoRow('問題', order.issue_description),
     ],
     actions: [
@@ -146,6 +157,7 @@ function assignedMessage(order) {
       infoRow('區域', order.area),
       infoRow('地址', order.address),
       infoRow('電話', order.contact_phone || '未提供'),
+      infoRow('顧客照片', photoLabel(order)),
       infoRow('問題描述', order.issue_description),
     ],
     actions: [
@@ -167,6 +179,7 @@ function quotePromptMessage(order) {
       infoRow('區域', order.area),
       infoRow('地址', order.address),
       infoRow('電話', order.contact_phone || '未提供'),
+      infoRow('顧客照片', photoLabel(order)),
       infoRow('問題描述', order.issue_description),
       infoRow('輸入範例', '報價 1500 基本檢修含更換墊片'),
     ],

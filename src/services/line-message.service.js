@@ -129,6 +129,53 @@ async function getProfile(lineUserId) {
   }
 }
 
+async function getMessageContent(messageId) {
+  if (!messageId) return null;
+
+  if (!lineConfig.channelAccessToken) {
+    console.log('[line:dry-run]', JSON.stringify({
+      mode: 'content',
+      messageId
+    }));
+    return null;
+  }
+
+  const endpoint = `https://api-data.line.me/v2/bot/message/${encodeURIComponent(messageId)}/content`;
+  console.log('[line:content]', JSON.stringify({ messageId }));
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${lineConfig.channelAccessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      console.error('[line:content:error]', JSON.stringify({
+        messageId,
+        status: response.status,
+        body: responseText || null
+      }));
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      mimetype: response.headers.get('content-type') || 'image/jpeg',
+      size: Number(response.headers.get('content-length') || arrayBuffer.byteLength),
+    };
+  } catch (error) {
+    console.error('[line:content:error]', JSON.stringify({
+      messageId,
+      message: error.message
+    }));
+    return null;
+  }
+}
+
 async function sendLineMessageLegacy() {
   console.warn('[line] sendLineMessage is deprecated, use replyMessages or pushMessages instead');
   return { deprecated: true };
@@ -139,6 +186,7 @@ module.exports = {
   replyText,
   pushMessages,
   getProfile,
+  getMessageContent,
   sendLineMessage: sendLineMessageLegacy,
   normalizeMessages
 };

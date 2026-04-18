@@ -34,6 +34,7 @@ async function dispatchOrder(
     throw Object.assign(new Error('Order not found'), { statusCode: 404 });
   assertCanDispatch(order);
 
+  const orderDetail = await orderRepository.getOrderDetail(order.id);
   const assignments = [];
   for (const technicianId of technicianIds.slice(0, 5)) {
     const assignment = await assignmentRepository.createAssignment({
@@ -46,7 +47,7 @@ async function dispatchOrder(
     if (technician?.line_user_id)
       await lineMessageService.pushMessages(
         technician.line_user_id,
-        assignmentMessage(order, assignment)
+        assignmentMessage(orderDetail || order, assignment)
       );
   }
 
@@ -123,9 +124,10 @@ async function acceptAssignment(assignmentId, technicianUser) {
       technician_id: technicianUser.id,
     }
   );
+  const updatedDetail = await orderRepository.getOrderDetail(updated.id);
   await lineMessageService.pushMessages(
     technicianUser.line_user_id,
-    assignedMessage(updated)
+    assignedMessage(updatedDetail || updated)
   );
   await notifyCustomerAssigned(updated, technicianUser);
   return updated;

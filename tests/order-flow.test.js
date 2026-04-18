@@ -189,6 +189,7 @@ test('technician can quote, arrive, and complete after customer accepts', async 
       { type: 'message', replyToken: 'tf3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
       { type: 'message', replyToken: 'tf4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u5fe0\u7fa9\u8857123\u865f' } },
       { type: 'message', replyToken: 'tf5', source: { userId: customerId }, message: { type: 'text', text: '\u6d17\u624b\u53f0\u4e0b\u65b9\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'tf-img1', source: { userId: customerId }, message: { type: 'image', id: 'line-image-tech-flow-1' } },
       { type: 'message', replyToken: 'tf6', source: { userId: customerId }, message: { type: 'text', text: phone } }
     ];
 
@@ -236,6 +237,20 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     });
     assert.equal(accepted.status, 200);
     assert.equal(accepted.body.results[0].status, 'assigned');
+
+    const myOrders = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'tf-my-orders',
+          source: { userId: technicianId },
+          message: { type: 'text', text: '\u6211\u7684\u6848\u4ef6' }
+        }
+      ]
+    });
+    assert.equal(myOrders.status, 200);
+    assert.equal(myOrders.body.results[0].myOrders, true);
+    assert.equal(myOrders.body.results[0].count, 1);
 
     const quoted = await request(server, 'POST', '/webhook', {
       events: [
@@ -389,6 +404,8 @@ test('technician can quote, arrive, and complete after customer accepts', async 
 
     const finalDetail = await request(server, 'GET', `/api/orders/${order.id}`);
     assert.equal(finalDetail.body.data.status, 'closed');
+    assert.equal(finalDetail.body.data.images.length, 1);
+    assert.equal(finalDetail.body.data.images[0].image_url, 'line-image:line-image-tech-flow-1');
     assert.equal(finalDetail.body.data.rating, 5);
     assert.equal(finalDetail.body.data.customer_comment, '\u8655\u7406\u5f88\u5feb\uff0c\u554f\u984c\u5df2\u89e3\u6c7a');
     assert.ok(finalDetail.body.data.messages.some((message) =>

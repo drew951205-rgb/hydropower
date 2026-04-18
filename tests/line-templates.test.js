@@ -21,6 +21,7 @@ const {
   parseChangeRequestText,
   technicianIdleMessage,
   technicianActiveHelpMessage,
+  myOrdersMessage,
 } = require('../src/services/technician-flow.service');
 
 const order = {
@@ -87,6 +88,7 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.equal(assigned.type, 'flex');
   assert.match(JSON.stringify(assigned.contents), /Chiayi test address/);
   assert.match(JSON.stringify(assigned.contents), /Pipe leak under sink/);
+  assert.match(JSON.stringify(assigned.contents), /顧客照片/);
   assert.equal(footerActions(assigned)[0].data, 'technician:quote:12');
   assert.equal(footerActions(assigned)[1].data, 'technician:cancel:12');
 
@@ -148,4 +150,20 @@ test('technician idle text does not ask for quote when there is no case', () => 
   ]);
   assert.match(active, /你目前有案件正在處理/);
   assert.match(active, /報價 1500/);
+});
+
+test('technician my orders text lists active order next steps', () => {
+  const message = myOrdersMessage([
+    {
+      id: 12,
+      order_no: 'CJ-TEST',
+      status: 'assigned',
+      service_type: '漏水',
+      area: '西區',
+    },
+  ]);
+
+  assert.match(message, /你目前有 1 張處理中案件/);
+  assert.match(message, /CJ-TEST/);
+  assert.match(message, /請先回報報價/);
 });
