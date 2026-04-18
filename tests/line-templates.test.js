@@ -46,7 +46,7 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   const welcome = welcomeMessage();
   assert.equal(welcome.type, 'text');
   assert.equal(welcome.quickReply.items[0].action.type, 'uri');
-  assert.match(welcome.quickReply.items[0].action.uri, /\/liff\/repair/);
+  assert.match(welcome.quickReply.items[0].action.uri, /\/repair$/);
 
   const reviewApproved = reviewApprovedMessage(order);
   assert.equal(reviewApproved.type, 'flex');
@@ -58,13 +58,13 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   assert.equal(quote.type, 'flex');
   assert.match(quote.altText, /報價確認/);
   assert.equal(footerActions(quote)[0].type, 'uri');
-  assert.match(footerActions(quote)[0].uri, /\/liff\/confirm\?order_id=12&mode=quote/);
+  assert.match(footerActions(quote)[0].uri, /\/confirm\?order_id=12&mode=quote/);
   assert.equal(footerActions(quote)[1].data, 'customer:cancel_order:12');
 
   const change = changeRequestMessage(order);
   assert.equal(change.type, 'flex');
   assert.equal(footerActions(change)[0].type, 'uri');
-  assert.match(footerActions(change)[0].uri, /\/liff\/confirm\?order_id=12&mode=change/);
+  assert.match(footerActions(change)[0].uri, /\/confirm\?order_id=12&mode=change/);
   assert.equal(footerActions(change)[1].data, 'customer:cancel_order:12');
 
   const assigned = assignedCustomerMessage(order, {
@@ -78,7 +78,7 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   const completion = completionMessage(order);
   assert.equal(completion.type, 'flex');
   assert.equal(footerActions(completion)[0].type, 'uri');
-  assert.match(footerActions(completion)[0].uri, /\/liff\/confirm\?order_id=12&mode=completion/);
+  assert.match(footerActions(completion)[0].uri, /\/confirm\?order_id=12&mode=completion/);
   assert.equal(footerActions(completion)[1].data, 'customer:dispute_completion:12');
 });
 
@@ -93,7 +93,7 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.match(JSON.stringify(assigned.contents), /Pipe leak under sink/);
   assert.match(JSON.stringify(assigned.contents), /顧客照片/);
   assert.equal(footerActions(assigned)[0].type, 'uri');
-  assert.match(footerActions(assigned)[0].uri, /\/liff\/quote\?order_id=12/);
+  assert.match(footerActions(assigned)[0].uri, /\/quote\?order_id=12/);
   assert.equal(footerActions(assigned)[1].data, 'technician:cancel:12');
 
   const quotePrompt = quotePromptMessage(order);
@@ -101,19 +101,19 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.match(JSON.stringify(quotePrompt.contents), /問題描述/);
   assert.match(JSON.stringify(quotePrompt.contents), /Pipe leak under sink/);
   assert.equal(footerActions(quotePrompt)[0].type, 'uri');
-  assert.match(footerActions(quotePrompt)[0].uri, /\/liff\/quote\?order_id=12/);
+  assert.match(footerActions(quotePrompt)[0].uri, /\/quote\?order_id=12/);
   assert.equal(footerActions(quotePrompt)[1].data, 'technician:cancel:12');
 
   const changePrompt = changeRequestPromptMessage(order);
   assert.equal(changePrompt.type, 'flex');
   assert.equal(footerActions(changePrompt)[0].type, 'uri');
-  assert.match(footerActions(changePrompt)[0].uri, /\/liff\/change-request\?order_id=12/);
+  assert.match(footerActions(changePrompt)[0].uri, /\/change-request\?order_id=12/);
 
   const acceptedQuote = acceptedQuoteTechnicianMessage(order);
   assert.equal(acceptedQuote.type, 'flex');
   assert.equal(footerActions(acceptedQuote)[0].data, 'technician:arrived:12');
   assert.equal(footerActions(acceptedQuote)[1].type, 'uri');
-  assert.match(footerActions(acceptedQuote)[1].uri, /\/liff\/change-request\?order_id=12/);
+  assert.match(footerActions(acceptedQuote)[1].uri, /\/change-request\?order_id=12/);
   assert.equal(footerActions(acceptedQuote)[2].data, 'technician:complete:12');
   assert.equal(footerActions(acceptedQuote)[3].data, 'technician:cancel:12');
 });

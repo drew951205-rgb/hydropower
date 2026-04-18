@@ -8,6 +8,9 @@ function publicBaseUrl() {
 function liffPageUrl(path, params = {}) {
   const base = publicBaseUrl();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const liffPath = normalizedPath.startsWith('/liff/')
+    ? normalizedPath.replace(/^\/liff/, '')
+    : normalizedPath;
   const query = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
     .map(
@@ -15,6 +18,10 @@ function liffPageUrl(path, params = {}) {
         `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`
     )
     .join('&');
+
+  if (env.liffId) {
+    return `https://liff.line.me/${env.liffId}${liffPath}${query ? `?${query}` : ''}`;
+  }
 
   return `${base}${normalizedPath}${query ? `?${query}` : ''}`;
 }
