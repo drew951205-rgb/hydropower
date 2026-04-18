@@ -4,75 +4,185 @@ function postbackAction(label, data, displayText = label) {
   return { type: 'postback', label, data, displayText };
 }
 
+function messageAction(label, text) {
+  return { type: 'message', label, text };
+}
+
 const technicianMessages = {
-  assignmentText: (order) => `有新的派單可以接。\n\n${orderSummary(order)}`,
-  assignedText: (order) => `接單成功。\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`,
-  alreadyTaken: '這張單已由其他師傅接走。',
-  completed: '已送出完工回報，請等待客戶確認。'
+  assignmentText: (order) => `新派單可接單：\n\n${orderSummary(order)}`,
+  assignedText: (order) =>
+    `接單成功。\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`,
+  alreadyTaken: '這張派單已被其他師傅接走。',
+  completed: '已送出完工回報，請等待客戶確認。',
 };
 
-function assignmentMessage(order, assignment) {
+function textBlock(text, options = {}) {
   return {
-    type: 'template',
-    altText: `新派單 ${order.order_no}`,
-    template: {
-      type: 'buttons',
-      title: '新派單',
-      text: `${order.service_type}｜${order.area}\n${order.issue_description}`.slice(0, 160),
-      actions: [
-        postbackAction('接單', `technician:accept_assignment:${assignment.id}`, '接單')
-      ]
-    }
+    type: 'text',
+    text: String(text ?? ''),
+    wrap: true,
+    size: options.size || 'sm',
+    weight: options.weight,
+    color: options.color || '#333333',
+    margin: options.margin,
   };
+}
+
+function infoRow(label, value) {
+  return {
+    type: 'box',
+    layout: 'horizontal',
+    margin: 'sm',
+    contents: [
+      {
+        type: 'text',
+        text: label,
+        size: 'xs',
+        color: '#6B7280',
+        flex: 3,
+      },
+      {
+        type: 'text',
+        text: String(value || '未提供'),
+        size: 'xs',
+        color: '#111827',
+        wrap: true,
+        flex: 7,
+      },
+    ],
+  };
+}
+
+function button(action, style = 'secondary') {
+  return {
+    type: 'button',
+    style,
+    height: 'sm',
+    action,
+  };
+}
+
+function technicianCard({ altText, title, status, summary, rows, actions = [] }) {
+  return {
+    type: 'flex',
+    altText,
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          textBlock(status, {
+            size: 'xs',
+            weight: 'bold',
+            color: '#1F8A70',
+          }),
+          textBlock(title, {
+            size: 'lg',
+            weight: 'bold',
+            color: '#111827',
+            margin: 'sm',
+          }),
+          textBlock(summary, {
+            size: 'sm',
+            color: '#4B5563',
+            margin: 'md',
+          }),
+          {
+            type: 'separator',
+            margin: 'md',
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            margin: 'md',
+            contents: rows,
+          },
+        ],
+      },
+      footer: actions.length
+        ? {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: actions,
+          }
+        : undefined,
+    },
+  };
+}
+
+function assignmentMessage(order, assignment) {
+  return technicianCard({
+    altText: `新派單 ${order.order_no}`,
+    status: '新派單',
+    title: '有新的案件可接',
+    summary: '請確認區域、類型與問題描述，能處理再接單。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('服務類型', order.service_type),
+      infoRow('區域', order.area),
+      infoRow('問題', order.issue_description),
+    ],
+    actions: [
+      button(postbackAction('接單', `technician:accept_assignment:${assignment.id}`, '接單'), 'primary'),
+    ],
+  });
 }
 
 function assignedMessage(order) {
-  return {
-    type: 'template',
+  return technicianCard({
     altText: `已接單 ${order.order_no}`,
-    template: {
-      type: 'buttons',
-      title: '已接單',
-      text: `案件：${order.order_no}\n請先回報報價，客戶接受後再前往。`.slice(0, 160),
-      actions: [
-        postbackAction('報價', `technician:quote:${order.id}`, '報價'),
-        postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')
-      ]
-    }
-  };
+    status: '已接單',
+    title: '請先提供報價',
+    summary: '客戶接受報價後，系統會再傳地址與到場按鈕。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('服務類型', order.service_type),
+      infoRow('區域', order.area),
+    ],
+    actions: [
+      button(postbackAction('報價', `technician:quote:${order.id}`, '報價'), 'primary'),
+      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+    ],
+  });
 }
 
 function quotePromptMessage(order) {
-  return {
-    type: 'template',
-    altText: `請回報報價 ${order.order_no}`,
-    template: {
-      type: 'buttons',
-      title: '回報報價',
-      text: `案件：${order.order_no}\n請輸入：報價 1500`,
-      actions: [
-        { type: 'message', label: '填寫範例', text: '報價 1500' },
-        postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')
-      ]
-    }
-  };
+  return technicianCard({
+    altText: `請提供報價 ${order.order_no}`,
+    status: '等待報價',
+    title: '輸入報價金額',
+    summary: '可直接按範例，也可以輸入「報價 1500」或「報價 案件ID 1500 備註」。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('輸入範例', '報價 1500'),
+    ],
+    actions: [
+      button(messageAction('填入範例', '報價 1500'), 'primary'),
+      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+    ],
+  });
 }
 
 function acceptedQuoteTechnicianMessage(order) {
-  return {
-    type: 'template',
+  return technicianCard({
     altText: `客戶已接受報價 ${order.order_no}`,
-    template: {
-      type: 'buttons',
-      title: '客戶已接受報價',
-      text: `案件：${order.order_no}\n地址：${order.address}\n電話：${order.contact_phone || '未提供'}`.slice(0, 160),
-      actions: [
-        postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'),
-        postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報'),
-        postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')
-      ]
-    }
-  };
+    status: '客戶已接受報價',
+    title: '可以前往現場',
+    summary: '請依案件資訊前往，到場後按「已到場」。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('地址', order.address),
+      infoRow('電話', order.contact_phone || '未提供'),
+    ],
+    actions: [
+      button(postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'), 'primary'),
+      button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
+      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+    ],
+  });
 }
 
 module.exports = {
@@ -80,5 +190,6 @@ module.exports = {
   assignmentMessage,
   assignedMessage,
   quotePromptMessage,
-  acceptedQuoteTechnicianMessage
+  acceptedQuoteTechnicianMessage,
+  technicianCard,
 };

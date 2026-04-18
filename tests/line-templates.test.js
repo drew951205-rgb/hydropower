@@ -31,58 +31,68 @@ const order = {
   final_amount: 2400,
 };
 
-test('customer LINE messages include postback actions', () => {
+function footerActions(message) {
+  return message.contents.footer.contents.map((item) => item.action);
+}
+
+test('customer LINE messages use clearer cards and postback actions', () => {
   const welcome = welcomeMessage();
   assert.equal(welcome.type, 'text');
   assert.equal(welcome.quickReply.items[0].action.data, 'customer:start_repair');
 
   const reviewApproved = reviewApprovedMessage(order);
-  assert.equal(reviewApproved.type, 'text');
-  assert.match(reviewApproved.text, /馬上幫你找附近的師傅/);
-  assert.match(reviewApproved.text, /CJ-TEST/);
+  assert.equal(reviewApproved.type, 'flex');
+  assert.match(reviewApproved.altText, /審核通過/);
+  assert.match(JSON.stringify(reviewApproved.contents), /馬上幫你找附近的師傅/);
+  assert.match(JSON.stringify(reviewApproved.contents), /CJ-TEST/);
 
   const quote = quoteMessage(order);
-  assert.equal(quote.type, 'template');
-  assert.equal(quote.template.actions[0].data, 'customer:accept_quote:12');
-  assert.equal(quote.template.actions[1].data, 'customer:reject_quote:12');
-  assert.equal(quote.template.actions[2].data, 'customer:cancel_order:12');
+  assert.equal(quote.type, 'flex');
+  assert.match(quote.altText, /報價確認/);
+  assert.equal(footerActions(quote)[0].data, 'customer:accept_quote:12');
+  assert.equal(footerActions(quote)[1].data, 'customer:reject_quote:12');
+  assert.equal(footerActions(quote)[2].data, 'customer:cancel_order:12');
 
   const change = changeRequestMessage(order);
-  assert.equal(change.template.actions[0].data, 'customer:accept_quote:12');
-  assert.equal(change.template.actions[2].data, 'customer:cancel_order:12');
+  assert.equal(change.type, 'flex');
+  assert.equal(footerActions(change)[0].data, 'customer:accept_quote:12');
+  assert.equal(footerActions(change)[2].data, 'customer:cancel_order:12');
 
   const assigned = assignedCustomerMessage(order, {
     name: 'Test Technician',
     phone: '0911222333',
   });
-  assert.equal(assigned.type, 'text');
-  assert.match(assigned.text, /師傅已接單/);
-  assert.match(assigned.text, /Test Technician/);
+  assert.equal(assigned.type, 'flex');
+  assert.match(JSON.stringify(assigned.contents), /師傅已接單/);
+  assert.match(JSON.stringify(assigned.contents), /Test Technician/);
 
   const completion = completionMessage(order);
-  assert.equal(completion.template.actions[0].data, 'customer:confirm_completion:12');
-  assert.equal(completion.template.actions[1].data, 'customer:dispute_completion:12');
+  assert.equal(completion.type, 'flex');
+  assert.equal(footerActions(completion)[0].data, 'customer:confirm_completion:12');
+  assert.equal(footerActions(completion)[1].data, 'customer:dispute_completion:12');
 });
 
-test('technician LINE messages include quote and cancel actions', () => {
+test('technician LINE messages use clearer cards and actions', () => {
   const assignment = assignmentMessage(order, { id: 34 });
-  assert.equal(assignment.type, 'template');
-  assert.equal(assignment.template.actions[0].data, 'technician:accept_assignment:34');
+  assert.equal(assignment.type, 'flex');
+  assert.equal(footerActions(assignment)[0].data, 'technician:accept_assignment:34');
 
   const assigned = assignedMessage(order);
-  assert.equal(assigned.template.actions[0].data, 'technician:quote:12');
-  assert.equal(assigned.template.actions[1].data, 'technician:cancel:12');
+  assert.equal(assigned.type, 'flex');
+  assert.equal(footerActions(assigned)[0].data, 'technician:quote:12');
+  assert.equal(footerActions(assigned)[1].data, 'technician:cancel:12');
 
   const quotePrompt = quotePromptMessage(order);
-  assert.equal(quotePrompt.type, 'template');
-  assert.equal(quotePrompt.template.actions[0].type, 'message');
-  assert.equal(quotePrompt.template.actions[0].text, '報價 1500');
-  assert.equal(quotePrompt.template.actions[1].data, 'technician:cancel:12');
+  assert.equal(quotePrompt.type, 'flex');
+  assert.equal(footerActions(quotePrompt)[0].type, 'message');
+  assert.equal(footerActions(quotePrompt)[0].text, '報價 1500');
+  assert.equal(footerActions(quotePrompt)[1].data, 'technician:cancel:12');
 
   const acceptedQuote = acceptedQuoteTechnicianMessage(order);
-  assert.equal(acceptedQuote.template.actions[0].data, 'technician:arrived:12');
-  assert.equal(acceptedQuote.template.actions[1].data, 'technician:complete:12');
-  assert.equal(acceptedQuote.template.actions[2].data, 'technician:cancel:12');
+  assert.equal(acceptedQuote.type, 'flex');
+  assert.equal(footerActions(acceptedQuote)[0].data, 'technician:arrived:12');
+  assert.equal(footerActions(acceptedQuote)[1].data, 'technician:complete:12');
+  assert.equal(footerActions(acceptedQuote)[2].data, 'technician:cancel:12');
 });
 
 test('technician quote text can omit order id', () => {
