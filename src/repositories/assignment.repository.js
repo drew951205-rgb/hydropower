@@ -31,7 +31,9 @@ async function createAssignment(payload) {
 
 async function findById(id) {
   if (hasSupabase()) {
-    return singleOrNull(supabase.from('assignments').select('*').eq('id', id));
+    return await singleOrNull(
+      supabase.from('assignments').select('*').eq('id', id)
+    );
   }
 
   return store.find(

@@ -9,7 +9,7 @@ const {
 
 async function findByUserId(userId) {
   if (hasSupabase()) {
-    return singleOrNull(
+    return await singleOrNull(
       supabase.from('customer_sessions').select('*').eq('user_id', userId)
     );
   }

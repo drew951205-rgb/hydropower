@@ -23,7 +23,7 @@ async function createOrder(payload) {
 
 async function findById(id) {
   if (hasSupabase()) {
-    return singleOrNull(supabase.from('orders').select('*').eq('id', id));
+    return await singleOrNull(supabase.from('orders').select('*').eq('id', id));
   }
 
   return store.find('orders', (order) => String(order.id) === String(id));

@@ -9,7 +9,7 @@ const {
 
 async function findByLineUserId(lineUserId) {
   if (hasSupabase()) {
-    return singleOrNull(
+    return await singleOrNull(
       supabase.from('users').select('*').eq('line_user_id', lineUserId)
     );
   }
@@ -19,7 +19,7 @@ async function findByLineUserId(lineUserId) {
 
 async function findById(id) {
   if (hasSupabase()) {
-    return singleOrNull(supabase.from('users').select('*').eq('id', id));
+    return await singleOrNull(supabase.from('users').select('*').eq('id', id));
   }
 
   return store.find('users', (user) => String(user.id) === String(id));
