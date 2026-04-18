@@ -42,7 +42,7 @@ app.get('/admin', (req, res) => {
   res.redirect('/admin/');
 });
 app.get('/liff', (req, res) => {
-  res.redirect('/liff/repair');
+  res.sendFile(path.join(__dirname, '..', 'public', 'liff', 'repair.html'));
 });
 [
   'repair',
