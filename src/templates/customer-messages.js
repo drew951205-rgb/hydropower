@@ -18,6 +18,10 @@ function postbackAction(label, data, displayText = label) {
   return { type: 'postback', label, data, displayText };
 }
 
+function messageAction(label, text) {
+  return { type: 'message', label, text };
+}
+
 function textWithQuickReply(text, actions) {
   return {
     type: 'text',
@@ -219,6 +223,25 @@ function completionMessage(order) {
   });
 }
 
+function customerReviewRatingMessage(order) {
+  return textWithQuickReply(
+    [
+      '謝謝你確認結案。',
+      `案件編號：${order.order_no}`,
+      '',
+      '請給這次服務 1 到 5 分，5 分代表非常滿意。'
+    ].join('\n'),
+    [1, 2, 3, 4, 5].map((score) => messageAction(`${score} 分`, String(score)))
+  );
+}
+
+function customerReviewCommentPrompt(rating) {
+  return [
+    `已收到 ${rating} 分。`,
+    '請留下這次服務評語，或輸入「略過」。'
+  ].join('\n');
+}
+
 module.exports = {
   customerMessages,
   welcomeMessage,
@@ -227,6 +250,8 @@ module.exports = {
   changeRequestMessage,
   assignedCustomerMessage,
   completionMessage,
+  customerReviewRatingMessage,
+  customerReviewCommentPrompt,
   textWithQuickReply,
   postbackAction,
   orderCard,

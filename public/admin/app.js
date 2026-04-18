@@ -183,6 +183,10 @@ function renderDetail() {
     return;
   }
 
+  const technicianReview = [...(order.messages || [])]
+    .reverse()
+    .find((message) => message.message_type === 'technician_review');
+
   const rows = [
     ['狀態', statusText(order.status)],
     ['下一步', nextStepText(order)],
@@ -197,6 +201,9 @@ function renderDetail() {
     ['報價', money(order.quote_amount)],
     ['追加', money(order.change_request_amount)],
     ['實收', money(order.paid_amount || order.final_amount)],
+    ['客戶評分', order.rating ? `${order.rating} / 5` : ''],
+    ['客戶評語', order.customer_comment || ''],
+    ['師傅心得', technicianReview?.content || ''],
     ['紀錄', `${order.logs?.length || 0} 筆`]
   ];
 

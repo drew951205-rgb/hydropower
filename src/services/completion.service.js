@@ -1,5 +1,8 @@
 const orderService = require('./order.service');
+const orderRepository = require('../repositories/order.repository');
 const userRepository = require('../repositories/user.repository');
+const messageRepository = require('../repositories/message.repository');
+const logRepository = require('../repositories/log.repository');
 const lineMessageService = require('./line-message.service');
 const { completionMessage } = require('../templates/customer-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
@@ -65,4 +68,98 @@ async function customerConfirmCompletion(orderId, payload, customerId = null) {
   );
 }
 
-module.exports = { arrive, complete, customerConfirmCompletion };
+function normalizeRating(value) {
+  const rating = Number(value);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    const error = new Error('Rating must be an integer from 1 to 5');
+    error.statusCode = 400;
+    throw error;
+  }
+  return rating;
+}
+
+async function submitCustomerReview(orderId, payload, customerId = null) {
+  const order = await orderRepository.findById(orderId);
+  if (!order) {
+    const error = new Error('Order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (customerId && String(order.customer_id) !== String(customerId)) {
+    const error = new Error('Customer does not own this order');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const rating = normalizeRating(payload.rating);
+  const comment = String(payload.comment || '').trim();
+  const updated = await orderRepository.updateOrder(orderId, {
+    rating,
+    customer_comment: comment || null,
+  });
+
+  await messageRepository.createMessage({
+    order_id: order.id,
+    sender_role: 'customer',
+    sender_id: customerId,
+    message_type: 'customer_review',
+    content: comment || `Customer rated ${rating}/5 without comment`,
+  });
+
+  await logRepository.createLog({
+    order_id: order.id,
+    from_status: updated.status,
+    to_status: updated.status,
+    action: 'customer_review',
+    operator_role: 'customer',
+    operator_id: customerId,
+    note: `Customer rated ${rating}/5`,
+  });
+
+  return updated;
+}
+
+async function submitTechnicianReview(orderId, technicianId, comment) {
+  const order = await orderRepository.findById(orderId);
+  if (!order) {
+    const error = new Error('Order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (technicianId && String(order.technician_id) !== String(technicianId)) {
+    const error = new Error('Technician does not own this order');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const content = String(comment || '').trim() || '師傅未填寫本案心得';
+  const message = await messageRepository.createMessage({
+    order_id: order.id,
+    sender_role: 'technician',
+    sender_id: technicianId,
+    message_type: 'technician_review',
+    content,
+  });
+
+  await logRepository.createLog({
+    order_id: order.id,
+    from_status: order.status,
+    to_status: order.status,
+    action: 'technician_review',
+    operator_role: 'technician',
+    operator_id: technicianId,
+    note: content,
+  });
+
+  return { order, message };
+}
+
+module.exports = {
+  arrive,
+  complete,
+  customerConfirmCompletion,
+  submitCustomerReview,
+  submitTechnicianReview,
+};

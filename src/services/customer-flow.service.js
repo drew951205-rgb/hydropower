@@ -1,8 +1,12 @@
 const sessionRepository = require('../repositories/session.repository');
 const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
+const completionService = require('./completion.service');
 const lineMessageService = require('./line-message.service');
-const { customerMessages } = require('../templates/customer-messages');
+const {
+  customerMessages,
+  customerReviewCommentPrompt,
+} = require('../templates/customer-messages');
 
 const STEPS = [
   'service_type',
@@ -53,6 +57,9 @@ async function handleCustomerText(user, event, text) {
   if (isStartRepairText(text)) return startRepairFlow(user, event);
 
   const session = await sessionRepository.findByUserId(user.id);
+  if (session?.flow_type === 'customer_review')
+    return handleCustomerReviewText(user, event, session, text);
+
   if (!session?.current_step) {
     const { welcomeMessage } = require('../templates/customer-messages');
     await lineMessageService.replyMessages(event, welcomeMessage());
@@ -92,6 +99,49 @@ async function handleCustomerText(user, event, text) {
     customerMessages.orderCreated(order)
   );
   return { order };
+}
+
+async function handleCustomerReviewText(user, event, session, text) {
+  const value = String(text || '').trim();
+  const payload = session.temp_payload || {};
+
+  if (session.current_step === 'rating') {
+    const rating = Number(value);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      await lineMessageService.replyText(event, '請輸入 1 到 5 分，例如：5');
+      return { reviewValidationError: true };
+    }
+
+    await sessionRepository.upsertForUser(user.id, {
+      flow_type: 'customer_review',
+      current_step: 'comment',
+      temp_payload: {
+        ...payload,
+        rating,
+      },
+    });
+    await lineMessageService.replyText(event, customerReviewCommentPrompt(rating));
+    return { nextStep: 'customer_review_comment' };
+  }
+
+  if (session.current_step === 'comment') {
+    const comment = /^(略過|跳過|skip)$/i.test(value) ? '' : value;
+    const order = await completionService.submitCustomerReview(
+      payload.order_id,
+      {
+        rating: payload.rating,
+        comment,
+      },
+      user.id
+    );
+    await sessionRepository.clearForUser(user.id);
+    await lineMessageService.replyText(event, '謝謝你的評價，平台已收到。');
+    return { customerReviewSubmitted: true, order };
+  }
+
+  await sessionRepository.clearForUser(user.id);
+  await lineMessageService.replyText(event, '評價流程已重置，請重新操作。');
+  return { customerReviewReset: true };
 }
 
 async function updateCustomerProfileFromRepair(user, payload) {

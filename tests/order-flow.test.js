@@ -291,6 +291,68 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     assert.equal(completed.status, 200);
     assert.equal(completed.body.results[0].status, 'completed_pending_customer');
     assert.equal(completed.body.results[0].final_amount, 1500);
+
+    const technicianReview = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'tf-tech-review',
+          source: { userId: technicianId },
+          message: { type: 'text', text: '\u73fe\u5834\u8655\u7406\u9806\u5229\uff0c\u5ba2\u6236\u597d\u6e9d\u901a' }
+        }
+      ]
+    });
+    assert.equal(technicianReview.status, 200);
+    assert.equal(technicianReview.body.results[0].technicianReviewSubmitted, true);
+
+    const customerConfirmed = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-customer-complete',
+          source: { userId: customerId },
+          postback: { data: `customer:confirm_completion:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(customerConfirmed.status, 200);
+    assert.equal(customerConfirmed.body.results[0].order.status, 'closed');
+    assert.equal(customerConfirmed.body.results[0].reviewStarted, true);
+
+    const customerRating = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'tf-customer-rating',
+          source: { userId: customerId },
+          message: { type: 'text', text: '5' }
+        }
+      ]
+    });
+    assert.equal(customerRating.status, 200);
+    assert.equal(customerRating.body.results[0].nextStep, 'customer_review_comment');
+
+    const customerReview = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'tf-customer-review',
+          source: { userId: customerId },
+          message: { type: 'text', text: '\u8655\u7406\u5f88\u5feb\uff0c\u554f\u984c\u5df2\u89e3\u6c7a' }
+        }
+      ]
+    });
+    assert.equal(customerReview.status, 200);
+    assert.equal(customerReview.body.results[0].customerReviewSubmitted, true);
+
+    const finalDetail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(finalDetail.body.data.status, 'closed');
+    assert.equal(finalDetail.body.data.rating, 5);
+    assert.equal(finalDetail.body.data.customer_comment, '\u8655\u7406\u5f88\u5feb\uff0c\u554f\u984c\u5df2\u89e3\u6c7a');
+    assert.ok(finalDetail.body.data.messages.some((message) =>
+      message.message_type === 'technician_review' &&
+      message.content === '\u73fe\u5834\u8655\u7406\u9806\u5229\uff0c\u5ba2\u6236\u597d\u6e9d\u901a'
+    ));
   } finally {
     server.close();
   }
