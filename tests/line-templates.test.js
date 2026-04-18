@@ -83,13 +83,17 @@ test('technician LINE messages include quote, change request, and cancel actions
 
   const assigned = assignedMessage(order);
   assert.equal(assigned.type, 'flex');
+  assert.match(JSON.stringify(assigned.contents), /Chiayi test address/);
+  assert.match(JSON.stringify(assigned.contents), /Pipe leak under sink/);
   assert.equal(footerActions(assigned)[0].data, 'technician:quote:12');
   assert.equal(footerActions(assigned)[1].data, 'technician:cancel:12');
 
   const quotePrompt = quotePromptMessage(order);
   assert.equal(quotePrompt.type, 'flex');
+  assert.match(JSON.stringify(quotePrompt.contents), /問題描述/);
+  assert.match(JSON.stringify(quotePrompt.contents), /Pipe leak under sink/);
   assert.equal(footerActions(quotePrompt)[0].type, 'message');
-  assert.equal(footerActions(quotePrompt)[0].text, '報價 1500');
+  assert.equal(footerActions(quotePrompt)[0].text, '報價 1500 基本檢修含更換墊片');
   assert.equal(footerActions(quotePrompt)[1].data, 'technician:cancel:12');
 
   const changePrompt = changeRequestPromptMessage(order);

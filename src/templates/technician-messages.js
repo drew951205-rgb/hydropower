@@ -138,12 +138,15 @@ function assignedMessage(order) {
   return technicianCard({
     altText: `已接單 ${order.order_no}`,
     status: '已接單',
-    title: '請先提供報價',
-    summary: '客戶接受報價後，系統會再傳地址與到場按鈕。',
+    title: '請依案件資訊提供報價',
+    summary: '報價前請先看問題、地址與電話。客戶同意後再前往現場。',
     rows: [
       infoRow('案件編號', order.order_no),
       infoRow('服務類型', order.service_type),
       infoRow('區域', order.area),
+      infoRow('地址', order.address),
+      infoRow('電話', order.contact_phone || '未提供'),
+      infoRow('問題描述', order.issue_description),
     ],
     actions: [
       button(postbackAction('報價', `technician:quote:${order.id}`, '報價'), 'primary'),
@@ -156,14 +159,19 @@ function quotePromptMessage(order) {
   return technicianCard({
     altText: `請提供報價 ${order.order_no}`,
     status: '等待報價',
-    title: '輸入報價金額',
-    summary: '可直接按範例，也可以輸入「報價 1500」或「報價 案件ID 1500 備註」。',
+    title: '請輸入本次預估報價',
+    summary: '請把基本工資、材料或可能處理項目一起寫在備註，讓客戶清楚知道報價內容。',
     rows: [
       infoRow('案件編號', order.order_no),
-      infoRow('輸入範例', '報價 1500'),
+      infoRow('服務類型', order.service_type),
+      infoRow('區域', order.area),
+      infoRow('地址', order.address),
+      infoRow('電話', order.contact_phone || '未提供'),
+      infoRow('問題描述', order.issue_description),
+      infoRow('輸入範例', '報價 1500 基本檢修含更換墊片'),
     ],
     actions: [
-      button(messageAction('填入範例', '報價 1500'), 'primary'),
+      button(messageAction('填入範例', '報價 1500 基本檢修含更換墊片'), 'primary'),
       button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
     ],
   });
