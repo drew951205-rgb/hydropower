@@ -13,6 +13,7 @@ const env = {
   adminApiKey: process.env.ADMIN_API_KEY || 'change-me',
   publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
   liffId: process.env.LIFF_ID || '',
+  useLiffLaunchUrl: process.env.LIFF_USE_LAUNCH_URL === 'true',
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60000),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 120),
   dispatchTimeoutMinutes: Number(process.env.DISPATCH_TIMEOUT_MINUTES || 10),

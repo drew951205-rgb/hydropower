@@ -19,7 +19,7 @@ function liffPageUrl(path, params = {}) {
     )
     .join('&');
 
-  if (env.liffId) {
+  if (env.liffId && env.useLiffLaunchUrl) {
     return `https://liff.line.me/${env.liffId}${liffPath}${query ? `?${query}` : ''}`;
   }
 

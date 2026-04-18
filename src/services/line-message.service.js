@@ -8,6 +8,41 @@ function normalizeMessages(messagesOrText) {
   return [messagesOrText];
 }
 
+function withLineUserId(uri, lineUserId) {
+  if (!uri || !lineUserId) return uri;
+
+  try {
+    const url = new URL(uri);
+    if (
+      url.hostname === 'liff.line.me' ||
+      url.pathname.startsWith('/liff/') ||
+      ['/repair', '/quote', '/change-request', '/confirm', '/my-cases', '/review'].includes(url.pathname)
+    ) {
+      url.searchParams.set('line_user_id', lineUserId);
+    }
+    return url.toString();
+  } catch (_error) {
+    return uri;
+  }
+}
+
+function attachLineUserIdToUris(value, lineUserId) {
+  if (!lineUserId || !value || typeof value !== 'object') return value;
+  const copy = Array.isArray(value) ? [...value] : { ...value };
+
+  Object.entries(copy).forEach(([key, item]) => {
+    if (key === 'uri' && typeof item === 'string') {
+      copy[key] = withLineUserId(item, lineUserId);
+      return;
+    }
+    if (item && typeof item === 'object') {
+      copy[key] = attachLineUserIdToUris(item, lineUserId);
+    }
+  });
+
+  return copy;
+}
+
 async function sendLineMessage(mode, endpoint, body) {
   const messages = body.messages || [];
   const messageTypes = messages.map((message) => message.type).join(',');
@@ -69,7 +104,9 @@ async function replyMessages(event, messagesOrText) {
 
   return sendLineMessage('reply', lineConfig.replyEndpoint, {
     replyToken: event.replyToken,
-    messages: normalizeMessages(messagesOrText)
+    messages: normalizeMessages(messagesOrText).map((message) =>
+      attachLineUserIdToUris(message, event.source?.userId)
+    )
   });
 }
 
@@ -85,7 +122,9 @@ async function pushMessages(to, messagesOrText) {
 
   return sendLineMessage('push', lineConfig.pushEndpoint, {
     to,
-    messages: normalizeMessages(messagesOrText)
+    messages: normalizeMessages(messagesOrText).map((message) =>
+      attachLineUserIdToUris(message, to)
+    )
   });
 }
 

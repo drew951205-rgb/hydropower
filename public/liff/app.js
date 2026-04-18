@@ -17,8 +17,7 @@ function shouldInitLiff() {
     window.location.hostname === 'liff.line.me' ||
     search.has('liff.state') ||
     search.has('liff.referrer') ||
-    search.has('access_token') ||
-    navigator.userAgent.includes('Line/')
+    search.has('access_token')
   );
 }
 
