@@ -11,6 +11,17 @@ function pageName() {
   return document.body.dataset.page;
 }
 
+function shouldInitLiff() {
+  const search = params();
+  return (
+    window.location.hostname === 'liff.line.me' ||
+    search.has('liff.state') ||
+    search.has('liff.referrer') ||
+    search.has('access_token') ||
+    navigator.userAgent.includes('Line/')
+  );
+}
+
 function $(selector) {
   return document.querySelector(selector);
 }
@@ -55,7 +66,7 @@ async function initLineProfile() {
   const config = await api('/api/liff/config');
   state.config = config;
 
-  if (window.liff && config.liffId) {
+  if (window.liff && config.liffId && shouldInitLiff()) {
     try {
       await window.liff.init({ liffId: config.liffId });
       if (!window.liff.isLoggedIn()) {
@@ -67,6 +78,11 @@ async function initLineProfile() {
       console.error('[liff:init:error]', error);
       setStatus(`LIFF 載入失敗：${error.message || '請確認 LIFF ID 與 Endpoint URL 是否一致'}`, true);
     }
+  } else if (window.liff && config.liffId) {
+    console.info('[liff:init:skipped]', {
+      reason: 'opened outside LIFF launch context',
+      href: window.location.href,
+    });
   }
 
   if (lineUserId()) localStorage.setItem('line_user_id', lineUserId());
