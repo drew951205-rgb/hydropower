@@ -7,6 +7,7 @@ async function adminHome(req, res) {
       'GET /api/orders',
       'GET /api/admin/customers',
       'GET /api/admin/customers/:id',
+      'POST /api/admin/broadcasts/members',
       'POST /api/orders/:id/review',
       'POST /api/orders/:id/dispatch'
     ]
@@ -29,4 +30,12 @@ async function getCustomer(req, res, next) {
   }
 }
 
-module.exports = { adminHome, listCustomers, getCustomer };
+async function broadcastMembers(req, res, next) {
+  try {
+    res.json({ data: await adminCrmService.broadcastToMembers(req.body || {}) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { adminHome, listCustomers, getCustomer, broadcastMembers };

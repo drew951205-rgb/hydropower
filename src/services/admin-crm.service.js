@@ -1,5 +1,6 @@
 const userRepository = require('../repositories/user.repository');
 const orderRepository = require('../repositories/order.repository');
+const lineMessageService = require('./line-message.service');
 
 function latestDate(values) {
   return values.filter(Boolean).sort().at(-1) || null;
@@ -76,4 +77,53 @@ async function getCustomerDetail(customerId) {
   };
 }
 
-module.exports = { listCustomers, getCustomerDetail, summarizeCustomer };
+function isBroadcastMember(user) {
+  if (user.role !== 'customer') return false;
+  if (user.status && user.status !== 'active') return false;
+  if (!user.line_user_id) return false;
+  return Boolean(user.is_member || user.member_terms_accepted_at);
+}
+
+async function broadcastToMembers(payload) {
+  const title = String(payload.title || '').trim();
+  const message = String(payload.message || '').trim();
+  if (!title) {
+    const error = new Error('Broadcast title is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!message) {
+    const error = new Error('Broadcast message is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const users = await userRepository.listUsers({ role: 'customer' });
+  const members = users.filter(isBroadcastMember);
+  const text = [`【師傅抵嘉】${title}`, '', message].join('\n');
+  const results = [];
+
+  for (const member of members) {
+    const result = await lineMessageService.pushMessages(member.line_user_id, text);
+    results.push({
+      user_id: member.id,
+      line_user_id: member.line_user_id,
+      ok: result.ok !== false,
+      dry_run: Boolean(result.dryRun),
+      status: result.status || null,
+    });
+  }
+
+  return {
+    target_count: members.length,
+    sent_count: results.filter((item) => item.ok).length,
+    results,
+  };
+}
+
+module.exports = {
+  listCustomers,
+  getCustomerDetail,
+  summarizeCustomer,
+  broadcastToMembers,
+};

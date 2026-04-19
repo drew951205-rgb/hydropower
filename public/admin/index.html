@@ -92,6 +92,19 @@
           </div>
           <div id="customerList" class="customer-list"></div>
           <div id="customerDetail" class="customer-detail"></div>
+
+          <form id="memberBroadcastForm" class="stack-form">
+            <h3>會員最新消息</h3>
+            <label>
+              標題
+              <input name="title" maxlength="40" required placeholder="例如：雨季漏水檢查提醒">
+            </label>
+            <label>
+              內容
+              <textarea name="message" maxlength="500" required placeholder="輸入要傳給會員的最新消息"></textarea>
+            </label>
+            <button type="submit">發送給會員</button>
+          </form>
         </section>
 
         <section class="technicians-section" aria-labelledby="techniciansTitle">

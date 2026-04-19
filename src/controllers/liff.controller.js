@@ -90,6 +90,8 @@ async function updateCustomerProfile(req, res, next) {
       name: String(req.body.name || '').trim() || null,
       phone: String(req.body.phone || '').trim() || null,
       default_address: String(req.body.default_address || '').trim() || null,
+      is_member: true,
+      member_terms_accepted_at: new Date().toISOString(),
       role: user.role === 'admin' || user.role === 'technician' ? user.role : 'customer',
       status: user.status || 'active',
       line_display_name: String(req.body.line_display_name || '').trim() || undefined,

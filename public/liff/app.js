@@ -206,8 +206,26 @@ async function loadOrder() {
   return api(withLineUser(`/api/liff/orders/${orderId}`));
 }
 
+async function prefillRepairProfile(form) {
+  if (!lineUserId()) return;
+  try {
+    const profile = await api(withLineUser('/api/liff/customer-profile'));
+    if (!profile) return;
+
+    const phone = form.querySelector('[name="contact_phone"]');
+    const address = form.querySelector('[name="address"]');
+    if (phone && profile.phone && !phone.value) phone.value = profile.phone;
+    if (address && profile.default_address && !address.value) {
+      address.value = profile.default_address;
+    }
+  } catch (error) {
+    console.warn('[repair:profile-prefill:skip]', error);
+  }
+}
+
 async function setupRepair() {
   const form = $('#repair-form');
+  await prefillRepairProfile(form);
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!requireLineUser()) return;

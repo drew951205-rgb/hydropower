@@ -147,6 +147,7 @@ test('customer can update profile from LIFF profile API', async () => {
     assert.equal(saved.body.data.default_address, '嘉義市西區文化路88號');
     assert.equal(saved.body.data.line_display_name, 'LINE Profile Customer');
     assert.equal(saved.body.data.line_picture_url, 'https://example.com/profile.png');
+    assert.equal(saved.body.data.is_member, true);
 
     const loaded = await request(
       server,
@@ -161,6 +162,17 @@ test('customer can update profile from LIFF profile API', async () => {
     const customer = customers.body.data.find((item) => item.line_user_id === lineUserId);
     assert.equal(customer.name, 'Profile Customer');
     assert.equal(customer.order_count, 0);
+
+    const broadcast = await request(server, 'POST', '/api/admin/broadcasts/members', {
+      title: '雨季提醒',
+      message: '最近午後雷雨較多，若有漏水可以直接使用報修表單。'
+    });
+    assert.equal(broadcast.status, 200);
+    assert.ok(broadcast.body.data.target_count >= 1);
+    assert.ok(broadcast.body.data.sent_count >= 1);
+    assert.ok(
+      broadcast.body.data.results.some((item) => item.line_user_id === lineUserId)
+    );
   } finally {
     server.close();
   }

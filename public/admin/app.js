@@ -21,6 +21,7 @@ const els = {
   customerList: document.querySelector('#customerList'),
   customerDetail: document.querySelector('#customerDetail'),
   loadCustomersButton: document.querySelector('#loadCustomersButton'),
+  memberBroadcastForm: document.querySelector('#memberBroadcastForm'),
   technicianStatus: document.querySelector('#technicianStatus'),
   technicianList: document.querySelector('#technicianList'),
   loadTechniciansButton: document.querySelector('#loadTechniciansButton'),
@@ -461,6 +462,25 @@ els.customerList.addEventListener('click', (event) => {
 els.customerDetail.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-order-id]');
   if (button) selectOrder(button.dataset.orderId).catch((error) => showToast(error.message));
+});
+els.memberBroadcastForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const button = event.target.querySelector('button');
+  button.disabled = true;
+  try {
+    const result = await api('/api/admin/broadcasts/members', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: formData.get('title'),
+        message: formData.get('message')
+      })
+    });
+    event.target.reset();
+    showToast(`已發送給 ${result.data.sent_count}/${result.data.target_count} 位會員`);
+  } finally {
+    button.disabled = false;
+  }
 });
 els.loadTechniciansButton.addEventListener('click', () => loadTechnicians().catch((error) => showToast(error.message)));
 els.technicianList.addEventListener('click', (event) => {

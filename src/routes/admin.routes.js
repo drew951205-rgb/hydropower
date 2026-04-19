@@ -6,5 +6,6 @@ const router = express.Router();
 router.get('/', authAdmin, adminController.adminHome);
 router.get('/customers', authAdmin, adminController.listCustomers);
 router.get('/customers/:id', authAdmin, adminController.getCustomer);
+router.post('/broadcasts/members', authAdmin, adminController.broadcastMembers);
 
 module.exports = router;
