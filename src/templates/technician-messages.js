@@ -242,6 +242,27 @@ function acceptedQuoteTechnicianMessage(order) {
   });
 }
 
+function arrivedTechnicianMessage(order) {
+  return technicianCard({
+    altText: `已到場 ${order.order_no}`,
+    status: '已到場',
+    title: '接下來可以追加報價或完工回報',
+    summary: '若現場發現需要加價，請先送追加報價讓客戶確認。若已處理完成，請直接送出完工回報。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('目前報價', `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`),
+      infoRow('追加報價', `${Number(order.change_request_amount || 0).toLocaleString('zh-TW')} 元`),
+      infoRow('地址', order.address),
+      infoRow('電話', order.contact_phone || '未提供'),
+    ],
+    actions: [
+      button(uriAction('追加報價', '/liff/change-request', { order_id: order.id }), 'primary'),
+      button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
+      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+    ],
+  });
+}
+
 module.exports = {
   technicianMessages,
   assignmentMessage,
@@ -249,5 +270,6 @@ module.exports = {
   quotePromptMessage,
   changeRequestPromptMessage,
   acceptedQuoteTechnicianMessage,
+  arrivedTechnicianMessage,
   technicianCard,
 };

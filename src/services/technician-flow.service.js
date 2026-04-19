@@ -9,6 +9,7 @@ const lineMessageService = require('./line-message.service');
 const {
   quotePromptMessage,
   changeRequestPromptMessage,
+  arrivedTechnicianMessage,
 } = require('../templates/technician-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
@@ -383,10 +384,7 @@ async function handleTechnicianPostback(user, event, data) {
 
   if (action === 'arrived') {
     const order = await completionService.arrive(id, user.id);
-    await lineMessageService.replyText(
-      event,
-      '已記錄到場。若現場有額外項目，請輸入「追加 500 更換零件」；完工後請按「完工回報」。'
-    );
+    await lineMessageService.replyMessages(event, arrivedTechnicianMessage(order));
     return order;
   }
 

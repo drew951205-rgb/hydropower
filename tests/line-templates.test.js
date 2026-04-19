@@ -15,6 +15,7 @@ const {
   quotePromptMessage,
   changeRequestPromptMessage,
   acceptedQuoteTechnicianMessage,
+  arrivedTechnicianMessage,
 } = require('../src/templates/technician-messages');
 const {
   parseQuoteText,
@@ -118,6 +119,14 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.match(footerActions(acceptedQuote)[1].uri, /\/change-request\?order_id=12/);
   assert.equal(footerActions(acceptedQuote)[2].data, 'technician:complete:12');
   assert.equal(footerActions(acceptedQuote)[3].data, 'technician:cancel:12');
+
+  const arrived = arrivedTechnicianMessage(order);
+  assert.equal(arrived.type, 'flex');
+  assert.match(JSON.stringify(arrived.contents), /接下來可以追加報價或完工回報/);
+  assert.equal(footerActions(arrived)[0].type, 'uri');
+  assert.match(footerActions(arrived)[0].uri, /\/change-request\?order_id=12/);
+  assert.equal(footerActions(arrived)[1].data, 'technician:complete:12');
+  assert.equal(footerActions(arrived)[2].data, 'technician:cancel:12');
 });
 
 test('technician quote and change request text can omit order id', () => {
