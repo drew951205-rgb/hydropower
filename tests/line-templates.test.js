@@ -9,6 +9,7 @@ const {
   assignedCustomerMessage,
   platformCancelledMessage,
   completionMessage,
+  customerReviewThanksMessage,
 } = require('../src/templates/customer-messages');
 const {
   assignmentMessage,
@@ -97,6 +98,13 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   assert.equal(footerActions(completion)[0].type, 'uri');
   assert.match(footerActions(completion)[0].uri, /\/confirm\?order_id=12&mode=completion/);
   assert.equal(footerActions(completion)[1].data, 'customer:dispute_completion:12');
+
+  const thanks = customerReviewThanksMessage();
+  assert.equal(thanks.type, 'text');
+  assert.match(thanks.text, /謝謝你的評價/);
+  assert.match(thanks.text, /期待下次繼續為你服務/);
+  assert.equal(thanks.quickReply.items[0].action.type, 'uri');
+  assert.match(thanks.quickReply.items[0].action.uri, /\/repair$/);
 });
 
 test('technician LINE messages include quote, change request, and cancel actions', () => {

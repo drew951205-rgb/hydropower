@@ -293,6 +293,16 @@ function customerReviewCommentPrompt(rating) {
   ].join('\n');
 }
 
+function customerReviewThanksMessage() {
+  return textWithQuickReply(
+    [
+      '謝謝你的評價，平台已收到。',
+      '感謝你使用師傅抵嘉，期待下次繼續為你服務。',
+    ].join('\n'),
+    [uriAction('再次報修', '/liff/repair')]
+  );
+}
+
 module.exports = {
   customerMessages,
   welcomeMessage,
@@ -305,6 +315,7 @@ module.exports = {
   completionMessage,
   customerReviewRatingMessage,
   customerReviewCommentPrompt,
+  customerReviewThanksMessage,
   textWithQuickReply,
   postbackAction,
   orderCard,

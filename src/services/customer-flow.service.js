@@ -9,6 +9,7 @@ const { ORDER_STATUS } = require('../utils/order-status');
 const {
   customerMessages,
   customerReviewCommentPrompt,
+  customerReviewThanksMessage,
 } = require('../templates/customer-messages');
 
 const STEPS = [
@@ -247,7 +248,7 @@ async function handleCustomerReviewText(user, event, session, text) {
       user.id
     );
     await sessionRepository.clearForUser(user.id);
-    await lineMessageService.replyText(event, '謝謝你的評價，平台已收到。');
+    await lineMessageService.replyMessages(event, customerReviewThanksMessage());
     return { customerReviewSubmitted: true, order };
   }
 
