@@ -182,6 +182,24 @@ function showReviewThanks(actionsNode) {
   `;
 }
 
+function handledCard(message) {
+  return `
+    <div class="notice">
+      ${escapeHtml(message)}
+    </div>
+    <div class="actions">
+      <a href="${liffPath('/liff/repair')}"><button type="button">再次報修</button></a>
+    </div>
+  `;
+}
+
+function canUseQuoteConfirm(order) {
+  return (
+    order.status === 'quoted' ||
+    (order.status === 'platform_review' && order.change_request_status === 'pending')
+  );
+}
+
 async function loadOrder() {
   const orderId = params().get('order_id');
   if (!orderId) throw new Error('缺少案件 ID');
@@ -314,6 +332,14 @@ async function setupConfirm() {
   const actions = $('#confirm-actions');
   if (mode === 'completion') {
     detail.innerHTML = confirmDetailHtml(order, mode);
+    if (order.status !== 'completed_pending_customer') {
+      actions.innerHTML = handledCard(
+        order.status === 'closed'
+          ? '此案件已完成結案，這個確認按鈕已失效。'
+          : `此案件目前狀態為 ${order.status}，暫時不能確認結案。`
+      );
+      return;
+    }
     actions.innerHTML = `
       <form id="completion-form">
         <label>實付金額
@@ -358,14 +384,22 @@ async function setupConfirm() {
 
   const isChange = order.change_request_status === 'pending';
   detail.innerHTML = confirmDetailHtml(order, isChange ? 'change' : mode);
+  if (!canUseQuoteConfirm(order)) {
+    actions.innerHTML = handledCard(
+      order.status === 'closed'
+        ? '此案件已完成結案，這個報價確認按鈕已失效。'
+        : `此案件目前狀態為 ${order.status}，這個報價確認按鈕已失效。`
+    );
+    return;
+  }
   actions.innerHTML = `
     <div class="actions">
       <button id="accept-button">同意</button>
       <button id="reject-button" class="secondary">拒絕</button>
     </div>
   `;
-  $('#accept-button').addEventListener('click', () => submitQuoteConfirm(order.id, true));
-  $('#reject-button').addEventListener('click', () => submitQuoteConfirm(order.id, false));
+  $('#accept-button').addEventListener('click', () => submitQuoteConfirmSafe(order.id, true));
+  $('#reject-button').addEventListener('click', () => submitQuoteConfirmSafe(order.id, false));
 }
 
 async function submitQuoteConfirm(orderId, accepted) {
@@ -375,6 +409,23 @@ async function submitQuoteConfirm(orderId, accepted) {
     body: jsonWithLineUser({ accepted }),
   });
   setStatus(accepted ? '已同意，師傅會依案件資訊前往。' : '已拒絕，平台會協助後續安排。');
+}
+
+async function submitQuoteConfirmSafe(orderId, accepted) {
+  await api(`/api/liff/orders/${orderId}/confirm-quote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: jsonWithLineUser({ accepted }),
+  });
+  setStatus(accepted ? '已送出同意，師傅會依案件資訊處理。' : '已送出拒絕，平台會協助後續安排。');
+  const actions = $('#confirm-actions');
+  if (actions) {
+    actions.innerHTML = handledCard(
+      accepted
+        ? '已送出同意，這個確認按鈕已關閉。'
+        : '已送出拒絕，這個確認按鈕已關閉。'
+    );
+  }
 }
 
 async function setupMyCases() {

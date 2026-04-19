@@ -58,6 +58,28 @@ async function routeEvent(event) {
 }
 
 async function cancelByCustomer(user, event, orderId) {
+  const order = await orderRepository.findById(orderId);
+  const cancellableStatuses = new Set([
+    'pending_review',
+    'waiting_customer_info',
+    'pending_dispatch',
+    'dispatching',
+    'assigned',
+    'quoted',
+    'platform_review',
+  ]);
+  if (!order || String(order.customer_id) !== String(user.id)) {
+    await lineMessageService.replyText(event, '找不到這筆案件，請重新開啟最新訊息。');
+    return { cancelled: false, reason: 'order_not_found' };
+  }
+  if (!cancellableStatuses.has(order.status)) {
+    await lineMessageService.replyText(
+      event,
+      `這個取消按鈕已失效，案件目前狀態為 ${order.status}，不會重複變更。`
+    );
+    return { cancelled: false, reason: 'stale_action', order };
+  }
+
   const cancelled = await orderService.cancelOrder(
     orderId,
     {
@@ -88,7 +110,24 @@ async function handlePostback(user, event, data) {
     return customerFlow.startRepairFlow(user, event);
 
   if (data.startsWith('customer:accept_quote:')) {
-    const order = await quoteService.confirmQuote(data.split(':')[2], true, user.id);
+    const orderId = data.split(':')[2];
+    const current = await orderRepository.findById(orderId);
+    const canConfirm =
+      current?.status === 'quoted' ||
+      (current?.status === 'platform_review' &&
+        current?.change_request_status === 'pending');
+    if (!current || String(current.customer_id) !== String(user.id)) {
+      await lineMessageService.replyText(event, '找不到這筆案件，請重新開啟最新訊息。');
+      return { accepted: false, reason: 'order_not_found' };
+    }
+    if (!canConfirm) {
+      await lineMessageService.replyText(
+        event,
+        `這個報價確認按鈕已失效，案件目前狀態為 ${current.status}，不會重複送出。`
+      );
+      return { accepted: false, reason: 'stale_action', order: current };
+    }
+    const order = await quoteService.confirmQuote(orderId, true, user.id);
     await lineMessageService.replyText(
       event,
       '已確認報價，師傅會依案件資訊前往處理。'
@@ -97,7 +136,24 @@ async function handlePostback(user, event, data) {
   }
 
   if (data.startsWith('customer:reject_quote:')) {
-    const order = await quoteService.confirmQuote(data.split(':')[2], false, user.id);
+    const orderId = data.split(':')[2];
+    const current = await orderRepository.findById(orderId);
+    const canConfirm =
+      current?.status === 'quoted' ||
+      (current?.status === 'platform_review' &&
+        current?.change_request_status === 'pending');
+    if (!current || String(current.customer_id) !== String(user.id)) {
+      await lineMessageService.replyText(event, '找不到這筆案件，請重新開啟最新訊息。');
+      return { rejected: false, reason: 'order_not_found' };
+    }
+    if (!canConfirm) {
+      await lineMessageService.replyText(
+        event,
+        `這個報價確認按鈕已失效，案件目前狀態為 ${current.status}，不會重複送出。`
+      );
+      return { rejected: false, reason: 'stale_action', order: current };
+    }
+    const order = await quoteService.confirmQuote(orderId, false, user.id);
     await lineMessageService.replyText(
       event,
       '已拒絕報價，平台會協助後續安排。'
@@ -116,8 +172,21 @@ async function handlePostback(user, event, data) {
   }
 
   if (data.startsWith('customer:confirm_completion:')) {
+    const orderId = data.split(':')[2];
+    const current = await orderRepository.findById(orderId);
+    if (!current || String(current.customer_id) !== String(user.id)) {
+      await lineMessageService.replyText(event, '找不到這筆案件，請重新開啟最新訊息。');
+      return { reviewCompleted: false, reason: 'order_not_found' };
+    }
+    if (current.status !== 'completed_pending_customer') {
+      await lineMessageService.replyText(
+        event,
+        `這個結案確認按鈕已失效，案件目前狀態為 ${current.status}，不會重複送出。`
+      );
+      return { reviewCompleted: false, reason: 'stale_action', order: current };
+    }
     const order = await completionService.customerConfirmCompletion(
-      data.split(':')[2],
+      orderId,
       {
         confirmed: true,
         paid_amount: 0,

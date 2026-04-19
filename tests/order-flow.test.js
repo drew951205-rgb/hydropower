@@ -586,6 +586,34 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     assert.equal(customerAccepted.status, 200);
     assert.equal(customerAccepted.body.results[0].order.status, 'in_progress');
 
+    const staleAccept = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-customer-accept-stale',
+          source: { userId: customerId },
+          postback: { data: `customer:accept_quote:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(staleAccept.status, 200);
+    assert.equal(staleAccept.body.results[0].reason, 'stale_action');
+    assert.equal(staleAccept.body.results[0].order.status, 'in_progress');
+
+    const staleCancel = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-customer-cancel-stale',
+          source: { userId: customerId },
+          postback: { data: `customer:cancel_order:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(staleCancel.status, 200);
+    assert.equal(staleCancel.body.results[0].reason, 'stale_action');
+    assert.equal(staleCancel.body.results[0].order.status, 'in_progress');
+
     const changePrompt = await request(server, 'POST', '/webhook', {
       events: [
         {
@@ -664,6 +692,20 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     });
     assert.equal(customerConfirmed.status, 200);
     assert.equal(customerConfirmed.body.data.status, 'closed');
+
+    const staleCompletion = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tf-customer-complete-stale',
+          source: { userId: customerId },
+          postback: { data: `customer:confirm_completion:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(staleCompletion.status, 200);
+    assert.equal(staleCompletion.body.results[0].reason, 'stale_action');
+    assert.equal(staleCompletion.body.results[0].order.status, 'closed');
 
     const finalDetail = await request(server, 'GET', `/api/orders/${order.id}`);
     assert.equal(finalDetail.body.data.status, 'closed');
