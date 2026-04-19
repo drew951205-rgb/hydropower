@@ -117,6 +117,15 @@ label {
   margin-top: 6px;
 }
 
+.terms-box ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.terms-box strong {
+  color: #17202a;
+}
+
 input,
 select,
 textarea,

@@ -121,6 +121,7 @@ test('customer can update profile from LIFF profile API', async () => {
       name: 'Profile Customer',
       phone: '0912555666',
       default_address: '嘉義市西區文化路88號',
+      member_terms_accepted: true,
     });
 
     assert.equal(saved.status, 200);
@@ -135,6 +136,24 @@ test('customer can update profile from LIFF profile API', async () => {
     );
     assert.equal(loaded.status, 200);
     assert.equal(loaded.body.data.name, 'Profile Customer');
+  } finally {
+    server.close();
+  }
+});
+
+test('customer profile membership requires terms acceptance', async () => {
+  const server = app.listen(0);
+  try {
+    const lineUserId = `U-liff-profile-terms-${Date.now()}`;
+    const response = await request(server, 'POST', '/api/liff/customer-profile', {
+      line_user_id: lineUserId,
+      name: 'Profile Customer',
+      phone: '0912555666',
+      default_address: '嘉義市西區文化路88號',
+    });
+
+    assert.equal(response.status, 400);
+    assert.match(response.body.error, /會員條款/);
   } finally {
     server.close();
   }

@@ -78,6 +78,10 @@ async function getCustomerProfile(req, res, next) {
 
 async function updateCustomerProfile(req, res, next) {
   try {
+    if (!isAccepted(req.body.member_terms_accepted)) {
+      throw badRequest('請先閱讀並同意會員條款');
+    }
+
     const user = await resolveUser(req, { role: 'customer' });
     const changes = {
       name: String(req.body.name || '').trim() || null,
