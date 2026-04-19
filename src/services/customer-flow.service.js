@@ -115,6 +115,78 @@ async function startRepairFlow(user, event) {
   return { repairFormPrompted: true };
 }
 
+function isMyOrdersText(text = '') {
+  return /我的案件|案件查詢|訂單查詢|訂單紀錄/.test(String(text).trim());
+}
+
+function isSupportText(text = '') {
+  return /聯絡客服|客服|人工客服|需要協助/.test(String(text).trim());
+}
+
+function statusLabel(status) {
+  return {
+    pending_review: '等待平台審核',
+    waiting_customer_info: '等待補充資料',
+    pending_dispatch: '等待派單',
+    dispatching: '尋找師傅中',
+    assigned: '師傅已接單',
+    quoted: '等待你確認報價',
+    in_progress: '師傅準備前往',
+    arrived: '師傅已到場',
+    completed_pending_customer: '等待你確認結案',
+    closed: '已結案',
+    customer_cancelled: '你已取消',
+    technician_cancelled: '師傅已取消',
+    platform_cancelled: '平台已取消',
+    platform_review: '平台處理中',
+    dispute_review: '申訴處理中',
+  }[status] || status || '未知狀態';
+}
+
+async function listCustomerOrders(user, event) {
+  const orders = await orderRepository.listOrders({ customer_id: user.id });
+  const sorted = orders
+    .slice()
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .slice(0, 5);
+
+  if (!sorted.length) {
+    await lineMessageService.replyMessages(event, welcomeMessage());
+    return { customerOrdersListed: true, count: 0 };
+  }
+
+  const orderBlocks = sorted.map((order, index) => [
+      `${index + 1}. ${order.order_no}`,
+      `狀態：${statusLabel(order.status)}`,
+      `服務：${order.service_type || '未填寫'}`,
+      order.preferred_time_text ? `時間：${order.preferred_time_text}` : '',
+    ].filter(Boolean).join('\n'));
+
+  const lines = [
+    '你的最近案件如下：',
+    ...orderBlocks,
+    '需要新增案件時，請點選下方「我要報修」。',
+  ];
+
+  await lineMessageService.replyText(event, lines.join('\n\n'));
+  return { customerOrdersListed: true, count: sorted.length };
+}
+
+async function showCustomerSupport(user, event) {
+  await lineMessageService.replyText(
+    event,
+    [
+      '師傅抵嘉客服說明',
+      '',
+      '服務時間：每日 09:00-21:00',
+      '若你已有案件，請直接回覆案件編號，平台會依紀錄協助處理。',
+      '',
+      '若現場有漏電、瓦斯味、火花或立即危險，請先停止使用相關設備並聯絡緊急單位。',
+    ].join('\n')
+  );
+  return { customerSupportPrompted: true };
+}
+
 async function handleCustomerText(user, event, text) {
   const session = await sessionRepository.findByUserId(user.id);
   if (session?.flow_type === 'customer_review') {
@@ -122,6 +194,9 @@ async function handleCustomerText(user, event, text) {
     await lineMessageService.replyMessages(event, customerReviewThanksMessage());
     return { customerReviewSessionCleared: true };
   }
+
+  if (isMyOrdersText(text)) return listCustomerOrders(user, event);
+  if (isSupportText(text)) return showCustomerSupport(user, event);
 
   return startRepairFlow(user, event);
 }

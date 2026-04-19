@@ -105,6 +105,45 @@ test('customer can create an order from LIFF repair form API', async () => {
   }
 });
 
+test('customer rich menu texts list orders and support info', async () => {
+  const server = app.listen(0);
+  try {
+    const { lineUserId } = await createRepairOrder(server, {
+      service_type: '\u6f0f\u6c34',
+      preferred_time_text: '\u4eca\u5929\u4e0b\u5348',
+    });
+
+    const ordersResponse = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'customer-my-orders',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '\u6211\u7684\u6848\u4ef6' },
+        },
+      ],
+    });
+    assert.equal(ordersResponse.status, 200);
+    assert.equal(ordersResponse.body.results[0].customerOrdersListed, true);
+    assert.equal(ordersResponse.body.results[0].count, 1);
+
+    const supportResponse = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'customer-support',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '\u806f\u7d61\u5ba2\u670d' },
+        },
+      ],
+    });
+    assert.equal(supportResponse.status, 200);
+    assert.equal(supportResponse.body.results[0].customerSupportPrompted, true);
+  } finally {
+    server.close();
+  }
+});
+
 test('LIFF repair form requires platform terms acceptance', async () => {
   const server = app.listen(0);
   try {
