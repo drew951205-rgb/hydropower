@@ -16,6 +16,7 @@ const {
   quotePromptMessage,
   changeRequestPromptMessage,
   acceptedQuoteTechnicianMessage,
+  acceptedChangeRequestTechnicianMessage,
   arrivedTechnicianMessage,
 } = require('../src/templates/technician-messages');
 const {
@@ -132,6 +133,15 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.match(footerActions(acceptedQuote)[1].uri, /\/change-request\?order_id=12/);
   assert.equal(footerActions(acceptedQuote)[2].data, 'technician:complete:12');
   assert.equal(footerActions(acceptedQuote)[3].data, 'technician:cancel:12');
+
+  const acceptedChange = acceptedChangeRequestTechnicianMessage(order);
+  assert.equal(acceptedChange.type, 'flex');
+  assert.match(JSON.stringify(acceptedChange.contents), /追加報價已同意/);
+  assert.match(JSON.stringify(acceptedChange.contents), /若已處理完成/);
+  assert.equal(footerActions(acceptedChange)[0].data, 'technician:complete:12');
+  assert.equal(footerActions(acceptedChange)[1].type, 'uri');
+  assert.match(footerActions(acceptedChange)[1].uri, /\/change-request\?order_id=12/);
+  assert.equal(footerActions(acceptedChange)[2].data, 'technician:cancel:12');
 
   const arrived = arrivedTechnicianMessage(order);
   assert.equal(arrived.type, 'flex');

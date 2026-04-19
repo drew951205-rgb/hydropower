@@ -8,6 +8,7 @@ const {
 } = require('../templates/customer-messages');
 const {
   acceptedQuoteTechnicianMessage,
+  acceptedChangeRequestTechnicianMessage,
 } = require('../templates/technician-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
@@ -58,8 +59,12 @@ async function confirmQuote(orderId, accepted, customerId = null) {
     extra
   );
 
-  if (accepted)
-    await pushToTechnician(updated, acceptedQuoteTechnicianMessage(updated));
+  if (accepted) {
+    const message = isChangeRequest
+      ? acceptedChangeRequestTechnicianMessage(updated)
+      : acceptedQuoteTechnicianMessage(updated);
+    await pushToTechnician(updated, message);
+  }
   return updated;
 }
 
