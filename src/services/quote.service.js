@@ -47,9 +47,15 @@ async function confirmQuote(orderId, accepted, customerId = null) {
     ? { change_request_status: accepted ? 'approved' : 'rejected' }
     : {};
 
+  const nextStatus = accepted
+    ? isChangeRequest
+      ? ORDER_STATUS.ARRIVED
+      : ORDER_STATUS.IN_PROGRESS
+    : ORDER_STATUS.PLATFORM_REVIEW;
+
   const updated = await orderService.transitionOrder(
     orderId,
-    accepted ? ORDER_STATUS.IN_PROGRESS : ORDER_STATUS.PLATFORM_REVIEW,
+    nextStatus,
     accepted ? 'customer_accept_quote' : 'customer_reject_quote',
     'customer',
     customerId,

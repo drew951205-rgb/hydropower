@@ -634,21 +634,8 @@ test('technician can quote, arrive, and complete after customer accepts', async 
       ]
     });
     assert.equal(customerAcceptedChange.status, 200);
-    assert.equal(customerAcceptedChange.body.results[0].order.status, 'in_progress');
+    assert.equal(customerAcceptedChange.body.results[0].order.status, 'arrived');
     assert.equal(customerAcceptedChange.body.results[0].order.change_request_status, 'approved');
-
-    const arrived = await request(server, 'POST', '/webhook', {
-      events: [
-        {
-          type: 'postback',
-          replyToken: 'tf-arrived',
-          source: { userId: technicianId },
-          postback: { data: `technician:arrived:${order.id}` }
-        }
-      ]
-    });
-    assert.equal(arrived.status, 200);
-    assert.equal(arrived.body.results[0].status, 'arrived');
 
     const completed = await request(server, 'POST', '/webhook', {
       events: [
