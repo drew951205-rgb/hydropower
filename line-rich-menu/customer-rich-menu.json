@@ -8,7 +8,7 @@
   "chatBarText": "選單",
   "areas": [
     {
-      "bounds": { "x": 80, "y": 430, "width": 1170, "height": 568 },
+      "bounds": { "x": 0, "y": 0, "width": 2500, "height": 843 },
       "action": {
         "type": "uri",
         "label": "我要報修",
@@ -16,7 +16,7 @@
       }
     },
     {
-      "bounds": { "x": 1250, "y": 430, "width": 1170, "height": 568 },
+      "bounds": { "x": 0, "y": 843, "width": 833, "height": 843 },
       "action": {
         "type": "uri",
         "label": "加入會員",
@@ -24,7 +24,7 @@
       }
     },
     {
-      "bounds": { "x": 80, "y": 998, "width": 780, "height": 568 },
+      "bounds": { "x": 833, "y": 843, "width": 834, "height": 843 },
       "action": {
         "type": "message",
         "label": "我的案件",
@@ -32,15 +32,7 @@
       }
     },
     {
-      "bounds": { "x": 860, "y": 998, "width": 780, "height": 568 },
-      "action": {
-        "type": "message",
-        "label": "最新消息",
-        "text": "最新消息"
-      }
-    },
-    {
-      "bounds": { "x": 1640, "y": 998, "width": 780, "height": 568 },
+      "bounds": { "x": 1667, "y": 843, "width": 833, "height": 843 },
       "action": {
         "type": "message",
         "label": "聯絡客服",
