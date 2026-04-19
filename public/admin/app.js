@@ -199,6 +199,7 @@ function renderDetail() {
     ['區域', order.area],
     ['地址', order.address],
     ['問題', order.issue_description],
+    ['姓名 / 稱呼', order.contact_name],
     ['電話', order.contact_phone],
     ['客戶 ID', order.customer_id],
     ['師傅 ID', order.technician_id || ''],

@@ -91,6 +91,7 @@ async function createRepairOrder(customer, payload) {
     area: payload.area,
     address: payload.address,
     issue_description: payload.issue_description,
+    contact_name: payload.contact_name,
     contact_phone: payload.contact_phone,
     service_mode: payload.service_mode || 'urgent',
     preferred_time_text: payload.preferred_time_text || '越快越好',

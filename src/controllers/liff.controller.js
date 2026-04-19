@@ -154,6 +154,7 @@ async function createRepair(req, res, next) {
       line_language: req.body.line_language,
     });
     const required = [
+      'contact_name',
       'service_type',
       'area',
       'address',
@@ -175,11 +176,13 @@ async function createRepair(req, res, next) {
       preferred_time_text: req.body.preferred_time_text,
       service_mode: serviceModeFromText(req.body.preferred_time_text),
       issue_description: req.body.issue_description,
+      contact_name: req.body.contact_name,
       contact_phone: req.body.contact_phone,
       images,
     });
 
     await userRepository.updateUser(user.id, {
+      name: req.body.contact_name,
       phone: req.body.contact_phone,
       default_address: req.body.address,
     }).catch(() =>

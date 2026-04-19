@@ -42,6 +42,7 @@ async function createRepairOrder(server, overrides = {}) {
   const payload = {
     line_user_id: lineUserId,
     line_display_name: overrides.line_display_name || 'LIFF Customer',
+    contact_name: overrides.contact_name || '王先生',
     service_type: overrides.service_type || '漏水',
     area: overrides.area || '西區',
     address: overrides.address || '嘉義市西區中山路100號',
@@ -87,6 +88,7 @@ test('customer can create an order from LIFF repair form API', async () => {
     const response = await request(server, 'POST', '/api/liff/repair', {
       line_user_id: lineUserId,
       line_display_name: 'LIFF Customer',
+      contact_name: '王先生',
       service_type: '漏水',
       area: '西區',
       address: '嘉義市西區民族路100號',
@@ -98,6 +100,7 @@ test('customer can create an order from LIFF repair form API', async () => {
 
     assert.equal(response.status, 201);
     assert.equal(response.body.data.status, 'pending_review');
+    assert.equal(response.body.data.contact_name, '王先生');
     assert.equal(response.body.data.service_mode, 'scheduled');
     assert.equal(response.body.data.preferred_time_text, '明天下午 2-5 點');
   } finally {
@@ -150,6 +153,7 @@ test('LIFF repair form requires platform terms acceptance', async () => {
     const lineUserId = `U-liff-terms-${Date.now()}`;
     const response = await request(server, 'POST', '/api/liff/repair', {
       line_user_id: lineUserId,
+      contact_name: '王先生',
       service_type: '漏水',
       area: '西區',
       address: '嘉義市西區民族路100號',

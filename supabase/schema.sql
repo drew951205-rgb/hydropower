@@ -29,6 +29,7 @@ create table if not exists orders (
   area text not null,
   address text not null,
   issue_description text not null,
+  contact_name text,
   contact_phone text,
   service_mode text not null default 'urgent' check (service_mode in ('urgent', 'scheduled')),
   preferred_time_text text,

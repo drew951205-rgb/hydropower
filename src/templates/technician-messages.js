@@ -159,6 +159,7 @@ function assignedMessage(order) {
       infoRow('區域', order.area),
       infoRow('時間需求', preferredTimeLabel(order)),
       infoRow('地址', order.address),
+      infoRow('姓名 / 稱呼', order.contact_name || '未提供'),
       infoRow('電話', order.contact_phone || '未提供'),
       infoRow('顧客照片', photoLabel(order)),
       infoRow('問題描述', order.issue_description),
@@ -185,6 +186,7 @@ function quotePromptMessage(order) {
       infoRow('區域', order.area),
       infoRow('時間需求', preferredTimeLabel(order)),
       infoRow('地址', order.address),
+      infoRow('姓名 / 稱呼', order.contact_name || '未提供'),
       infoRow('電話', order.contact_phone || '未提供'),
       infoRow('顧客照片', photoLabel(order)),
       infoRow('問題描述', order.issue_description),
@@ -231,6 +233,7 @@ function acceptedQuoteTechnicianMessage(order) {
       infoRow('案件編號', order.order_no),
       infoRow('時間需求', preferredTimeLabel(order)),
       infoRow('地址', order.address),
+      infoRow('姓名 / 稱呼', order.contact_name || '未提供'),
       infoRow('電話', order.contact_phone || '未提供'),
     ],
     actions: [
@@ -261,6 +264,7 @@ function acceptedChangeRequestTechnicianMessage(order) {
       ),
       infoRow('追加原因', order.change_request_reason || '未提供'),
       infoRow('地址', order.address),
+      infoRow('姓名 / 稱呼', order.contact_name || '未提供'),
       infoRow('電話', order.contact_phone || '未提供'),
     ],
     actions: [

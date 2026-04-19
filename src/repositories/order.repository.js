@@ -9,11 +9,25 @@ const {
 
 async function createOrder(payload) {
   if (hasSupabase()) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('orders')
       .insert(cleanPayload(payload))
       .select('*')
       .single();
+
+    if (
+      error &&
+      payload.contact_name !== undefined &&
+      String(error.message || '').includes("'contact_name' column")
+    ) {
+      const { contact_name, ...fallbackPayload } = payload;
+      ({ data, error } = await supabase
+        .from('orders')
+        .insert(cleanPayload(fallbackPayload))
+        .select('*')
+        .single());
+    }
+
     throwIfSupabaseError(error);
     return data;
   }
