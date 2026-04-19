@@ -121,6 +121,9 @@ test('customer can update profile from LIFF profile API', async () => {
       name: 'Profile Customer',
       phone: '0912555666',
       default_address: '嘉義市西區文化路88號',
+      line_display_name: 'LINE Profile Customer',
+      line_picture_url: 'https://example.com/profile.png',
+      line_language: 'zh-TW',
       member_terms_accepted: true,
     });
 
@@ -128,6 +131,8 @@ test('customer can update profile from LIFF profile API', async () => {
     assert.equal(saved.body.data.name, 'Profile Customer');
     assert.equal(saved.body.data.phone, '0912555666');
     assert.equal(saved.body.data.default_address, '嘉義市西區文化路88號');
+    assert.equal(saved.body.data.line_display_name, 'LINE Profile Customer');
+    assert.equal(saved.body.data.line_picture_url, 'https://example.com/profile.png');
 
     const loaded = await request(
       server,
@@ -136,6 +141,12 @@ test('customer can update profile from LIFF profile API', async () => {
     );
     assert.equal(loaded.status, 200);
     assert.equal(loaded.body.data.name, 'Profile Customer');
+
+    const customers = await request(server, 'GET', '/api/admin/customers');
+    assert.equal(customers.status, 200);
+    const customer = customers.body.data.find((item) => item.line_user_id === lineUserId);
+    assert.equal(customer.name, 'Profile Customer');
+    assert.equal(customer.order_count, 0);
   } finally {
     server.close();
   }

@@ -34,10 +34,17 @@ function summarizeCustomer(customer, orders) {
 }
 
 async function listCustomers() {
-  const [customers, orders] = await Promise.all([
-    userRepository.listUsers({ role: 'customer' }),
+  const [users, orders] = await Promise.all([
+    userRepository.listUsers({}),
     orderRepository.listOrders({})
   ]);
+  const customerIds = new Set(orders.map((order) => String(order.customer_id)));
+  const customers = users.filter((user) => {
+    if (user.role === 'admin') return false;
+    if (user.role === 'customer') return true;
+    if (customerIds.has(String(user.id))) return true;
+    return Boolean(user.phone || user.default_address || user.line_display_name);
+  });
 
   return customers
     .map((customer) => summarizeCustomer(customer, orders))

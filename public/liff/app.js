@@ -48,6 +48,12 @@ function withLineUser(url) {
   return next.toString();
 }
 
+function liffPath(path) {
+  const next = new URL(path, window.location.origin);
+  if (lineUserId()) next.searchParams.set('line_user_id', lineUserId());
+  return `${next.pathname}${next.search}`;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -163,6 +169,16 @@ function renderPhotos(images = []) {
       <span>${images.length} 張</span>
     </div>
     ${items}
+  `;
+}
+
+function showReviewThanks(actionsNode) {
+  setStatus('謝謝你的評價，平台已收到。感謝你使用師傅抵嘉，期待下次繼續為你服務。');
+  if (!actionsNode) return;
+  actionsNode.innerHTML = `
+    <div class="actions">
+      <a href="${liffPath('/liff/repair')}"><button type="button">再次報修</button></a>
+    </div>
   `;
 }
 
@@ -326,7 +342,7 @@ async function setupConfirm() {
         headers: { 'Content-Type': 'application/json' },
         body: jsonWithLineUser({ ...data, confirmed: true }),
       });
-      setStatus('已確認結案，謝謝你的評價。');
+      showReviewThanks(actions);
     });
     $('#dispute-button').addEventListener('click', async () => {
       await api(`/api/liff/orders/${order.id}/confirm-completion`, {
@@ -398,7 +414,7 @@ async function setupProfile() {
       headers: { 'Content-Type': 'application/json' },
       body: jsonWithLineUser(data),
     });
-    setStatus('資料已儲存，之後報修會更快。');
+    setStatus('會員資料已儲存，後台客戶名單也會看到這筆資料。之後報修會更快。');
   });
 }
 
@@ -421,7 +437,11 @@ async function setupReview() {
       headers: { 'Content-Type': 'application/json' },
       body: jsonWithLineUser(data),
     });
-    setStatus('評價已送出，謝謝。');
+    if (role === 'customer') {
+      showReviewThanks(form.parentElement);
+    } else {
+      setStatus('評價已送出，謝謝。');
+    }
   });
 }
 

@@ -87,13 +87,52 @@ async function updateCustomerProfile(req, res, next) {
       name: String(req.body.name || '').trim() || null,
       phone: String(req.body.phone || '').trim() || null,
       default_address: String(req.body.default_address || '').trim() || null,
+      role: user.role === 'admin' || user.role === 'technician' ? user.role : 'customer',
+      status: user.status || 'active',
+      line_display_name: String(req.body.line_display_name || '').trim() || undefined,
+      line_picture_url: String(req.body.line_picture_url || '').trim() || undefined,
+      line_language: String(req.body.line_language || '').trim() || undefined,
     };
 
-    const updated = await userRepository.updateUser(user.id, changes);
+    const updated = await updateCustomerProfileWithFallback(user.id, changes);
     res.json({ data: updated });
   } catch (error) {
     next(error);
   }
+}
+
+async function updateCustomerProfileWithFallback(userId, changes) {
+  const attempts = [
+    changes,
+    {
+      name: changes.name,
+      phone: changes.phone,
+      default_address: changes.default_address,
+      role: changes.role,
+      status: changes.status,
+    },
+    {
+      name: changes.name,
+      phone: changes.phone,
+      role: changes.role,
+      status: changes.status,
+    },
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      return await userRepository.updateUser(userId, attempt);
+    } catch (error) {
+      lastError = error;
+      console.warn('[customer-profile:update:fallback]', JSON.stringify({
+        userId,
+        message: error.message,
+      }));
+    }
+  }
+
+  throw lastError;
 }
 
 async function createRepair(req, res, next) {
