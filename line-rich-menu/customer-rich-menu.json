@@ -1,0 +1,51 @@
+{
+  "size": {
+    "width": 2500,
+    "height": 1686
+  },
+  "selected": true,
+  "name": "師傅抵嘉顧客版選單",
+  "chatBarText": "選單",
+  "areas": [
+    {
+      "bounds": { "x": 80, "y": 430, "width": 1170, "height": 568 },
+      "action": {
+        "type": "uri",
+        "label": "我要報修",
+        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/repair"
+      }
+    },
+    {
+      "bounds": { "x": 1250, "y": 430, "width": 1170, "height": 568 },
+      "action": {
+        "type": "uri",
+        "label": "加入會員",
+        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/profile"
+      }
+    },
+    {
+      "bounds": { "x": 80, "y": 998, "width": 780, "height": 568 },
+      "action": {
+        "type": "message",
+        "label": "我的案件",
+        "text": "我的案件"
+      }
+    },
+    {
+      "bounds": { "x": 860, "y": 998, "width": 780, "height": 568 },
+      "action": {
+        "type": "message",
+        "label": "最新消息",
+        "text": "最新消息"
+      }
+    },
+    {
+      "bounds": { "x": 1640, "y": 998, "width": 780, "height": 568 },
+      "action": {
+        "type": "message",
+        "label": "聯絡客服",
+        "text": "聯絡客服"
+      }
+    }
+  ]
+}

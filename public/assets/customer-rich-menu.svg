@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2500" height="1686" viewBox="0 0 2500 1686" role="img" aria-labelledby="title desc">
+  <title id="title">師傅抵嘉顧客版 LINE Rich Menu</title>
+  <desc id="desc">包含我要報修、加入會員、我的案件、最新消息、聯絡客服、服務條款六個按鈕。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.45" stop-color="#f4f7f1"/>
+      <stop offset="1" stop-color="#fff3ec"/>
+    </linearGradient>
+    <linearGradient id="primary" x1="0" x2="1">
+      <stop offset="0" stop-color="#1f8a70"/>
+      <stop offset="1" stop-color="#2fb08d"/>
+    </linearGradient>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#111827" flood-opacity="0.16"/>
+    </filter>
+    <style>
+      .label { font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; fill: #111827; font-weight: 800; }
+      .sub { font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; fill: #4b5563; font-weight: 600; }
+      .white { fill: #ffffff; }
+      .cell { fill: rgba(255,255,255,0.82); stroke: #d7dfd7; stroke-width: 3; }
+      .icon { fill: none; stroke: #1f8a70; stroke-width: 16; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="2500" height="1686" rx="72" fill="url(#bg)"/>
+  <circle cx="2150" cy="230" r="310" fill="#fde2d9" opacity="0.52"/>
+  <circle cx="250" cy="1370" r="420" fill="#d9f2ea" opacity="0.62"/>
+  <path d="M0 620 C420 440 640 830 1010 610 C1400 380 1570 780 1910 560 C2160 400 2350 470 2500 550 L2500 0 L0 0 Z" fill="#e8f5ef" opacity="0.8"/>
+
+  <rect x="80" y="82" width="2340" height="280" rx="44" fill="url(#primary)" filter="url(#soft)"/>
+  <text x="180" y="210" class="white label" font-size="74">師傅抵嘉</text>
+  <text x="180" y="294" class="white sub" font-size="38">嘉義在地水電媒合服務</text>
+  <text x="2100" y="235" text-anchor="middle" class="white label" font-size="54">顧客專區</text>
+
+  <g filter="url(#soft)">
+    <rect x="80" y="430" width="2340" height="1136" rx="52" fill="#ffffff" opacity="0.96"/>
+    <rect x="80" y="430" width="1170" height="568" rx="52" fill="#ffffff"/>
+    <rect x="1250" y="430" width="1170" height="568" rx="52" fill="#f7fbf9"/>
+    <rect x="80" y="998" width="780" height="568" rx="52" fill="#fbfdfc"/>
+    <rect x="860" y="998" width="780" height="568" rx="52" fill="#ffffff"/>
+    <rect x="1640" y="998" width="780" height="568" rx="52" fill="#fbfdfc"/>
+  </g>
+
+  <line x1="1250" y1="430" x2="1250" y2="998" stroke="#d7dfd7" stroke-width="4"/>
+  <line x1="80" y1="998" x2="2420" y2="998" stroke="#d7dfd7" stroke-width="4"/>
+  <line x1="860" y1="998" x2="860" y2="1566" stroke="#d7dfd7" stroke-width="4"/>
+  <line x1="1640" y1="998" x2="1640" y2="1566" stroke="#d7dfd7" stroke-width="4"/>
+
+  <g transform="translate(380 590)">
+    <path class="icon" d="M70 150 H230 M150 70 V230"/>
+    <rect class="icon" x="25" y="25" width="250" height="250" rx="42"/>
+  </g>
+  <text x="665" y="750" text-anchor="middle" class="label" font-size="86">我要報修</text>
+  <text x="665" y="835" text-anchor="middle" class="sub" font-size="38">漏水、堵塞、插座、熱水器</text>
+
+  <g transform="translate(1550 590)">
+    <circle class="icon" cx="150" cy="90" r="68"/>
+    <path class="icon" d="M40 270 C72 185 228 185 260 270"/>
+    <path class="icon" d="M300 70 V170 M250 120 H350"/>
+  </g>
+  <text x="1835" y="750" text-anchor="middle" class="label" font-size="86">加入會員</text>
+  <text x="1835" y="835" text-anchor="middle" class="sub" font-size="38">儲存資料與接收優惠</text>
+
+  <g transform="translate(280 1135)">
+    <rect class="icon" x="35" y="45" width="245" height="220" rx="30"/>
+    <path class="icon" d="M90 115 H225 M90 175 H225"/>
+  </g>
+  <text x="470" y="1348" text-anchor="middle" class="label" font-size="62">我的案件</text>
+
+  <g transform="translate(1060 1135)">
+    <path class="icon" d="M70 85 H250 L290 145 V265 H70 Z"/>
+    <path class="icon" d="M250 85 V145 H290"/>
+    <path class="icon" d="M115 185 H240"/>
+  </g>
+  <text x="1250" y="1348" text-anchor="middle" class="label" font-size="62">最新消息</text>
+
+  <g transform="translate(1840 1135)">
+    <path class="icon" d="M70 90 H280 V225 H165 L95 285 V225 H70 Z"/>
+    <circle cx="130" cy="158" r="10" fill="#1f8a70"/>
+    <circle cx="175" cy="158" r="10" fill="#1f8a70"/>
+    <circle cx="220" cy="158" r="10" fill="#1f8a70"/>
+  </g>
+  <text x="2030" y="1348" text-anchor="middle" class="label" font-size="62">聯絡客服</text>
+</svg>
