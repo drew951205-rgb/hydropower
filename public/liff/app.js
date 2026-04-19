@@ -48,6 +48,15 @@ function withLineUser(url) {
   return next.toString();
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 async function api(path, options = {}) {
   const headers = options.headers || {};
   const response = await fetch(path, {
@@ -130,14 +139,31 @@ function orderSummary(order) {
 function renderPhotos(images = []) {
   const node = $('#photos');
   if (!node) return;
-  const publicImages = images.filter((item) => /^https?:\/\//.test(item.image_url));
-  if (!publicImages.length) {
-    node.innerHTML = '<p class="muted">目前沒有照片。</p>';
+  if (!images.length) {
+    node.innerHTML = `
+      <div class="photo-head">
+        <strong>案件照片</strong>
+        <span>尚未提供</span>
+      </div>
+      <p class="muted">目前沒有照片，請依文字描述評估。</p>
+    `;
     return;
   }
-  node.innerHTML = publicImages
-    .map((item) => `<img src="${item.image_url}" alt="案件照片">`)
-    .join('');
+  const items = images.map((item) => {
+    const url = item.image_url || '';
+    if (/^https?:\/\//.test(url)) {
+      return `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer"><img src="${escapeHtml(url)}" alt="案件照片"></a>`;
+    }
+    return `<span class="photo-token">${escapeHtml(url)}</span>`;
+  }).join('');
+
+  node.innerHTML = `
+    <div class="photo-head">
+      <strong>案件照片</strong>
+      <span>${images.length} 張</span>
+    </div>
+    ${items}
+  `;
 }
 
 async function loadOrder() {
@@ -221,6 +247,44 @@ async function setupChangeRequest() {
   });
 }
 
+function confirmDetailHtml(order, mode) {
+  const baseQuote = Number(order.quote_amount || 0);
+  const changeAmount = Number(order.change_request_amount || 0);
+  const finalAmount = Number(order.final_amount || order.paid_amount || baseQuote + changeAmount || 0);
+  const isChange = mode === 'change' || order.change_request_status === 'pending';
+
+  if (mode === 'completion') {
+    return `
+      <h2>完工確認</h2>
+      <dl class="summary-list">
+        <dt>原始報價</dt><dd>${formatMoney(baseQuote)}</dd>
+        <dt>追加報價</dt><dd>${formatMoney(changeAmount)}</dd>
+        <dt>實付金額</dt><dd>${formatMoney(finalAmount)}</dd>
+      </dl>
+    `;
+  }
+
+  if (isChange) {
+    return `
+      <h2>追加報價確認</h2>
+      <dl class="summary-list">
+        <dt>原始報價</dt><dd>${formatMoney(baseQuote)}</dd>
+        <dt>追加金額</dt><dd>${formatMoney(changeAmount)}</dd>
+        <dt>追加原因</dt><dd>${escapeHtml(order.change_request_reason || '未填寫')}</dd>
+      </dl>
+    `;
+  }
+
+  return `
+    <h2>報價確認</h2>
+    <dl class="summary-list">
+      <dt>報價金額</dt><dd>${formatMoney(baseQuote)}</dd>
+      <dt>服務類型</dt><dd>${escapeHtml(order.service_type || '')}</dd>
+      <dt>預約時間</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
+    </dl>
+  `;
+}
+
 async function setupConfirm() {
   const order = await loadOrder();
   $('#order-panel').innerHTML = orderSummary(order);
@@ -232,7 +296,7 @@ async function setupConfirm() {
   const detail = $('#confirm-detail');
   const actions = $('#confirm-actions');
   if (mode === 'completion') {
-    detail.innerHTML = `實付金額：${formatMoney(order.final_amount || order.quote_amount)}`;
+    detail.innerHTML = confirmDetailHtml(order, mode);
     actions.innerHTML = `
       <form id="completion-form">
         <label>實付金額
@@ -276,9 +340,7 @@ async function setupConfirm() {
   }
 
   const isChange = order.change_request_status === 'pending';
-  detail.innerHTML = isChange
-    ? `追加金額：${formatMoney(order.change_request_amount)}<br>原因：${order.change_request_reason || '未填'}`
-    : `報價金額：${formatMoney(order.quote_amount)}`;
+  detail.innerHTML = confirmDetailHtml(order, isChange ? 'change' : mode);
   actions.innerHTML = `
     <div class="actions">
       <button id="accept-button">同意</button>
@@ -318,6 +380,28 @@ async function setupMyCases() {
   `).join('');
 }
 
+async function setupProfile() {
+  if (!requireLineUser()) return;
+  const form = $('#profile-form');
+  const profile = await api(withLineUser('/api/liff/customer-profile'));
+
+  form.name.value = profile.name || profile.line_display_name || '';
+  form.phone.value = profile.phone || '';
+  form.default_address.value = profile.default_address || '';
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setStatus('正在儲存資料...');
+    const data = Object.fromEntries(new FormData(form).entries());
+    await api('/api/liff/customer-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: jsonWithLineUser(data),
+    });
+    setStatus('資料已儲存，之後報修會更快。');
+  });
+}
+
 async function setupReview() {
   const order = await loadOrder();
   $('#order-panel').innerHTML = orderSummary(order);
@@ -350,6 +434,7 @@ async function main() {
     if (page === 'change-request') await setupChangeRequest();
     if (page === 'confirm') await setupConfirm();
     if (page === 'my-cases') await setupMyCases();
+    if (page === 'profile') await setupProfile();
     if (page === 'review') await setupReview();
   } catch (error) {
     setStatus(error.message, true);

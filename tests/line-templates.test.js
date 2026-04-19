@@ -47,6 +47,8 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   assert.equal(welcome.type, 'text');
   assert.equal(welcome.quickReply.items[0].action.type, 'uri');
   assert.match(welcome.quickReply.items[0].action.uri, /\/repair$/);
+  assert.equal(welcome.quickReply.items[1].action.type, 'uri');
+  assert.match(welcome.quickReply.items[1].action.uri, /\/profile$/);
 
   const reviewApproved = reviewApprovedMessage(order);
   assert.equal(reviewApproved.type, 'flex');

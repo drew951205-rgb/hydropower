@@ -71,6 +71,7 @@ app.get('/liff', (req, res) => {
   'change-request',
   'confirm',
   'my-cases',
+  'profile',
   'review',
 ].forEach((page) => {
   app.get(`/liff/${page}`, (req, res) => {

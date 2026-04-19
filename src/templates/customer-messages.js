@@ -135,6 +135,7 @@ function orderCard({ altText, title, status, summary, rows, actions = [] }) {
 function welcomeMessage() {
   return textWithQuickReply(customerMessages.welcome, [
     uriAction('我要報修', '/liff/repair'),
+    uriAction('填寫資料', '/liff/profile'),
   ]);
 }
 

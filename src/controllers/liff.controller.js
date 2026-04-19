@@ -63,6 +63,31 @@ async function getConfig(req, res) {
   });
 }
 
+async function getCustomerProfile(req, res, next) {
+  try {
+    const user = await resolveUser(req, { role: 'customer' });
+    res.json({ data: user });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateCustomerProfile(req, res, next) {
+  try {
+    const user = await resolveUser(req, { role: 'customer' });
+    const changes = {
+      name: String(req.body.name || '').trim() || null,
+      phone: String(req.body.phone || '').trim() || null,
+      default_address: String(req.body.default_address || '').trim() || null,
+    };
+
+    const updated = await userRepository.updateUser(user.id, changes);
+    res.json({ data: updated });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function createRepair(req, res, next) {
   try {
     const user = await resolveUser(req, {
@@ -291,6 +316,8 @@ async function submitTechnicianReview(req, res, next) {
 
 module.exports = {
   getConfig,
+  getCustomerProfile,
+  updateCustomerProfile,
   createRepair,
   getOrder,
   listTechnicianOrders,

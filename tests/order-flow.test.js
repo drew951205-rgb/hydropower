@@ -90,6 +90,34 @@ test('customer can create an order from LIFF repair form API', async () => {
   }
 });
 
+test('customer can update profile from LIFF profile API', async () => {
+  const server = app.listen(0);
+  try {
+    const lineUserId = `U-liff-profile-${Date.now()}`;
+    const saved = await request(server, 'POST', '/api/liff/customer-profile', {
+      line_user_id: lineUserId,
+      name: 'Profile Customer',
+      phone: '0912555666',
+      default_address: '嘉義市西區文化路88號',
+    });
+
+    assert.equal(saved.status, 200);
+    assert.equal(saved.body.data.name, 'Profile Customer');
+    assert.equal(saved.body.data.phone, '0912555666');
+    assert.equal(saved.body.data.default_address, '嘉義市西區文化路88號');
+
+    const loaded = await request(
+      server,
+      'GET',
+      `/api/liff/customer-profile?line_user_id=${encodeURIComponent(lineUserId)}`
+    );
+    assert.equal(loaded.status, 200);
+    assert.equal(loaded.body.data.name, 'Profile Customer');
+  } finally {
+    server.close();
+  }
+});
+
 test('admin can create a technician', async () => {
   const server = app.listen(0);
   try {

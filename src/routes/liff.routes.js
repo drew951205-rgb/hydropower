@@ -13,6 +13,8 @@ const upload = multer({
 });
 
 router.get('/config', liffController.getConfig);
+router.get('/customer-profile', liffController.getCustomerProfile);
+router.post('/customer-profile', liffController.updateCustomerProfile);
 router.post('/repair', upload.array('images', env.uploadMaxFiles), liffController.createRepair);
 router.get('/orders/:id', liffController.getOrder);
 router.post('/orders/:id/quote', liffController.submitQuote);

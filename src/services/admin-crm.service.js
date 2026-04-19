@@ -53,11 +53,19 @@ async function getCustomerDetail(customerId) {
   }
 
   const orders = await orderRepository.listOrders({ customer_id: customer.id });
-  const summary = summarizeCustomer(customer, orders);
+  const orderDetails = await Promise.all(
+    orders.map((order) => orderRepository.getOrderDetail(order.id))
+  );
+  const ordersWithCounts = orderDetails.map((order) => ({
+    ...order,
+    image_count: order.images?.length || 0,
+    message_count: order.messages?.length || 0,
+  }));
+  const summary = summarizeCustomer(customer, ordersWithCounts);
 
   return {
     ...summary,
-    orders
+    orders: ordersWithCounts
   };
 }
 

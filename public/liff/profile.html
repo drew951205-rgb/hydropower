@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>客戶資料｜師傅抵嘉</title>
+  <link rel="stylesheet" href="/liff/styles.css">
+</head>
+<body data-page="profile">
+  <main class="page">
+    <p class="eyebrow">師傅抵嘉</p>
+    <h1>客戶資料</h1>
+    <p class="lead">先留下常用聯絡資訊，之後報修會更快，平台也能更準確聯絡你。</p>
+    <p id="status" class="notice" hidden></p>
+    <form id="profile-form">
+      <input id="line_user_id" name="line_user_id" type="hidden">
+      <label>姓名
+        <input name="name" autocomplete="name" placeholder="王小明">
+      </label>
+      <label>聯絡電話
+        <input name="phone" inputmode="tel" autocomplete="tel" placeholder="0912345678">
+      </label>
+      <label>常用地址
+        <input name="default_address" autocomplete="street-address" placeholder="嘉義市西區中山路100號">
+      </label>
+      <button type="submit">儲存資料</button>
+    </form>
+  </main>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="/liff/app.js"></script>
+</body>
+</html>

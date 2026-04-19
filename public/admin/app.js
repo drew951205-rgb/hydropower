@@ -322,6 +322,8 @@ async function selectCustomer(customerId) {
       <dt>常用地址</dt><dd>${escapeHtml(customer.default_address || '')}</dd>
       <dt>LINE ID</dt><dd>${escapeHtml(customer.line_user_id || '')}</dd>
       <dt>累計案件</dt><dd>${customer.order_count || 0} 件</dd>
+      <dt>完成案件</dt><dd>${customer.closed_order_count || 0} 件</dd>
+      <dt>取消案件</dt><dd>${customer.cancelled_order_count || 0} 件</dd>
       <dt>平均評分</dt><dd>${customer.average_rating ? Number(customer.average_rating).toFixed(1) : ''}</dd>
       <dt>成交金額</dt><dd>${money(customer.total_amount)}</dd>
     </dl>
@@ -329,7 +331,7 @@ async function selectCustomer(customerId) {
     <div class="mini-list">
       ${orders.length ? orders.map((order) => `
         <button type="button" data-order-id="${order.id}">
-          ${escapeHtml(order.order_no)}｜${escapeHtml(order.service_type)}｜${statusText(order.status)}
+          ${escapeHtml(order.order_no)}｜${escapeHtml(order.service_type)}｜${statusText(order.status)}｜照片 ${order.image_count || 0} 張
         </button>
       `).join('') : '<p class="empty">沒有歷史案件</p>'}
     </div>
