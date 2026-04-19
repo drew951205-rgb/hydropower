@@ -390,15 +390,23 @@ async function runOrderAction(action) {
   }
 
   if (action === 'cancel') {
+    const reason = window.prompt('請輸入取消原因，系統會通知客戶：', '平台取消案件');
+    if (reason === null) return;
+    const reasonText = reason.trim();
+    if (!reasonText) {
+      showToast('請輸入取消原因');
+      return;
+    }
+
     await api(`/api/orders/${order.id}/cancel`, {
       method: 'POST',
       body: JSON.stringify({
         cancelled_by: 'platform',
         reason_code: 'admin_cancel',
-        reason_text: 'Admin cancelled from CRM'
+        reason_text: reasonText
       })
     });
-    showToast('已取消案件');
+    showToast('已取消案件並通知客戶');
   }
 
   await refreshSelectedOrder();

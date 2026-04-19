@@ -236,6 +236,20 @@ function dispatchTimeoutMessage(order) {
   });
 }
 
+function platformCancelledMessage(order) {
+  return orderCard({
+    altText: `案件已取消 ${order.order_no}`,
+    status: '平台取消',
+    title: '案件已由平台取消',
+    summary: '若你仍需要水電服務，可以重新送出報修，平台會再協助媒合。',
+    rows: [
+      infoRow('案件編號', order.order_no),
+      infoRow('服務類型', order.service_type),
+      infoRow('取消原因', order.cancel_reason_text || '平台已取消案件'),
+    ],
+  });
+}
+
 function completionMessage(order) {
   const amount = Number(order.final_amount || order.quote_amount || 0);
   return orderCard({
@@ -287,6 +301,7 @@ module.exports = {
   changeRequestMessage,
   assignedCustomerMessage,
   dispatchTimeoutMessage,
+  platformCancelledMessage,
   completionMessage,
   customerReviewRatingMessage,
   customerReviewCommentPrompt,

@@ -7,6 +7,7 @@ const {
   quoteMessage,
   changeRequestMessage,
   assignedCustomerMessage,
+  platformCancelledMessage,
   completionMessage,
 } = require('../src/templates/customer-messages');
 const {
@@ -80,6 +81,15 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   assert.equal(assigned.type, 'flex');
   assert.match(JSON.stringify(assigned.contents), /師傅已接單/);
   assert.match(JSON.stringify(assigned.contents), /Test Technician/);
+
+  const cancelled = platformCancelledMessage({
+    ...order,
+    cancel_reason_text: '資料不完整，請重新送出報修',
+  });
+  assert.equal(cancelled.type, 'flex');
+  assert.match(cancelled.altText, /案件已取消/);
+  assert.match(JSON.stringify(cancelled.contents), /平台取消/);
+  assert.match(JSON.stringify(cancelled.contents), /資料不完整/);
 
   const completion = completionMessage(order);
   assert.equal(completion.type, 'flex');

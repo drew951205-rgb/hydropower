@@ -451,6 +451,42 @@ test('dispatch timeout expires pending assignments and returns order to dispatch
   }
 });
 
+test('platform cancellation stores reason for customer notification', async () => {
+  const server = app.listen(0);
+  try {
+    const customerId = `U-customer-platform-cancel-${Date.now()}`;
+    const intakeEvents = [
+      { type: 'message', replyToken: 'pc1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
+      { type: 'message', replyToken: 'pc2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
+      { type: 'message', replyToken: 'pc3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
+      { type: 'message', replyToken: 'pc4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def700\u865f' } },
+      { type: 'message', replyToken: 'pc5', source: { userId: customerId }, message: { type: 'text', text: '\u6c34\u7ba1\u6ef2\u6c34' } },
+      { type: 'message', replyToken: 'pc6', source: { userId: customerId }, message: { type: 'text', text: '\u4eca\u5929\u4e0b\u5348' } },
+      { type: 'message', replyToken: 'pc7', source: { userId: customerId }, message: { type: 'text', text: '0912777000' } }
+    ];
+
+    for (const event of intakeEvents) {
+      const response = await request(server, 'POST', '/webhook', { events: [event] });
+      assert.equal(response.status, 200);
+    }
+
+    const orders = await request(server, 'GET', '/api/orders');
+    const order = orders.body.data.find((item) => item.contact_phone === '0912777000');
+    const cancelled = await request(server, 'POST', `/api/orders/${order.id}/cancel`, {
+      cancelled_by: 'platform',
+      reason_code: 'admin_cancel',
+      reason_text: '資料不完整，請重新送出報修',
+    });
+
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.body.data.status, 'platform_cancelled');
+    assert.equal(cancelled.body.data.cancelled_by, 'platform');
+    assert.equal(cancelled.body.data.cancel_reason_text, '資料不完整，請重新送出報修');
+  } finally {
+    server.close();
+  }
+});
+
 test('technician can quote, arrive, and complete after customer accepts', async () => {
   const server = app.listen(0);
   try {

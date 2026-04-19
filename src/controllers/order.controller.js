@@ -5,7 +5,10 @@ const completionService = require('../services/completion.service');
 const disputeService = require('../services/dispute.service');
 const lineMessageService = require('../services/line-message.service');
 const userRepository = require('../repositories/user.repository');
-const { reviewApprovedMessage } = require('../templates/customer-messages');
+const {
+  reviewApprovedMessage,
+  platformCancelledMessage,
+} = require('../templates/customer-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
 async function notifyCustomerReviewApproved(order) {
@@ -34,6 +37,36 @@ async function notifyCustomerReviewApproved(order) {
   await lineMessageService.pushMessages(
     customer.line_user_id,
     reviewApprovedMessage(order)
+  );
+}
+
+async function notifyCustomerPlatformCancelled(order) {
+  const customer = await userRepository.findById(order.customer_id);
+  if (!customer?.line_user_id) {
+    console.warn(
+      '[cancel:customer-push:skip]',
+      JSON.stringify({
+        reason: 'missing_customer_line_user_id',
+        orderId: order.id,
+        customerId: order.customer_id,
+      })
+    );
+    return;
+  }
+
+  console.log(
+    '[cancel:customer-push]',
+    JSON.stringify({
+      orderId: order.id,
+      orderNo: order.order_no,
+      customerId: customer.id,
+      customerLineUserId: customer.line_user_id,
+      reason: order.cancel_reason_text,
+    })
+  );
+  await lineMessageService.pushMessages(
+    customer.line_user_id,
+    platformCancelledMessage(order)
   );
 }
 
@@ -68,10 +101,23 @@ async function reviewOrder(req, res, next) {
       `review_${req.body.action}`,
       'admin',
       null,
-      req.body.note
+      req.body.note,
+      req.body.action === 'reject'
+        ? {
+            cancelled_by: 'platform',
+            cancel_reason_code: 'review_reject',
+            cancel_reason_text: req.body.note || '案件未通過平台審核',
+          }
+        : {}
     );
     if (req.body.action === 'approve') {
       await notifyCustomerReviewApproved(data);
+    }
+    if (req.body.action === 'reject') {
+      await notifyCustomerPlatformCancelled({
+        ...data,
+        cancel_reason_text: req.body.note || '案件未通過平台審核',
+      });
     }
     res.json({ data });
   } catch (error) {
@@ -106,7 +152,11 @@ async function assignOrder(req, res, next) {
 
 async function cancelOrder(req, res, next) {
   try {
-    res.json({ data: await orderService.cancelOrder(req.params.id, req.body) });
+    const data = await orderService.cancelOrder(req.params.id, req.body);
+    if (data.cancelled_by === 'platform') {
+      await notifyCustomerPlatformCancelled(data);
+    }
+    res.json({ data });
   } catch (error) {
     next(error);
   }
