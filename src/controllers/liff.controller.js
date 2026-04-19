@@ -37,6 +37,10 @@ function lineUserIdFrom(req) {
   );
 }
 
+function isAccepted(value) {
+  return value === true || value === 'true' || value === 'on' || value === '1';
+}
+
 async function resolveUser(req, defaults = {}) {
   const lineUserId = String(lineUserIdFrom(req) || '').trim();
   if (!lineUserId) throw badRequest('Missing LINE user id');
@@ -90,6 +94,10 @@ async function updateCustomerProfile(req, res, next) {
 
 async function createRepair(req, res, next) {
   try {
+    if (!isAccepted(req.body.terms_accepted)) {
+      throw badRequest('請先閱讀並同意平台條款');
+    }
+
     const user = await resolveUser(req, {
       role: 'customer',
       name: req.body.line_display_name,

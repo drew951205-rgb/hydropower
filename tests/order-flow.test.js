@@ -79,12 +79,34 @@ test('customer can create an order from LIFF repair form API', async () => {
       preferred_time_text: '明天下午 2-5 點',
       issue_description: '浴室洗手台下方會滴水',
       contact_phone: '0912345678',
+      terms_accepted: true,
     });
 
     assert.equal(response.status, 201);
     assert.equal(response.body.data.status, 'pending_review');
     assert.equal(response.body.data.service_mode, 'scheduled');
     assert.equal(response.body.data.preferred_time_text, '明天下午 2-5 點');
+  } finally {
+    server.close();
+  }
+});
+
+test('LIFF repair form requires platform terms acceptance', async () => {
+  const server = app.listen(0);
+  try {
+    const lineUserId = `U-liff-terms-${Date.now()}`;
+    const response = await request(server, 'POST', '/api/liff/repair', {
+      line_user_id: lineUserId,
+      service_type: '漏水',
+      area: '西區',
+      address: '嘉義市西區民族路100號',
+      preferred_time_text: '明天下午 2-5 點',
+      issue_description: '浴室洗手台下方會滴水',
+      contact_phone: '0912345678',
+    });
+
+    assert.equal(response.status, 400);
+    assert.match(response.body.error, /平台條款/);
   } finally {
     server.close();
   }
