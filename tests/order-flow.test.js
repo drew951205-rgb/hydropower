@@ -36,31 +36,45 @@ function request(server, method, path, body, headers = {}) {
   });
 }
 
-test('customer webhook creates an order through repair flow', async () => {
+async function createRepairOrder(server, overrides = {}) {
+  const stamp = Date.now();
+  const lineUserId = overrides.line_user_id || `U-liff-order-${stamp}-${Math.random().toString(36).slice(2, 6)}`;
+  const payload = {
+    line_user_id: lineUserId,
+    line_display_name: overrides.line_display_name || 'LIFF Customer',
+    service_type: overrides.service_type || '漏水',
+    area: overrides.area || '西區',
+    address: overrides.address || '嘉義市西區中山路100號',
+    preferred_time_text: overrides.preferred_time_text || '今天下午',
+    issue_description: overrides.issue_description || '水管漏水',
+    contact_phone: overrides.contact_phone || `09${String(stamp).slice(-8)}`,
+    terms_accepted: true,
+  };
+  const response = await request(server, 'POST', '/api/liff/repair', payload);
+  assert.equal(response.status, 201);
+  return { lineUserId, order: response.body.data, response };
+}
+
+test('customer webhook sends repair form button instead of chat intake', async () => {
   const server = app.listen(0);
   try {
     const userId = `U-test-customer-${Date.now()}`;
-    const events = [
-      { type: 'message', replyToken: 'r1', source: { userId }, message: { type: 'text', text: '\u5831\u4fee' } },
-      { type: 'message', replyToken: 'r2', source: { userId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'r3', source: { userId }, message: { type: 'text', text: '\u897f\u5340' } },
-      { type: 'message', replyToken: 'r4', source: { userId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def100\u865f' } },
-      { type: 'message', replyToken: 'r5', source: { userId }, message: { type: 'text', text: '\u5eda\u623f\u6c34\u69fd\u4e0b\u65b9\u6301\u7e8c\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'r6', source: { userId }, message: { type: 'text', text: '\u8d8a\u5feb\u8d8a\u597d' } },
-      { type: 'message', replyToken: 'r7', source: { userId }, message: { type: 'text', text: '0912345678' } }
-    ];
-
-    for (const event of events) {
-      const response = await request(server, 'POST', '/webhook', { events: [event] });
-      assert.equal(response.status, 200);
-    }
+    const response = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'r1',
+          source: { userId },
+          message: { type: 'text', text: '報修' },
+        },
+      ],
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.results[0].repairFormPrompted, true);
 
     const orders = await request(server, 'GET', '/api/orders');
     assert.equal(orders.status, 200);
-    assert.equal(orders.body.data.length, 1);
-    assert.equal(orders.body.data[0].status, 'pending_review');
-    assert.equal(orders.body.data[0].service_mode, 'urgent');
-    assert.equal(orders.body.data[0].preferred_time_text, '\u8d8a\u5feb\u8d8a\u597d');
+    assert.equal(orders.body.data.length, 0);
   } finally {
     server.close();
   }
@@ -263,24 +277,15 @@ test('technician with active orders is paused but cannot leave role', async () =
   try {
     const customerId = `U-customer-active-leave-${Date.now()}`;
     const technicianId = `U-technician-active-leave-${Date.now()}`;
-
-    const intakeEvents = [
-      { type: 'message', replyToken: 'al1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
-      { type: 'message', replyToken: 'al2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'al3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
-      { type: 'message', replyToken: 'al4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def600\u865f' } },
-      { type: 'message', replyToken: 'al5', source: { userId: customerId }, message: { type: 'text', text: '\u6d74\u5ba4\u6c34\u9f8d\u982d\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'al6', source: { userId: customerId }, message: { type: 'text', text: '\u4eca\u5929\u4e0b\u5348' } },
-      { type: 'message', replyToken: 'al7', source: { userId: customerId }, message: { type: 'text', text: '0912888999' } }
-    ];
-
-    for (const event of intakeEvents) {
-      const response = await request(server, 'POST', '/webhook', { events: [event] });
-      assert.equal(response.status, 200);
-    }
-
-    const orders = await request(server, 'GET', '/api/orders');
-    const order = orders.body.data.find((item) => item.contact_phone === '0912888999');
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '漏水',
+      area: '西區',
+      address: '嘉義市西區中山路600號',
+      preferred_time_text: '今天下午',
+      issue_description: '浴室水龍頭漏水',
+      contact_phone: '0912888999',
+    });
 
     const technician = await request(server, 'POST', '/api/technicians', {
       line_user_id: technicianId,
@@ -338,24 +343,15 @@ test('technician acceptance notifies the customer and moves order to assigned', 
   try {
     const customerId = `U-customer-assign-${Date.now()}`;
     const technicianId = `U-technician-assign-${Date.now()}`;
-
-    const intakeEvents = [
-      { type: 'message', replyToken: 'ca1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
-      { type: 'message', replyToken: 'ca2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'ca3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
-      { type: 'message', replyToken: 'ca4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def200\u865f' } },
-      { type: 'message', replyToken: 'ca5', source: { userId: customerId }, message: { type: 'text', text: '\u6c34\u7ba1\u6ef2\u6c34' } },
-      { type: 'message', replyToken: 'ca6', source: { userId: customerId }, message: { type: 'text', text: '\u4eca\u5929\u4e0b\u5348' } },
-      { type: 'message', replyToken: 'ca7', source: { userId: customerId }, message: { type: 'text', text: '0912000000' } }
-    ];
-
-    for (const event of intakeEvents) {
-      const response = await request(server, 'POST', '/webhook', { events: [event] });
-      assert.equal(response.status, 200);
-    }
-
-    const orders = await request(server, 'GET', '/api/orders');
-    const order = orders.body.data.find((item) => item.customer_id);
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '漏水',
+      area: '西區',
+      address: '嘉義市西區中山路200號',
+      preferred_time_text: '今天下午',
+      issue_description: '水管滲水',
+      contact_phone: '0912000000',
+    });
     assert.equal(order.status, 'pending_review');
 
     const technician = await request(server, 'POST', '/api/technicians', {
@@ -404,24 +400,15 @@ test('dispatch timeout expires pending assignments and returns order to dispatch
   try {
     const customerId = `U-customer-timeout-${Date.now()}`;
     const technicianId = `U-technician-timeout-${Date.now()}`;
-
-    const intakeEvents = [
-      { type: 'message', replyToken: 'to1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
-      { type: 'message', replyToken: 'to2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'to3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
-      { type: 'message', replyToken: 'to4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def500\u865f' } },
-      { type: 'message', replyToken: 'to5', source: { userId: customerId }, message: { type: 'text', text: '\u967d\u53f0\u6c34\u9f8d\u982d\u6ef4\u6c34' } },
-      { type: 'message', replyToken: 'to6', source: { userId: customerId }, message: { type: 'text', text: '\u660e\u5929\u4e0b\u5348 2-5 \u9ede' } },
-      { type: 'message', replyToken: 'to7', source: { userId: customerId }, message: { type: 'text', text: '0912666888' } }
-    ];
-
-    for (const event of intakeEvents) {
-      const response = await request(server, 'POST', '/webhook', { events: [event] });
-      assert.equal(response.status, 200);
-    }
-
-    const orders = await request(server, 'GET', '/api/orders');
-    const order = orders.body.data.find((item) => item.contact_phone === '0912666888');
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '漏水',
+      area: '西區',
+      address: '嘉義市西區中山路500號',
+      preferred_time_text: '明天下午 2-5 點',
+      issue_description: '陽台水龍頭滴水',
+      contact_phone: '0912666888',
+    });
 
     const technician = await request(server, 'POST', '/api/technicians', {
       line_user_id: technicianId,
@@ -466,23 +453,15 @@ test('platform cancellation stores reason for customer notification', async () =
   const server = app.listen(0);
   try {
     const customerId = `U-customer-platform-cancel-${Date.now()}`;
-    const intakeEvents = [
-      { type: 'message', replyToken: 'pc1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
-      { type: 'message', replyToken: 'pc2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'pc3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
-      { type: 'message', replyToken: 'pc4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def700\u865f' } },
-      { type: 'message', replyToken: 'pc5', source: { userId: customerId }, message: { type: 'text', text: '\u6c34\u7ba1\u6ef2\u6c34' } },
-      { type: 'message', replyToken: 'pc6', source: { userId: customerId }, message: { type: 'text', text: '\u4eca\u5929\u4e0b\u5348' } },
-      { type: 'message', replyToken: 'pc7', source: { userId: customerId }, message: { type: 'text', text: '0912777000' } }
-    ];
-
-    for (const event of intakeEvents) {
-      const response = await request(server, 'POST', '/webhook', { events: [event] });
-      assert.equal(response.status, 200);
-    }
-
-    const orders = await request(server, 'GET', '/api/orders');
-    const order = orders.body.data.find((item) => item.contact_phone === '0912777000');
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '漏水',
+      area: '西區',
+      address: '嘉義市西區中山路700號',
+      preferred_time_text: '今天下午',
+      issue_description: '水管滲水',
+      contact_phone: '0912777000',
+    });
     const cancelled = await request(server, 'POST', `/api/orders/${order.id}/cancel`, {
       cancelled_by: 'platform',
       reason_code: 'admin_cancel',
@@ -506,24 +485,27 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     const technicianId = `U-technician-tech-flow-${stamp}`;
     const phone = `09${String(stamp).slice(-8)}`;
 
-    const intakeEvents = [
-      { type: 'message', replyToken: 'tf1', source: { userId: customerId }, message: { type: 'text', text: '\u5831\u4fee' } },
-      { type: 'message', replyToken: 'tf2', source: { userId: customerId }, message: { type: 'text', text: '\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'tf3', source: { userId: customerId }, message: { type: 'text', text: '\u897f\u5340' } },
-      { type: 'message', replyToken: 'tf4', source: { userId: customerId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u897f\u5340\u5fe0\u7fa9\u8857123\u865f' } },
-      { type: 'message', replyToken: 'tf5', source: { userId: customerId }, message: { type: 'text', text: '\u6d17\u624b\u53f0\u4e0b\u65b9\u6f0f\u6c34' } },
-      { type: 'message', replyToken: 'tf-img1', source: { userId: customerId }, message: { type: 'image', id: 'line-image-tech-flow-1' } },
-      { type: 'message', replyToken: 'tf6', source: { userId: customerId }, message: { type: 'text', text: '\u9031\u516d\u4e0a\u5348' } },
-      { type: 'message', replyToken: 'tf7', source: { userId: customerId }, message: { type: 'text', text: phone } }
-    ];
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '漏水',
+      area: '西區',
+      address: '嘉義市西區忠義街123號',
+      preferred_time_text: '週六上午',
+      issue_description: '洗手台下方漏水',
+      contact_phone: phone,
+    });
+    const imageAdded = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'tf-img1',
+          source: { userId: customerId },
+          message: { type: 'image', id: 'line-image-tech-flow-1' },
+        },
+      ],
+    });
+    assert.equal(imageAdded.status, 200);
 
-    for (const event of intakeEvents) {
-      const response = await request(server, 'POST', '/webhook', { events: [event] });
-      assert.equal(response.status, 200);
-    }
-
-    const orders = await request(server, 'GET', '/api/orders');
-    const order = orders.body.data.find((item) => item.contact_phone === phone);
     assert.equal(order.status, 'pending_review');
     assert.equal(order.service_mode, 'scheduled');
     assert.equal(order.preferred_time_text, '\u9031\u516d\u4e0a\u5348');
@@ -734,20 +716,15 @@ test('admin CRM lists customers with profile and order summary', async () => {
   const server = app.listen(0);
   try {
     const userId = `U-crm-customer-${Date.now()}`;
-    const events = [
-      { type: 'message', replyToken: 'crm1', source: { userId }, message: { type: 'text', text: '\u5831\u4fee' } },
-      { type: 'message', replyToken: 'crm2', source: { userId }, message: { type: 'text', text: '\u71b1\u6c34\u5668' } },
-      { type: 'message', replyToken: 'crm3', source: { userId }, message: { type: 'text', text: '\u6771\u5340' } },
-      { type: 'message', replyToken: 'crm4', source: { userId }, message: { type: 'text', text: '\u5609\u7fa9\u5e02\u6771\u5340\u5f4c\u9640\u8def66\u865f' } },
-      { type: 'message', replyToken: 'crm5', source: { userId }, message: { type: 'text', text: '\u71b1\u6c34\u5668\u5ffd\u51b7\u5ffd\u71b1' } },
-      { type: 'message', replyToken: 'crm6', source: { userId }, message: { type: 'text', text: '\u660e\u5929\u665a\u4e0a' } },
-      { type: 'message', replyToken: 'crm7', source: { userId }, message: { type: 'text', text: '0922333444' } }
-    ];
-
-    for (const event of events) {
-      const response = await request(server, 'POST', '/webhook', { events: [event] });
-      assert.equal(response.status, 200);
-    }
+    await createRepairOrder(server, {
+      line_user_id: userId,
+      service_type: '熱水器',
+      area: '東區',
+      address: '嘉義市東區彌陀路66號',
+      preferred_time_text: '明天晚上',
+      issue_description: '熱水器忽冷忽熱',
+      contact_phone: '0922333444',
+    });
 
     const customers = await request(server, 'GET', '/api/admin/customers');
     assert.equal(customers.status, 200);

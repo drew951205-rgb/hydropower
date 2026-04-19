@@ -8,6 +8,7 @@ const orderRepository = require('../repositories/order.repository');
 const { ORDER_STATUS } = require('../utils/order-status');
 const {
   customerMessages,
+  welcomeMessage,
   customerReviewCommentPrompt,
   customerReviewThanksMessage,
 } = require('../templates/customer-messages');
@@ -111,65 +112,17 @@ async function findLatestCustomerOpenOrder(user) {
 }
 
 async function startRepairFlow(user, event) {
-  const firstStep = STEPS[0];
-  await sessionRepository.upsertForUser(user.id, {
-    flow_type: 'repair',
-    current_step: firstStep,
-    temp_payload: {},
-  });
-  await lineMessageService.replyText(event, promptForStep(firstStep));
-  return { started: true };
+  await sessionRepository.clearForUser(user.id);
+  await lineMessageService.replyMessages(event, welcomeMessage());
+  return { repairFormPrompted: true };
 }
 
 async function handleCustomerText(user, event, text) {
-  if (isStartRepairText(text)) return startRepairFlow(user, event);
-
   const session = await sessionRepository.findByUserId(user.id);
   if (session?.flow_type === 'customer_review')
     return handleCustomerReviewText(user, event, session, text);
 
-  if (!session?.current_step) {
-    const { welcomeMessage } = require('../templates/customer-messages');
-    await lineMessageService.replyMessages(event, welcomeMessage());
-    return { idle: true };
-  }
-
-  const step = session.current_step;
-  const error = validateStep(step, text);
-  if (error) {
-    await lineMessageService.replyText(
-      event,
-      `${error}\n\n${promptForStep(step)}`
-    );
-    return { validationError: true };
-  }
-
-  const nextPayload = {
-    ...(session.temp_payload || {}),
-    [step]: String(text).trim(),
-  };
-  if (step === 'preferred_time_text') {
-    nextPayload.service_mode = resolveServiceMode(text);
-  }
-  const nextStep = STEPS[STEPS.indexOf(step) + 1];
-  if (nextStep) {
-    await sessionRepository.upsertForUser(user.id, {
-      flow_type: 'repair',
-      current_step: nextStep,
-      temp_payload: nextPayload,
-    });
-    await lineMessageService.replyText(event, promptForStep(nextStep));
-    return { nextStep };
-  }
-
-  const order = await orderService.createRepairOrder(user, nextPayload);
-  await updateCustomerProfileFromRepair(user, nextPayload);
-  await sessionRepository.clearForUser(user.id);
-  await lineMessageService.replyText(
-    event,
-    customerMessages.orderCreated(order)
-  );
-  return { order };
+  return startRepairFlow(user, event);
 }
 
 async function handleCustomerImage(user, event, message) {
