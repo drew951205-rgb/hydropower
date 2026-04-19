@@ -240,6 +240,36 @@ async function cancelOrder(
   );
 }
 
+async function addAdminNote(orderId, note, operatorId = null) {
+  const order = await getOrderDetail(orderId);
+  const content = String(note || '').trim();
+  if (!content) {
+    const error = new Error('Admin note is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const message = await messageRepository.createMessage({
+    order_id: order.id,
+    sender_role: 'admin',
+    sender_id: operatorId,
+    message_type: 'admin_note',
+    content,
+  });
+
+  await logStatus(
+    order,
+    order.status,
+    order.status,
+    'admin_note',
+    'admin',
+    operatorId,
+    content
+  );
+
+  return message;
+}
+
 async function addImages(orderId, images, category) {
   return imageRepository.createImages(orderId, images, category);
 }
@@ -251,5 +281,6 @@ module.exports = {
   listOrders,
   getOrderDetail,
   cancelOrder,
+  addAdminNote,
   addImages,
 };

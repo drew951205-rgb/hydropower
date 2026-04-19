@@ -178,6 +178,70 @@ async function selectOrder(orderId) {
   renderActions();
 }
 
+function timelineLabel(log) {
+  return {
+    customer_create_order: '客戶建立報修單',
+    review_approve: '平台審核通過',
+    review_request_more_info: '平台要求補充資料',
+    review_reject: '平台審核未通過',
+    dispatch_order: '平台派單',
+    manual_assign_order: '平台指定師傅',
+    accept_assignment: '師傅接單',
+    submit_quote: '師傅送出報價',
+    customer_accept_quote: '客戶同意報價',
+    customer_reject_quote: '客戶拒絕報價',
+    technician_arrived: '師傅已到場',
+    submit_change_request: '師傅送出追加報價',
+    customer_accept_change_request: '客戶同意追加報價',
+    customer_reject_change_request: '客戶拒絕追加報價',
+    technician_complete: '師傅完工回報',
+    customer_confirm_completion: '客戶確認結案',
+    customer_dispute_completion: '客戶提出申訴',
+    cancel_order: '案件取消',
+    dispatch_timeout: '派單逾時',
+    stale_order_review: '案件停滯提醒',
+    admin_note: '管理員內部備註',
+  }[log.action] || log.action || '系統紀錄';
+}
+
+function renderTimeline(order) {
+  const logs = [...(order.logs || [])].sort(
+    (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
+  );
+  if (!logs.length) return '<p class="empty compact-empty">尚無時間軸紀錄</p>';
+
+  return `
+    <ol class="timeline">
+      ${logs.map((log) => `
+        <li>
+          <time>${escapeHtml(formatDate(log.created_at))}</time>
+          <strong>${escapeHtml(timelineLabel(log))}</strong>
+          <span>${escapeHtml(statusText(log.from_status) || '-')} → ${escapeHtml(statusText(log.to_status) || '-')}</span>
+          ${log.note ? `<p>${escapeHtml(log.note)}</p>` : ''}
+        </li>
+      `).join('')}
+    </ol>
+  `;
+}
+
+function renderAdminNotes(order) {
+  const notes = (order.messages || [])
+    .filter((message) => message.message_type === 'admin_note')
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  if (!notes.length) return '<p class="empty compact-empty">尚無內部備註</p>';
+
+  return `
+    <div class="note-list">
+      ${notes.map((note) => `
+        <article>
+          <time>${escapeHtml(formatDate(note.created_at))}</time>
+          <p>${escapeHtml(note.content)}</p>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderDetail() {
   const order = state.selectedOrder;
   if (!order) {
@@ -233,7 +297,12 @@ function renderDetail() {
   els.orderDetail.innerHTML = rows.map(([label, value]) => `
     <dt>${escapeHtml(label)}</dt>
     <dd>${escapeHtml(value)}</dd>
-  `).join('') + imageGallery;
+  `).join('') + imageGallery + `
+    <dt>案件時間軸</dt>
+    <dd>${renderTimeline(order)}</dd>
+    <dt>內部備註</dt>
+    <dd>${renderAdminNotes(order)}</dd>
+  `;
 }
 
 function renderActions() {
@@ -249,6 +318,16 @@ function renderActions() {
       <strong>下一步</strong>
       <p>${escapeHtml(nextStepText(order))}</p>
     </div>
+  `);
+
+  blocks.push(`
+    <form class="quick-form" data-form="admin-note">
+      <h3>內部備註</h3>
+      <label>只給後台看的紀錄
+        <textarea name="note" maxlength="500" required placeholder="例如：已電話聯繫客戶，客戶希望晚上 7 點後再安排。"></textarea>
+      </label>
+      <button type="submit">新增備註</button>
+    </form>
   `);
 
   if (can(order, 'approve')) {
@@ -427,6 +506,14 @@ async function handleActionForm(form) {
       body: JSON.stringify({ technician_ids: technicianIds })
     });
     showToast('已派單');
+  }
+
+  if (kind === 'admin-note') {
+    await api(`/api/orders/${order.id}/admin-notes`, {
+      method: 'POST',
+      body: JSON.stringify({ note: formData.get('note') })
+    });
+    showToast('已新增內部備註');
   }
 
   form.reset();

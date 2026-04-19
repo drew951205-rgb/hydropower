@@ -147,6 +147,34 @@ test('customer rich menu texts list orders and support info', async () => {
   }
 });
 
+test('admin can add internal order notes and timeline logs', async () => {
+  const server = app.listen(0);
+  try {
+    const { order } = await createRepairOrder(server, {
+      issue_description: '浴室水龍頭漏水',
+    });
+
+    const note = await request(server, 'POST', `/api/orders/${order.id}/admin-notes`, {
+      note: '已電話聯繫客戶，晚上 7 點後方便。',
+    });
+    assert.equal(note.status, 201);
+    assert.equal(note.body.data.message_type, 'admin_note');
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(detail.status, 200);
+    assert.ok(detail.body.data.messages.some((message) =>
+      message.message_type === 'admin_note' &&
+      message.content === '已電話聯繫客戶，晚上 7 點後方便。'
+    ));
+    assert.ok(detail.body.data.logs.some((log) =>
+      log.action === 'admin_note' &&
+      log.note === '已電話聯繫客戶，晚上 7 點後方便。'
+    ));
+  } finally {
+    server.close();
+  }
+});
+
 test('LIFF repair form requires platform terms acceptance', async () => {
   const server = app.listen(0);
   try {

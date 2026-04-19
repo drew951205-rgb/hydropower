@@ -10,6 +10,7 @@ router.post('/:id/review', authAdmin, orderController.reviewOrder);
 router.post('/:id/dispatch', authAdmin, orderController.dispatchOrder);
 router.post('/:id/assign', authAdmin, orderController.assignOrder);
 router.post('/:id/cancel', authAdmin, orderController.cancelOrder);
+router.post('/:id/admin-notes', authAdmin, orderController.addAdminNote);
 router.post('/:id/platform-review', authAdmin, orderController.platformReview);
 router.post('/:id/arrive', authAdmin, orderController.arrive);
 router.post('/:id/quote', authAdmin, orderController.quote);

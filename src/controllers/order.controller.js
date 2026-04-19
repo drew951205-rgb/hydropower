@@ -269,6 +269,16 @@ async function customerDispute(req, res, next) {
   }
 }
 
+async function addAdminNote(req, res, next) {
+  try {
+    res.status(201).json({
+      data: await orderService.addAdminNote(req.params.id, req.body.note),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   listOrders,
   getOrder,
@@ -284,4 +294,5 @@ module.exports = {
   customerConfirmQuote,
   customerConfirmCompletion,
   customerDispute,
+  addAdminNote,
 };

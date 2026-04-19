@@ -409,6 +409,51 @@ tbody tr.selected {
   word-break: break-all;
 }
 
+.timeline {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li,
+.note-list article {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfdfc;
+}
+
+.timeline time,
+.note-list time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timeline span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timeline p,
+.note-list p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.note-list {
+  display: grid;
+  gap: 10px;
+}
+
+.compact-empty {
+  padding: 10px;
+  text-align: left;
+}
+
 .technician-item {
   display: grid;
   grid-template-columns: 1fr auto;
