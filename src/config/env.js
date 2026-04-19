@@ -19,6 +19,7 @@ const env = {
   dispatchTimeoutMinutes: Number(process.env.DISPATCH_TIMEOUT_MINUTES || 10),
   uploadMaxFileSize: Number(process.env.UPLOAD_MAX_FILE_SIZE || 5242880),
   uploadMaxFiles: Number(process.env.UPLOAD_MAX_FILES || 3),
+  supabaseImageBucket: process.env.SUPABASE_IMAGE_BUCKET || 'images',
 };
 
 module.exports = { env };

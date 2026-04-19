@@ -4,6 +4,7 @@ const { env } = require('../config/env');
 const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const maxBytes = Number(env.uploadMaxFileSize || 5242880);
 const maxFiles = Number(env.uploadMaxFiles || 3);
+const imageBucket = env.supabaseImageBucket || 'images';
 
 function validateImages(files = []) {
   if (files.length > maxFiles) return `每次最多上傳 ${maxFiles} 張圖片。`;
@@ -26,16 +27,25 @@ async function uploadImages(files, category = 'general') {
     const filePath = `uploads/${category}/${fileName}`;
 
     const { error } = await supabase.storage
-      .from('images')
+      .from(imageBucket)
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
         upsert: false,
       });
 
-    if (error) throw error;
+    if (error) {
+      if (/bucket not found/i.test(error.message || '')) {
+        const bucketError = new Error(
+          `Supabase Storage bucket "${imageBucket}" not found. Please run supabase/create_storage_bucket.sql.`
+        );
+        bucketError.statusCode = 500;
+        throw bucketError;
+      }
+      throw error;
+    }
 
     const { data: publicUrl } = supabase.storage
-      .from('images')
+      .from(imageBucket)
       .getPublicUrl(filePath);
 
     uploaded.push({
