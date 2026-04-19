@@ -95,9 +95,15 @@ label {
   background: #f8fafb;
 }
 
-.terms-box h2 {
-  margin: 0 0 8px;
+.terms-box summary {
+  cursor: pointer;
+  color: #17202a;
   font-size: 18px;
+  font-weight: 800;
+}
+
+.terms-box[open] summary {
+  margin-bottom: 8px;
 }
 
 .terms-box ol {
