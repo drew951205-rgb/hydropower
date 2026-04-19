@@ -3,7 +3,7 @@ const { uriAction } = require('../utils/liff-url');
 
 const customerMessages = {
   welcome:
-    '歡迎來到師傅抵嘉。需要水電維修時，請點選「我要報修」或直接輸入「報修」。',
+    '歡迎來到師傅抵嘉。需要水電維修時，請點選「我要報修」。也可以加入會員，之後可不定期收到優惠與服務通知。',
   askServiceType:
     '請輸入需要的服務類型，例如：漏水、馬桶堵塞、插座故障、熱水器問題。',
   askArea: '請輸入案件所在區域，例如：東區、西區、水上、民雄。',
@@ -135,7 +135,7 @@ function orderCard({ altText, title, status, summary, rows, actions = [] }) {
 function welcomeMessage() {
   return textWithQuickReply(customerMessages.welcome, [
     uriAction('我要報修', '/liff/repair'),
-    uriAction('填寫資料', '/liff/profile'),
+    uriAction('加入會員', '/liff/profile'),
   ]);
 }
 

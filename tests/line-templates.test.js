@@ -46,9 +46,12 @@ function footerActions(message) {
 test('customer LINE messages use clearer cards and postback actions', () => {
   const welcome = welcomeMessage();
   assert.equal(welcome.type, 'text');
+  assert.match(welcome.text, /加入會員/);
+  assert.match(welcome.text, /優惠/);
   assert.equal(welcome.quickReply.items[0].action.type, 'uri');
   assert.match(welcome.quickReply.items[0].action.uri, /\/repair$/);
   assert.equal(welcome.quickReply.items[1].action.type, 'uri');
+  assert.equal(welcome.quickReply.items[1].action.label, '加入會員');
   assert.match(welcome.quickReply.items[1].action.uri, /\/profile$/);
 
   const reviewApproved = reviewApprovedMessage(order);
