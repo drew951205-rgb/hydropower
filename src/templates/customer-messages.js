@@ -164,6 +164,7 @@ function quoteMessage(order) {
     rows: [
       infoRow('案件編號', order.order_no),
       infoRow('報價金額', `${amount.toLocaleString('zh-TW')} 元`),
+      infoRow('師傅預計到場', order.estimated_arrival_time || '師傅尚未填寫'),
     ],
     actions: [
       button(

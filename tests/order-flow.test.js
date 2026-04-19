@@ -560,20 +560,18 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     assert.equal(myOrders.body.results[0].myOrders, true);
     assert.equal(myOrders.body.results[0].count, 1);
 
-    const quoted = await request(server, 'POST', '/webhook', {
-      events: [
-        {
-          type: 'message',
-          replyToken: 'tf-quote',
-          source: { userId: technicianId },
-          message: { type: 'text', text: '\u5831\u50f9 1500' }
-        }
-      ]
+    const quoted = await request(server, 'POST', `/api/liff/orders/${order.id}/quote`, {
+      line_user_id: technicianId,
+      basic_fee: 1000,
+      material_fee: 300,
+      labor_fee: 200,
+      estimated_arrival_time: '\u4eca\u5929 16:00 \u524d',
+      note: '\u66f4\u63db\u6b62\u6c34\u95a5'
     });
     assert.equal(quoted.status, 200);
-    assert.equal(quoted.body.results[0].quoteSubmitted, true);
-    assert.equal(quoted.body.results[0].order.status, 'quoted');
-    assert.equal(quoted.body.results[0].order.quote_amount, 1500);
+    assert.equal(quoted.body.data.status, 'quoted');
+    assert.equal(quoted.body.data.quote_amount, 1500);
+    assert.equal(quoted.body.data.estimated_arrival_time, '\u4eca\u5929 16:00 \u524d');
 
     const customerAccepted = await request(server, 'POST', '/webhook', {
       events: [
@@ -657,45 +655,15 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     assert.equal(technicianReview.status, 200);
     assert.equal(technicianReview.body.results[0].technicianReviewSubmitted, true);
 
-    const customerConfirmed = await request(server, 'POST', '/webhook', {
-      events: [
-        {
-          type: 'postback',
-          replyToken: 'tf-customer-complete',
-          source: { userId: customerId },
-          postback: { data: `customer:confirm_completion:${order.id}` }
-        }
-      ]
+    const customerConfirmed = await request(server, 'POST', `/api/liff/orders/${order.id}/confirm-completion`, {
+      line_user_id: customerId,
+      confirmed: true,
+      paid_amount: 2000,
+      rating: 5,
+      comment: '\u8655\u7406\u5f88\u5feb\uff0c\u554f\u984c\u5df2\u89e3\u6c7a'
     });
     assert.equal(customerConfirmed.status, 200);
-    assert.equal(customerConfirmed.body.results[0].order.status, 'closed');
-    assert.equal(customerConfirmed.body.results[0].reviewStarted, true);
-
-    const customerRating = await request(server, 'POST', '/webhook', {
-      events: [
-        {
-          type: 'message',
-          replyToken: 'tf-customer-rating',
-          source: { userId: customerId },
-          message: { type: 'text', text: '5' }
-        }
-      ]
-    });
-    assert.equal(customerRating.status, 200);
-    assert.equal(customerRating.body.results[0].nextStep, 'customer_review_comment');
-
-    const customerReview = await request(server, 'POST', '/webhook', {
-      events: [
-        {
-          type: 'message',
-          replyToken: 'tf-customer-review',
-          source: { userId: customerId },
-          message: { type: 'text', text: '\u8655\u7406\u5f88\u5feb\uff0c\u554f\u984c\u5df2\u89e3\u6c7a' }
-        }
-      ]
-    });
-    assert.equal(customerReview.status, 200);
-    assert.equal(customerReview.body.results[0].customerReviewSubmitted, true);
+    assert.equal(customerConfirmed.body.data.status, 'closed');
 
     const finalDetail = await request(server, 'GET', `/api/orders/${order.id}`);
     assert.equal(finalDetail.body.data.status, 'closed');

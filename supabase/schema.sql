@@ -32,6 +32,7 @@ create table if not exists orders (
   preferred_time_text text,
   status text not null,
   quote_amount integer,
+  estimated_arrival_time text,
   final_amount integer,
   priority_score integer not null default 0,
   risk_score integer not null default 0,

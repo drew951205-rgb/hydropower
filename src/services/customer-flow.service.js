@@ -1,7 +1,6 @@
 const sessionRepository = require('../repositories/session.repository');
 const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
-const completionService = require('./completion.service');
 const lineMessageService = require('./line-message.service');
 const fileUploadService = require('./file-upload.service');
 const orderRepository = require('../repositories/order.repository');
@@ -9,7 +8,6 @@ const { ORDER_STATUS } = require('../utils/order-status');
 const {
   customerMessages,
   welcomeMessage,
-  customerReviewCommentPrompt,
   customerReviewThanksMessage,
 } = require('../templates/customer-messages');
 
@@ -119,8 +117,11 @@ async function startRepairFlow(user, event) {
 
 async function handleCustomerText(user, event, text) {
   const session = await sessionRepository.findByUserId(user.id);
-  if (session?.flow_type === 'customer_review')
-    return handleCustomerReviewText(user, event, session, text);
+  if (session?.flow_type === 'customer_review') {
+    await sessionRepository.clearForUser(user.id);
+    await lineMessageService.replyMessages(event, customerReviewThanksMessage());
+    return { customerReviewSessionCleared: true };
+  }
 
   return startRepairFlow(user, event);
 }

@@ -2,8 +2,11 @@ const fileUploadService = require('../services/file-upload.service');
 const orderService = require('../services/order.service');
 const quoteService = require('../services/quote.service');
 const completionService = require('../services/completion.service');
+const lineMessageService = require('../services/line-message.service');
+const { customerReviewThanksMessage } = require('../templates/customer-messages');
 const userRepository = require('../repositories/user.repository');
 const orderRepository = require('../repositories/order.repository');
+const sessionRepository = require('../repositories/session.repository');
 const { env } = require('../config/env');
 const { ORDER_STATUS } = require('../utils/order-status');
 
@@ -252,7 +255,11 @@ async function submitQuote(req, res, next) {
 
     const data = await quoteService.submitQuote(
       order.id,
-      { amount, note },
+      {
+        amount,
+        note,
+        estimated_arrival_time: String(req.body.estimated_arrival_time || '').trim() || null,
+      },
       user.id
     );
     res.json({ data });
@@ -328,6 +335,10 @@ async function confirmCompletion(req, res, next) {
       },
       user.id
     );
+    if (data.status === ORDER_STATUS.CLOSED && user.line_user_id) {
+      await sessionRepository.clearForUser(user.id);
+      await lineMessageService.pushMessages(user.line_user_id, customerReviewThanksMessage());
+    }
     res.json({ data });
   } catch (error) {
     next(error);

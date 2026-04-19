@@ -19,17 +19,37 @@ async function submitQuote(orderId, payload, technicianId = null) {
     });
   }
 
-  const order = await orderService.transitionOrder(
-    orderId,
-    ORDER_STATUS.QUOTED,
-    'submit_quote',
-    'technician',
-    technicianId,
-    payload.note || 'Technician submitted quote',
-    {
-      quote_amount: Number(payload.amount),
-    }
-  );
+  const extra = {
+    quote_amount: Number(payload.amount),
+    estimated_arrival_time: payload.estimated_arrival_time || undefined,
+  };
+  let order;
+  try {
+    order = await orderService.transitionOrder(
+      orderId,
+      ORDER_STATUS.QUOTED,
+      'submit_quote',
+      'technician',
+      technicianId,
+      payload.note || 'Technician submitted quote',
+      extra
+    );
+  } catch (error) {
+    if (!/estimated_arrival_time/i.test(error.message || '')) throw error;
+    console.warn('[quote:estimated-arrival:fallback]', JSON.stringify({
+      orderId,
+      message: error.message,
+    }));
+    order = await orderService.transitionOrder(
+      orderId,
+      ORDER_STATUS.QUOTED,
+      'submit_quote',
+      'technician',
+      technicianId,
+      payload.note || 'Technician submitted quote',
+      { quote_amount: Number(payload.amount) }
+    );
+  }
   await pushToCustomer(order, quoteMessage(order));
   return order;
 }

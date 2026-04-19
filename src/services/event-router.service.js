@@ -12,7 +12,7 @@ const disputeService = require('./dispute.service');
 const lineMessageService = require('./line-message.service');
 const {
   welcomeMessage,
-  customerReviewRatingMessage,
+  customerReviewThanksMessage,
 } = require('../templates/customer-messages');
 
 async function routeEvent(event) {
@@ -83,15 +83,6 @@ async function cancelByCustomer(user, event, orderId) {
   return { cancelled: true, order: cancelled };
 }
 
-async function startCustomerReview(user, event, order) {
-  await sessionRepository.upsertForUser(user.id, {
-    flow_type: 'customer_review',
-    current_step: 'rating',
-    temp_payload: { order_id: order.id },
-  });
-  await lineMessageService.replyMessages(event, customerReviewRatingMessage(order));
-}
-
 async function handlePostback(user, event, data) {
   if (data === 'customer:start_repair')
     return customerFlow.startRepairFlow(user, event);
@@ -135,8 +126,9 @@ async function handlePostback(user, event, data) {
       },
       user.id
     );
-    await startCustomerReview(user, event, order);
-    return { order, reviewStarted: true };
+    await sessionRepository.clearForUser(user.id);
+    await lineMessageService.replyMessages(event, customerReviewThanksMessage());
+    return { order, reviewCompleted: true };
   }
 
   if (data.startsWith('customer:dispute_completion:')) {

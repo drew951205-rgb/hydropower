@@ -296,7 +296,8 @@ function confirmDetailHtml(order, mode) {
     <dl class="summary-list">
       <dt>報價金額</dt><dd>${formatMoney(baseQuote)}</dd>
       <dt>服務類型</dt><dd>${escapeHtml(order.service_type || '')}</dd>
-      <dt>預約時間</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
+      <dt>客戶希望時間</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
+      <dt>師傅預計到場</dt><dd>${escapeHtml(order.estimated_arrival_time || '師傅尚未填寫')}</dd>
     </dl>
   `;
 }
