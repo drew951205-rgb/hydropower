@@ -171,6 +171,37 @@ test('LIFF my cases can list customer repair orders', async () => {
   }
 });
 
+test('customer LINE replies are saved to the latest active order', async () => {
+  const server = app.listen(0);
+  try {
+    const { lineUserId, order } = await createRepairOrder(server, {
+      issue_description: '水槽下方漏水',
+    });
+
+    const response = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'customer-extra-reply',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '補充：水會滴到櫃子裡' },
+        },
+      ],
+    });
+    assert.equal(response.status, 200);
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(detail.status, 200);
+    assert.ok(detail.body.data.messages.some((message) =>
+      message.message_type === 'customer_reply' &&
+      message.sender_role === 'customer' &&
+      message.content === '補充：水會滴到櫃子裡'
+    ));
+  } finally {
+    server.close();
+  }
+});
+
 test('admin can add internal order notes and timeline logs', async () => {
   const server = app.listen(0);
   try {

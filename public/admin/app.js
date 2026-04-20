@@ -276,6 +276,25 @@ function renderAdminNotes(order) {
   `;
 }
 
+function renderCustomerReplies(order) {
+  const replies = (order.messages || [])
+    .filter((message) => ['customer_reply', 'support_ticket', 'customer_cancel'].includes(message.message_type))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  if (!replies.length) return '<p class="empty compact-empty">目前沒有客戶回覆</p>';
+
+  return `
+    <div class="note-list">
+      ${replies.map((reply) => `
+        <article>
+          <time>${escapeHtml(formatDate(reply.created_at))}</time>
+          <strong>${escapeHtml(reply.message_type === 'support_ticket' ? '客服單' : reply.message_type === 'customer_cancel' ? '客戶取消' : '客戶回覆')}</strong>
+          <p>${escapeHtml(reply.content)}</p>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderReasonCards(order) {
   const cards = [];
   if (order.cancel_reason_text) {
@@ -366,6 +385,8 @@ function renderDetail() {
     <dd>${renderReasonCards(order)}</dd>
     <dt>案件時間軸</dt>
     <dd>${renderTimeline(order)}</dd>
+    <dt>客戶回覆</dt>
+    <dd>${renderCustomerReplies(order)}</dd>
     <dt>內部備註</dt>
     <dd>${renderAdminNotes(order)}</dd>
   `;

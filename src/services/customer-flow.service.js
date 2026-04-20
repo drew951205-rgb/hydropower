@@ -4,6 +4,7 @@ const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
 const fileUploadService = require('./file-upload.service');
 const orderRepository = require('../repositories/order.repository');
+const messageRepository = require('../repositories/message.repository');
 const { ORDER_STATUS } = require('../utils/order-status');
 const {
   customerMessages,
@@ -187,6 +188,22 @@ async function showCustomerSupport(user, event) {
   return { customerSupportPrompted: true };
 }
 
+async function recordCustomerTextToLatestOrder(user, text) {
+  const content = String(text || '').trim();
+  if (!content) return null;
+
+  const order = await findLatestCustomerOpenOrder(user);
+  if (!order) return null;
+
+  return messageRepository.createMessage({
+    order_id: order.id,
+    sender_role: 'customer',
+    sender_id: user.id,
+    message_type: 'customer_reply',
+    content,
+  });
+}
+
 async function handleCustomerText(user, event, text) {
   const session = await sessionRepository.findByUserId(user.id);
   if (session?.flow_type === 'customer_review') {
@@ -198,6 +215,7 @@ async function handleCustomerText(user, event, text) {
   if (isMyOrdersText(text)) return listCustomerOrders(user, event);
   if (isSupportText(text)) return showCustomerSupport(user, event);
 
+  await recordCustomerTextToLatestOrder(user, text);
   return startRepairFlow(user, event);
 }
 
