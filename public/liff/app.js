@@ -164,6 +164,22 @@ function orderSummary(order) {
   ].filter(Boolean).join('<br>');
 }
 
+function supportOrderContextHtml(order) {
+  return `
+    <div class="linked-order">
+      <p class="eyebrow">\u95dc\u806f\u5831\u4fee\u55ae</p>
+      <h2>${escapeHtml(order.order_no || '')}</h2>
+      <dl class="summary-list">
+        <dt>\u6848\u4ef6\u72c0\u614b</dt><dd>${escapeHtml(order.status || '')}</dd>
+        <dt>\u670d\u52d9\u985e\u578b</dt><dd>${escapeHtml(order.service_type || '')}</dd>
+        <dt>\u9810\u7d04\u6642\u9593</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
+        <dt>\u5831\u4fee\u5730\u5740</dt><dd>${escapeHtml(order.address || '')}</dd>
+      </dl>
+      <p class="muted">\u9019\u5c01\u5ba2\u670d\u7533\u8acb\u6703\u7d81\u5b9a\u5230\u4e0a\u65b9\u5831\u4fee\u55ae\uff0c\u5e73\u53f0\u8655\u7406\u6642\u6703\u4e00\u8d77\u67e5\u770b\u6848\u4ef6\u7d00\u9304\u3002</p>
+    </div>
+  `;
+}
+
 function renderPhotos(images = []) {
   const node = $('#photos');
   if (!node) return;
@@ -353,7 +369,17 @@ async function setupSupport() {
     const order = await loadOrder();
     const panel = $('#order-panel');
     panel.hidden = false;
-    panel.innerHTML = orderSummary(order);
+    panel.innerHTML = supportOrderContextHtml(order);
+  } else {
+    const panel = $('#order-panel');
+    panel.hidden = false;
+    panel.innerHTML = `
+      <div class="linked-order">
+        <p class="eyebrow">\u4e00\u822c\u5ba2\u670d</p>
+        <h2>\u672a\u6307\u5b9a\u5831\u4fee\u55ae</h2>
+        <p class="muted">\u5982\u679c\u4f60\u662f\u8981\u8a62\u554f\u67d0\u5f35\u6848\u4ef6\uff0c\u5efa\u8b70\u5f9e\u6848\u4ef6\u8a0a\u606f\u6216\u300c\u6211\u7684\u6848\u4ef6\u300d\u9032\u5165\uff0c\u7cfb\u7d71\u6703\u81ea\u52d5\u5e36\u5165\u5831\u4fee\u55ae\u3002</p>
+      </div>
+    `;
   }
 
   form.addEventListener('submit', async (event) => {

@@ -64,7 +64,11 @@ async function createSupportTicket(user, payload = {}) {
     order_id: order?.id || null,
     type: String(payload.type || 'general').trim() || 'general',
     status: 'open',
-    title: String(payload.title || '').trim() || 'Customer support request',
+    title:
+      String(payload.title || '').trim() ||
+      (order
+        ? `Customer support request for ${order.order_no}`
+        : 'Customer support request'),
     message,
     phone: String(payload.phone || user.phone || '').trim() || null,
     image_urls: payload.image_urls || [],

@@ -274,6 +274,16 @@ button:disabled {
   margin: 0;
 }
 
+.linked-order {
+  display: grid;
+  gap: 10px;
+}
+
+.linked-order h2,
+.linked-order p {
+  margin: 0;
+}
+
 .dispute-box {
   display: grid;
   gap: 12px;
