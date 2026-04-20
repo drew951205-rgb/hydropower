@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get('/', authAdmin, orderController.listOrders);
 router.get('/:id', authAdmin, orderController.getOrder);
+router.get('/:id/dispatch-candidates', authAdmin, orderController.listDispatchCandidates);
 router.post('/:id/review', authAdmin, orderController.reviewOrder);
 router.post('/:id/dispatch', authAdmin, orderController.dispatchOrder);
 router.post('/:id/assign', authAdmin, orderController.assignOrder);

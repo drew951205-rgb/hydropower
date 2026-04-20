@@ -3,6 +3,7 @@ const orderRepository = require('../repositories/order.repository');
 const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
+const dispatchCandidateService = require('./dispatch-candidate.service');
 const {
   assignmentMessage,
   assignedMessage,
@@ -33,6 +34,19 @@ async function dispatchOrder(
   if (!order)
     throw Object.assign(new Error('Order not found'), { statusCode: 404 });
   assertCanDispatch(order);
+
+  const candidates = await dispatchCandidateService.listDispatchCandidates(order.id);
+  const candidatesById = new Map(candidates.map((candidate) => [String(candidate.technician_id), candidate]));
+  const blocked = technicianIds
+    .map((id) => candidatesById.get(String(id)))
+    .filter((candidate) => !candidate || !candidate.eligible);
+  if (blocked.length) {
+    const first = blocked[0];
+    const reason = first?.hard_blocks?.join('、') || '師傅不在推薦候選名單';
+    const error = new Error(`Technician cannot be dispatched: ${reason}`);
+    error.statusCode = 409;
+    throw error;
+  }
 
   const orderDetail = await orderRepository.getOrderDetail(order.id);
   const assignments = [];

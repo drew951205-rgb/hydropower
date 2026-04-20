@@ -4,6 +4,7 @@ const state = {
   technicians: [],
   customers: [],
   supportTickets: [],
+  dispatchCandidates: [],
   selectedOrderId: null,
   selectedOrder: null
 };
@@ -200,6 +201,11 @@ async function selectOrder(orderId) {
   state.selectedOrderId = orderId;
   const result = await api(`/api/orders/${orderId}`);
   state.selectedOrder = result.data;
+  if (can(state.selectedOrder, 'dispatch')) {
+    await loadDispatchCandidates(orderId);
+  } else {
+    state.dispatchCandidates = [];
+  }
   els.detailHint.textContent = state.selectedOrder.order_no;
   renderOrders();
   renderDetail();
@@ -402,6 +408,7 @@ function renderActions() {
         <button type="submit">送出派單</button>
       </form>
     `);
+    blocks.push(renderDispatchCandidates());
   }
 
   if (can(order, 'accept-quote')) {
@@ -413,6 +420,39 @@ function renderActions() {
   }
 
   els.actions.innerHTML = blocks.length ? blocks.join('') : '<p class="empty">目前沒有可用操作</p>';
+}
+
+function renderDispatchCandidates() {
+  if (!state.dispatchCandidates.length) {
+    return '<div class="candidate-list"><h3>推薦師傅</h3><p class="empty compact-empty">目前沒有推薦名單</p></div>';
+  }
+
+  return `
+    <div class="candidate-list">
+      <h3>推薦師傅</h3>
+      ${state.dispatchCandidates.slice(0, 8).map((candidate) => {
+        const blocks = candidate.hard_blocks || [];
+        const notes = blocks.length ? blocks : [...(candidate.reasons || []), ...(candidate.warnings || [])];
+        return `
+          <article class="candidate-item ${candidate.eligible ? '' : 'blocked'}">
+            <div>
+              <strong>${escapeHtml(candidate.name || `師傅 ${candidate.technician_id}`)}</strong>
+              <span>分數 ${candidate.score}｜今日 ${candidate.stats.today_assigned_count}/${candidate.stats.daily_job_limit}｜進行中 ${candidate.stats.active_job_count}/${candidate.stats.active_job_limit}</span>
+              <small>${escapeHtml(notes.join('、') || '尚無評分資料')}</small>
+            </div>
+            <button type="button" data-dispatch-candidate="${candidate.technician_id}" ${candidate.eligible ? '' : 'disabled'}>
+              派給這位
+            </button>
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function loadDispatchCandidates(orderId) {
+  const result = await api(`/api/orders/${orderId}/dispatch-candidates`);
+  state.dispatchCandidates = result.data || [];
 }
 
 async function loadCustomers() {
@@ -655,6 +695,17 @@ async function handleActionForm(form) {
   await refreshSelectedOrder();
 }
 
+async function dispatchToCandidate(technicianId) {
+  const order = state.selectedOrder;
+  if (!order) return;
+  await api(`/api/orders/${order.id}/dispatch`, {
+    method: 'POST',
+    body: JSON.stringify({ technician_ids: [Number(technicianId)] })
+  });
+  showToast('已派單給推薦師傅');
+  await refreshSelectedOrder();
+}
+
 els.adminKey.value = state.adminKey;
 els.saveKeyButton.addEventListener('click', () => {
   state.adminKey = els.adminKey.value.trim();
@@ -670,6 +721,13 @@ els.ordersTable.addEventListener('click', (event) => {
   if (row) selectOrder(row.dataset.orderId).catch((error) => showToast(error.message));
 });
 els.actions.addEventListener('click', (event) => {
+  const candidateButton = event.target.closest('button[data-dispatch-candidate]');
+  if (candidateButton) {
+    dispatchToCandidate(candidateButton.dataset.dispatchCandidate)
+      .catch((error) => showToast(error.message));
+    return;
+  }
+
   const button = event.target.closest('button[data-action]');
   if (button) runOrderAction(button.dataset.action).catch((error) => showToast(error.message));
 });

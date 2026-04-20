@@ -806,6 +806,68 @@ test('technician acceptance notifies the customer and moves order to assigned', 
   }
 });
 
+test('admin can view dispatch candidates and one-click dispatch eligible technician', async () => {
+  const server = app.listen(0);
+  try {
+    const { order } = await createRepairOrder(server, {
+      service_type: '漏水',
+      area: '西區',
+    });
+    await request(server, 'POST', `/api/orders/${order.id}/review`, {
+      action: 'approve',
+      note: '審核通過',
+    });
+
+    const eligible = await request(server, 'POST', '/api/technicians', {
+      line_user_id: `U-candidate-good-${Date.now()}`,
+      name: '推薦師傅',
+      available: true,
+      service_areas: ['西區'],
+      service_types: ['漏水'],
+    });
+    const blocked = await request(server, 'POST', '/api/technicians', {
+      line_user_id: `U-candidate-busy-${Date.now()}`,
+      name: '忙碌師傅',
+      available: true,
+      service_areas: ['西區'],
+      service_types: ['漏水'],
+    });
+
+    const active = await createRepairOrder(server, {
+      service_type: '漏水',
+      area: '西區',
+    });
+    await request(server, 'POST', `/api/orders/${active.order.id}/review`, {
+      action: 'approve',
+      note: '審核通過',
+    });
+    await request(server, 'POST', `/api/orders/${active.order.id}/assign`, {
+      technician_id: blocked.body.data.id,
+    });
+
+    const candidates = await request(server, 'GET', `/api/orders/${order.id}/dispatch-candidates`);
+    assert.equal(candidates.status, 200);
+    const goodCandidate = candidates.body.data.find((item) => item.technician_id === eligible.body.data.id);
+    const busyCandidate = candidates.body.data.find((item) => item.technician_id === blocked.body.data.id);
+    assert.equal(goodCandidate.eligible, true);
+    assert.equal(busyCandidate.eligible, false);
+    assert.match(busyCandidate.hard_blocks.join('、'), /進行中案件已達上限/);
+
+    const rejected = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [blocked.body.data.id],
+    });
+    assert.equal(rejected.status, 409);
+
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [eligible.body.data.id],
+    });
+    assert.equal(dispatched.status, 201);
+    assert.equal(dispatched.body.data[0].technician_id, eligible.body.data.id);
+  } finally {
+    server.close();
+  }
+});
+
 test('dispatch timeout expires pending assignments and returns order to dispatch queue', async () => {
   const server = app.listen(0);
   try {

@@ -1,5 +1,6 @@
 const orderService = require('../services/order.service');
 const dispatchService = require('../services/dispatch.service');
+const dispatchCandidateService = require('../services/dispatch-candidate.service');
 const quoteService = require('../services/quote.service');
 const completionService = require('../services/completion.service');
 const disputeService = require('../services/dispute.service');
@@ -132,6 +133,16 @@ async function dispatchOrder(req, res, next) {
       ? await dispatchService.dispatchOrder(req.params.id, technicianIds)
       : await dispatchService.autoDispatchOrder(req.params.id);
     res.status(201).json({ data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function listDispatchCandidates(req, res, next) {
+  try {
+    res.json({
+      data: await dispatchCandidateService.listDispatchCandidates(req.params.id),
+    });
   } catch (error) {
     next(error);
   }
@@ -283,6 +294,7 @@ module.exports = {
   listOrders,
   getOrder,
   reviewOrder,
+  listDispatchCandidates,
   dispatchOrder,
   assignOrder,
   cancelOrder,

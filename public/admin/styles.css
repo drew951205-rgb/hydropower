@@ -366,6 +366,38 @@ tbody tr.selected {
   min-height: 72px;
 }
 
+.candidate-list {
+  display: grid;
+  gap: 8px;
+}
+
+.candidate-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.candidate-item.blocked {
+  opacity: 0.62;
+  background: #fafafa;
+}
+
+.candidate-item strong,
+.candidate-item span,
+.candidate-item small {
+  display: block;
+}
+
+.candidate-item span,
+.candidate-item small {
+  color: var(--muted);
+}
+
 .reason-card {
   display: grid;
   gap: 4px;
