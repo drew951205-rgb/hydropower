@@ -2,6 +2,7 @@ const fileUploadService = require('../services/file-upload.service');
 const orderService = require('../services/order.service');
 const quoteService = require('../services/quote.service');
 const completionService = require('../services/completion.service');
+const supportTicketService = require('../services/support-ticket.service');
 const lineMessageService = require('../services/line-message.service');
 const { customerReviewThanksMessage } = require('../templates/customer-messages');
 const userRepository = require('../repositories/user.repository');
@@ -381,6 +382,34 @@ async function submitTechnicianReview(req, res, next) {
   }
 }
 
+async function submitSupportTicket(req, res, next) {
+  try {
+    const user = await resolveUser(req, { role: 'customer' });
+    const images = await uploadFormImages(req.files, 'support');
+    const data = await supportTicketService.createSupportTicket(user, {
+      ...req.body,
+      image_urls: images,
+    });
+    res.status(201).json({ data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function cancelOrderByCustomer(req, res, next) {
+  try {
+    const user = await resolveUser(req, { role: 'customer' });
+    const data = await supportTicketService.cancelOrderByCustomer(
+      user,
+      req.params.id,
+      req.body
+    );
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getConfig,
   getCustomerProfile,
@@ -394,4 +423,6 @@ module.exports = {
   confirmCompletion,
   submitCustomerReview,
   submitTechnicianReview,
+  submitSupportTicket,
+  cancelOrderByCustomer,
 };

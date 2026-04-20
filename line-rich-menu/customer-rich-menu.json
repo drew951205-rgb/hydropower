@@ -4,7 +4,7 @@
     "height": 1686
   },
   "selected": true,
-  "name": "師傅抵嘉顧客版選單",
+  "name": "師傅抵嘉顧客選單",
   "chatBarText": "選單",
   "areas": [
     {
@@ -34,9 +34,9 @@
     {
       "bounds": { "x": 1667, "y": 843, "width": 833, "height": 843 },
       "action": {
-        "type": "message",
+        "type": "uri",
         "label": "聯絡客服",
-        "text": "聯絡客服"
+        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/support"
       }
     }
   ]

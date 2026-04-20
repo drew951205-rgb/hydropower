@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>聯絡客服</title>
+  <link rel="stylesheet" href="/liff/styles.css">
+</head>
+<body data-page="support">
+  <main class="page">
+    <p class="eyebrow">師傅抵嘉</p>
+    <h1>聯絡客服</h1>
+    <p class="lead">請把狀況寫清楚，平台會依照案件紀錄協助了解與處理。</p>
+    <p id="status" class="notice" hidden></p>
+    <section id="order-panel" class="panel" hidden></section>
+    <form id="support-form">
+      <input id="line_user_id" name="line_user_id" type="hidden">
+      <input id="support-order-id" name="order_id" type="hidden">
+      <label>問題類型
+        <select name="type" required>
+          <option value="general">一般客服</option>
+          <option value="completion_dispute">完工申訴</option>
+          <option value="quote_dispute">報價問題</option>
+          <option value="technician_no_show">師傅未到場</option>
+          <option value="service_quality">施工品質</option>
+          <option value="cancel_order">取消案件</option>
+        </select>
+      </label>
+      <label>聯絡電話
+        <input name="phone" inputmode="tel" autocomplete="tel" placeholder="0912345678">
+      </label>
+      <label>內容
+        <textarea name="message" maxlength="1000" placeholder="請說明發生什麼事、希望平台如何協助。" required></textarea>
+      </label>
+      <label>照片或截圖
+        <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+      </label>
+      <button type="submit">送出客服申請</button>
+    </form>
+  </main>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="/liff/app.js"></script>
+</body>
+</html>

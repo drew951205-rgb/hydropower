@@ -249,6 +249,17 @@ async function prefillRepairProfile(form) {
   }
 }
 
+async function prefillPhone(form) {
+  if (!lineUserId()) return;
+  try {
+    const profile = await api(withLineUser('/api/liff/customer-profile'));
+    const phone = form.querySelector('[name="phone"]');
+    if (phone && profile?.phone && !phone.value) phone.value = profile.phone;
+  } catch (error) {
+    console.warn('[profile:phone-prefill:skip]', error);
+  }
+}
+
 async function setupRepair() {
   const form = $('#repair-form');
   await prefillRepairProfile(form);
@@ -326,6 +337,84 @@ async function setupChangeRequest() {
       showSubmitDone(form, '\u8ffd\u52a0\u5831\u50f9\u5df2\u9001\u51fa', '\u5df2\u901a\u77e5\u9867\u5ba2\u78ba\u8a8d\u8ffd\u52a0\u5831\u50f9\uff0c\u9867\u5ba2\u540c\u610f\u5f8c\u4f60\u6703\u6536\u5230\u5b8c\u5de5\u56de\u5831\u6307\u5f15\u3002');
     } catch (error) {
       setStatus(error.message, true);
+    }
+  });
+}
+
+async function setupSupport() {
+  const form = $('#support-form');
+  const orderId = params().get('order_id') || '';
+  const type = params().get('type') || 'general';
+  $('#support-order-id').value = orderId;
+  form.type.value = type;
+  await prefillPhone(form);
+
+  if (orderId) {
+    const order = await loadOrder();
+    const panel = $('#order-panel');
+    panel.hidden = false;
+    panel.innerHTML = orderSummary(order);
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!requireLineUser()) return;
+    const button = form.querySelector('button');
+    button.disabled = true;
+    setStatus('\u6b63\u5728\u9001\u51fa\u5ba2\u670d\u7533\u8acb...');
+    try {
+      const ticket = await api('/api/liff/support-tickets', {
+        method: 'POST',
+        body: formDataWithProfile(form),
+      });
+      showSubmitDone(
+        form,
+        '\u5df2\u6536\u5230\u4f60\u7684\u5ba2\u670d\u7533\u8acb',
+        '\u7de8\u865f ' + ticket.ticket_no + '\uff0c\u5e73\u53f0\u6703\u4f9d\u7167\u6848\u4ef6\u7d00\u9304\u5354\u52a9\u4e86\u89e3\u72c0\u6cc1\uff0c\u8acb\u7559\u610f LINE \u901a\u77e5\u3002',
+        [
+          { label: '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
+          { label: '\u518d\u6b21\u5831\u4fee', href: liffPath('/liff/repair') },
+        ]
+      );
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+async function setupCancel() {
+  const form = $('#cancel-form');
+  const order = await loadOrder();
+  $('#order-panel').innerHTML = orderSummary(order);
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!requireLineUser()) return;
+    const button = form.querySelector('button');
+    button.disabled = true;
+    setStatus('\u6b63\u5728\u53d6\u6d88\u6848\u4ef6...');
+    try {
+      const data = Object.fromEntries(new FormData(form).entries());
+      const result = await api(`/api/liff/orders/${order.id}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonWithLineUser(data),
+      });
+      showSubmitDone(
+        form,
+        '\u6848\u4ef6\u5df2\u53d6\u6d88',
+        '\u5df2\u53d6\u6d88\u6848\u4ef6 ' + result.order.order_no + '\uff0c\u53d6\u6d88\u539f\u56e0\u5df2\u7559\u5b58\u5728\u5e73\u53f0\u7d00\u9304\u3002',
+        [
+          { label: '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
+          { label: '\u518d\u6b21\u5831\u4fee', href: liffPath('/liff/repair') },
+        ]
+      );
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      button.disabled = false;
     }
   });
 }
@@ -409,10 +498,9 @@ async function setupConfirm() {
         <button type="submit">確認結案並送出評價</button>
       </form>
       <div class="dispute-box">
-        <label>\u7533\u8a34\u539f\u56e0
-          <textarea id="dispute-reason" maxlength="500" placeholder="\u8acb\u8aaa\u660e\u54ea\u88e1\u6c92\u6709\u5b8c\u6210\u3001\u91d1\u984d\u6709\u7591\u554f\u6216\u73fe\u5834\u72c0\u6cc1\u3002" required></textarea>
-        </label>
-        <button id="dispute-button" class="danger">\u9001\u51fa\u7533\u8a34</button>
+        <a href="${liffPath(`/liff/support?order_id=${order.id}&type=completion_dispute`)}">
+          <button type="button" class="danger">\u6211\u8981\u7533\u8a34</button>
+        </a>
       </div>
     `;
     $('#completion-form').addEventListener('submit', async (event) => {
@@ -424,20 +512,6 @@ async function setupConfirm() {
         body: jsonWithLineUser({ ...data, confirmed: true }),
       });
       showReviewThanks(actions);
-    });
-    $('#dispute-button').addEventListener('click', async () => {
-      const reason = $('#dispute-reason').value.trim();
-      if (!reason) {
-        setStatus('\u8acb\u5148\u586b\u5beb\u7533\u8a34\u539f\u56e0\uff0c\u5e73\u53f0\u624d\u80fd\u5354\u52a9\u5224\u65b7\u3002', true);
-        return;
-      }
-      await api(`/api/liff/orders/${order.id}/confirm-completion`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: jsonWithLineUser({ confirmed: false, comment: reason }),
-      });
-      setStatus('\u5df2\u6536\u5230\u7533\u8a34\uff0c\u5e73\u53f0\u6703\u4f9d\u4f60\u586b\u5beb\u7684\u539f\u56e0\u5354\u52a9\u8655\u7406\u3002');
-      actions.innerHTML = handledCard('\u7533\u8a34\u5df2\u9001\u51fa\uff0c\u8acb\u7b49\u5f85\u5e73\u53f0\u806f\u7e6b\u3002');
     });
     return;
   }
@@ -568,6 +642,8 @@ async function main() {
     if (page === 'my-cases') await setupMyCases();
     if (page === 'profile') await setupProfile();
     if (page === 'review') await setupReview();
+    if (page === 'support') await setupSupport();
+    if (page === 'cancel') await setupCancel();
   } catch (error) {
     setStatus(error.message, true);
   }

@@ -6,6 +6,7 @@ const tables = {
   order_messages: [],
   order_images: [],
   order_logs: [],
+  support_tickets: [],
 };
 
 const counters = Object.fromEntries(

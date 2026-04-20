@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>取消案件</title>
+  <link rel="stylesheet" href="/liff/styles.css">
+</head>
+<body data-page="cancel">
+  <main class="page">
+    <p class="eyebrow">師傅抵嘉</p>
+    <h1>取消案件</h1>
+    <p class="lead">請填寫取消原因，平台會保留紀錄；如果案件已有師傅，系統也會通知師傅。</p>
+    <p id="status" class="notice" hidden></p>
+    <section id="order-panel" class="panel">載入案件中...</section>
+    <form id="cancel-form">
+      <input id="line_user_id" name="line_user_id" type="hidden">
+      <label>取消原因
+        <select name="reason_code" required>
+          <option value="">請選擇</option>
+          <option value="schedule_changed">時間不方便</option>
+          <option value="issue_resolved">問題已自行解決</option>
+          <option value="price_concern">價格或預算考量</option>
+          <option value="duplicate_order">重複送單</option>
+          <option value="other">其他原因</option>
+        </select>
+      </label>
+      <label>補充說明
+        <textarea name="reason" maxlength="500" placeholder="請簡單說明取消原因。" required></textarea>
+      </label>
+      <button type="submit" class="danger">確認取消案件</button>
+    </form>
+  </main>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="/liff/app.js"></script>
+</body>
+</html>

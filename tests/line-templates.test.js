@@ -68,13 +68,15 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   assert.match(quote.altText, /報價確認/);
   assert.equal(footerActions(quote)[0].type, 'uri');
   assert.match(footerActions(quote)[0].uri, /\/confirm\?order_id=12&mode=quote/);
-  assert.equal(footerActions(quote)[1].data, 'customer:cancel_order:12');
+  assert.equal(footerActions(quote)[1].type, 'uri');
+  assert.match(footerActions(quote)[1].uri, /\/cancel\?order_id=12/);
 
   const change = changeRequestMessage(order);
   assert.equal(change.type, 'flex');
   assert.equal(footerActions(change)[0].type, 'uri');
   assert.match(footerActions(change)[0].uri, /\/confirm\?order_id=12&mode=change/);
-  assert.equal(footerActions(change)[1].data, 'customer:cancel_order:12');
+  assert.equal(footerActions(change)[1].type, 'uri');
+  assert.match(footerActions(change)[1].uri, /\/cancel\?order_id=12/);
 
   const assigned = assignedCustomerMessage(order, {
     name: 'Test Technician',
@@ -97,7 +99,8 @@ test('customer LINE messages use clearer cards and postback actions', () => {
   assert.equal(completion.type, 'flex');
   assert.equal(footerActions(completion)[0].type, 'uri');
   assert.match(footerActions(completion)[0].uri, /\/confirm\?order_id=12&mode=completion/);
-  assert.equal(footerActions(completion)[1].data, 'customer:dispute_completion:12');
+  assert.equal(footerActions(completion)[1].type, 'uri');
+  assert.match(footerActions(completion)[1].uri, /\/support\?order_id=12&type=completion_dispute/);
 
   const thanks = customerReviewThanksMessage();
   assert.equal(thanks.type, 'text');

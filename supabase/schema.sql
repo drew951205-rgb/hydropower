@@ -103,3 +103,19 @@ create table if not exists customer_sessions (
   temp_payload jsonb not null default '{}',
   updated_at timestamptz not null default now()
 );
+
+create table if not exists support_tickets (
+  id bigint generated always as identity primary key,
+  ticket_no text not null unique,
+  user_id bigint references users(id),
+  order_id bigint references orders(id),
+  type text not null default 'general',
+  status text not null default 'open' check (status in ('open', 'in_progress', 'resolved', 'closed')),
+  title text,
+  message text not null,
+  phone text,
+  image_urls jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  resolved_at timestamptz
+);

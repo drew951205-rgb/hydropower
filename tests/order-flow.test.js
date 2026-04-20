@@ -11,6 +11,7 @@ process.env.DISPATCH_TIMEOUT_MINUTES = '1';
 
 const { app } = require('../src/app');
 const assignmentRepository = require('../src/repositories/assignment.repository');
+const supportTicketRepository = require('../src/repositories/support-ticket.repository');
 const { runDispatchTimeoutJob } = require('../src/jobs/dispatch-timeout.job');
 
 function request(server, method, path, body, headers = {}) {
@@ -556,6 +557,76 @@ test('customer completion dispute stores the dispute reason', async () => {
     assert.equal(disputed.status, 200);
     assert.equal(disputed.body.data.status, 'dispute_review');
     assert.equal(disputed.body.data.dispute_reason, '\u6c34\u9f8d\u982d\u9084\u5728\u6ef4\u6c34');
+  } finally {
+    server.close();
+  }
+});
+
+test('customer support ticket form stores details', async () => {
+  const server = app.listen(0);
+  try {
+    const { lineUserId, order } = await createRepairOrder(server, {
+      service_type: '\u6f0f\u6c34',
+      preferred_time_text: '\u660e\u5929\u4e0a\u5348',
+    });
+
+    const response = await request(server, 'POST', '/api/liff/support-tickets', {
+      line_user_id: lineUserId,
+      order_id: order.id,
+      type: 'general',
+      phone: '0912345678',
+      message: '\u5e2b\u5085\u8aaa\u5df2\u5b8c\u5de5\uff0c\u4f46\u6c34\u9084\u5728\u6ef4',
+    });
+
+    assert.equal(response.status, 201);
+    assert.match(response.body.data.ticket_no, /^CS-/);
+    assert.equal(response.body.data.type, 'general');
+    assert.equal(response.body.data.order_id, order.id);
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(detail.body.data.status, 'pending_review');
+    assert.ok(detail.body.data.messages.some((message) =>
+      message.message_type === 'support_ticket' &&
+      message.content.includes(response.body.data.ticket_no)
+    ));
+  } finally {
+    server.close();
+  }
+});
+
+test('customer cancellation form requires and stores cancel reason', async () => {
+  const server = app.listen(0);
+  try {
+    const { lineUserId, order } = await createRepairOrder(server, {
+      service_type: '\u6f0f\u6c34',
+      preferred_time_text: '\u4eca\u5929\u665a\u4e0a',
+    });
+
+    const missingReason = await request(server, 'POST', `/api/liff/orders/${order.id}/cancel`, {
+      line_user_id: lineUserId,
+      reason_code: 'other',
+      reason: '',
+    });
+    assert.equal(missingReason.status, 400);
+
+    const cancelled = await request(server, 'POST', `/api/liff/orders/${order.id}/cancel`, {
+      line_user_id: lineUserId,
+      reason_code: 'schedule_changed',
+      reason: '\u4eca\u5929\u81e8\u6642\u4e0d\u65b9\u4fbf',
+    });
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.body.data.order.status, 'customer_cancelled');
+    assert.equal(cancelled.body.data.order.cancelled_by, 'customer');
+    assert.equal(cancelled.body.data.order.cancel_reason_code, 'schedule_changed');
+    assert.equal(cancelled.body.data.order.cancel_reason_text, '\u4eca\u5929\u81e8\u6642\u4e0d\u65b9\u4fbf');
+    assert.match(cancelled.body.data.ticket.ticket_no, /^CC-/);
+
+    const tickets = await supportTicketRepository.listTickets({
+      order_id: order.id,
+      type: 'customer_cancel',
+    });
+    assert.equal(tickets.length, 1);
+    assert.equal(tickets[0].message, '\u4eca\u5929\u81e8\u6642\u4e0d\u65b9\u4fbf');
   } finally {
     server.close();
   }

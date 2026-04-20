@@ -174,7 +174,11 @@ function quoteMessage(order) {
         }),
         'primary'
       ),
-      button(postbackAction('取消案件', `customer:cancel_order:${order.id}`, '取消案件')),
+      button(
+        uriAction('取消案件', '/liff/cancel', {
+          order_id: order.id,
+        })
+      ),
     ],
   });
 }
@@ -198,7 +202,11 @@ function changeRequestMessage(order) {
         }),
         'primary'
       ),
-      button(postbackAction('取消案件', `customer:cancel_order:${order.id}`, '取消案件')),
+      button(
+        uriAction('取消案件', '/liff/cancel', {
+          order_id: order.id,
+        })
+      ),
     ],
   });
 }
@@ -270,7 +278,12 @@ function completionMessage(order) {
         }),
         'primary'
       ),
-      button(postbackAction('我要申訴', `customer:dispute_completion:${order.id}`, '我要申訴')),
+      button(
+        uriAction('我要申訴', '/liff/support', {
+          order_id: order.id,
+          type: 'completion_dispute',
+        })
+      ),
     ],
   });
 }

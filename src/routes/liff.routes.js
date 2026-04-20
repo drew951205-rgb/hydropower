@@ -25,8 +25,14 @@ router.post(
 );
 router.post('/orders/:id/confirm-quote', liffController.confirmQuote);
 router.post('/orders/:id/confirm-completion', liffController.confirmCompletion);
+router.post('/orders/:id/cancel', liffController.cancelOrderByCustomer);
 router.post('/orders/:id/customer-review', liffController.submitCustomerReview);
 router.post('/orders/:id/technician-review', liffController.submitTechnicianReview);
+router.post(
+  '/support-tickets',
+  upload.array('images', env.uploadMaxFiles),
+  liffController.submitSupportTicket
+);
 router.get('/technician/orders', liffController.listTechnicianOrders);
 
 module.exports = router;

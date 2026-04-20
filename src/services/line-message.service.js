@@ -16,7 +16,7 @@ function withLineUserId(uri, lineUserId) {
     if (
       url.hostname === 'liff.line.me' ||
       url.pathname.startsWith('/liff/') ||
-      ['/repair', '/quote', '/change-request', '/confirm', '/my-cases', '/profile', '/review'].includes(url.pathname)
+      ['/repair', '/quote', '/change-request', '/confirm', '/my-cases', '/profile', '/review', '/support', '/cancel'].includes(url.pathname)
     ) {
       url.searchParams.set('line_user_id', lineUserId);
     }

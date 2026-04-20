@@ -73,6 +73,8 @@ app.get('/liff', (req, res) => {
   'my-cases',
   'profile',
   'review',
+  'support',
+  'cancel',
 ].forEach((page) => {
   app.get(`/liff/${page}`, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
