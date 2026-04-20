@@ -7,6 +7,8 @@ async function adminHome(req, res) {
       'GET /api/orders',
       'GET /api/admin/customers',
       'GET /api/admin/customers/:id',
+      'GET /api/admin/support-tickets',
+      'PATCH /api/admin/support-tickets/:id',
       'POST /api/admin/broadcasts/members',
       'POST /api/orders/:id/review',
       'POST /api/orders/:id/dispatch'
@@ -38,4 +40,29 @@ async function broadcastMembers(req, res, next) {
   }
 }
 
-module.exports = { adminHome, listCustomers, getCustomer, broadcastMembers };
+async function listSupportTickets(req, res, next) {
+  try {
+    res.json({ data: await adminCrmService.listSupportTickets(req.query || {}) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateSupportTicket(req, res, next) {
+  try {
+    res.json({
+      data: await adminCrmService.updateSupportTicket(req.params.id, req.body || {}),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = {
+  adminHome,
+  listCustomers,
+  getCustomer,
+  broadcastMembers,
+  listSupportTickets,
+  updateSupportTicket,
+};

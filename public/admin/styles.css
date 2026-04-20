@@ -177,6 +177,12 @@ h3 {
   gap: 10px;
 }
 
+.mini-filter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
 .table-wrap {
   overflow: auto;
 }
@@ -226,6 +232,8 @@ tbody tr.selected {
 
 .detail-section,
 .actions-section,
+.support-section,
+.crm-section,
 .technicians-section {
   padding: 0 18px;
 }
@@ -297,14 +305,16 @@ tbody tr.selected {
 }
 
 .customer-list,
-.mini-list {
+.mini-list,
+.support-ticket-list {
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
 }
 
 .customer-item,
-.mini-list button {
+.mini-list button,
+.support-ticket-item {
   display: grid;
   gap: 4px;
   width: 100%;
@@ -317,9 +327,40 @@ tbody tr.selected {
 }
 
 .customer-item:hover,
-.mini-list button:hover {
+.mini-list button:hover,
+.support-ticket-item:hover {
   background: #edf6f2;
   color: var(--ink);
+}
+
+.support-ticket-item strong,
+.support-ticket-item span,
+.support-ticket-item small {
+  display: block;
+}
+
+.support-ticket-item small {
+  color: var(--muted);
+}
+
+.support-ticket-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.reason-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #f0c7bf;
+  border-radius: 6px;
+  background: #fff7f5;
+}
+
+.reason-card strong {
+  color: #9f2a1f;
 }
 
 .customer-item span {

@@ -82,6 +82,26 @@
           <div id="actions" class="actions"></div>
         </section>
 
+        <section class="support-section" aria-labelledby="supportTitle">
+          <div class="section-head compact">
+            <div>
+              <h2 id="supportTitle">客服中心</h2>
+              <p id="supportStatus">尚未載入</p>
+            </div>
+            <div class="mini-filter">
+              <select id="supportStatusFilter" aria-label="客服狀態">
+                <option value="">全部</option>
+                <option value="open">待處理</option>
+                <option value="in_progress">處理中</option>
+                <option value="resolved">已處理</option>
+                <option value="closed">已關閉</option>
+              </select>
+              <button id="loadSupportButton" type="button">載入</button>
+            </div>
+          </div>
+          <div id="supportTicketList" class="support-ticket-list"></div>
+        </section>
+
         <section class="crm-section" aria-labelledby="customersTitle">
           <div class="section-head compact">
             <div>

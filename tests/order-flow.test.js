@@ -668,6 +668,40 @@ test('customer support ticket form stores details', async () => {
   }
 });
 
+test('admin can list and update support tickets', async () => {
+  const server = app.listen(0);
+  try {
+    const { lineUserId, order } = await createRepairOrder(server, {
+      service_type: '\u6f0f\u6c34',
+      preferred_time_text: '\u660e\u5929\u4e0b\u5348',
+    });
+
+    const created = await request(server, 'POST', '/api/liff/support-tickets', {
+      line_user_id: lineUserId,
+      order_id: order.id,
+      type: 'quote_dispute',
+      phone: '0912345678',
+      message: '\u60f3\u8a62\u554f\u5831\u50f9\u5167\u5bb9',
+    });
+    assert.equal(created.status, 201);
+
+    const list = await request(server, 'GET', '/api/admin/support-tickets');
+    assert.equal(list.status, 200);
+    const ticket = list.body.data.find((item) => item.id === created.body.data.id);
+    assert.ok(ticket);
+    assert.equal(ticket.order.order_no, order.order_no);
+    assert.equal(ticket.customer.line_user_id, lineUserId);
+
+    const updated = await request(server, 'PATCH', `/api/admin/support-tickets/${ticket.id}`, {
+      status: 'in_progress',
+    });
+    assert.equal(updated.status, 200);
+    assert.equal(updated.body.data.status, 'in_progress');
+  } finally {
+    server.close();
+  }
+});
+
 test('customer cancellation form requires and stores cancel reason', async () => {
   const server = app.listen(0);
   try {

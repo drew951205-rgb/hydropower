@@ -3,6 +3,7 @@ const state = {
   orders: [],
   technicians: [],
   customers: [],
+  supportTickets: [],
   selectedOrderId: null,
   selectedOrder: null
 };
@@ -22,6 +23,10 @@ const els = {
   customerDetail: document.querySelector('#customerDetail'),
   loadCustomersButton: document.querySelector('#loadCustomersButton'),
   memberBroadcastForm: document.querySelector('#memberBroadcastForm'),
+  supportStatus: document.querySelector('#supportStatus'),
+  supportStatusFilter: document.querySelector('#supportStatusFilter'),
+  supportTicketList: document.querySelector('#supportTicketList'),
+  loadSupportButton: document.querySelector('#loadSupportButton'),
   technicianStatus: document.querySelector('#technicianStatus'),
   technicianList: document.querySelector('#technicianList'),
   loadTechniciansButton: document.querySelector('#loadTechniciansButton'),
@@ -88,6 +93,28 @@ function money(value) {
 
 function statusText(status) {
   return statusLabels[status] || status || '';
+}
+
+function supportStatusText(status) {
+  return {
+    open: '待處理',
+    in_progress: '處理中',
+    resolved: '已處理',
+    closed: '已關閉'
+  }[status] || status || '';
+}
+
+function supportTypeText(type) {
+  return {
+    general: '一般客服',
+    completion_dispute: '完工申訴',
+    quote_dispute: '報價問題',
+    technician_no_show: '師傅未到場',
+    service_quality: '施工品質',
+    cancel_order: '取消案件',
+    customer_cancel: '客戶取消',
+    technician_cancel: '師傅取消'
+  }[type] || type || '';
 }
 
 function nextStepText(order) {
@@ -242,6 +269,36 @@ function renderAdminNotes(order) {
   `;
 }
 
+function renderReasonCards(order) {
+  const cards = [];
+  if (order.cancel_reason_text) {
+    cards.push(`
+      <article class="reason-card">
+        <strong>取消原因</strong>
+        <span>${escapeHtml(order.cancelled_by || '')} / ${escapeHtml(order.cancel_reason_code || '')}</span>
+        <p>${escapeHtml(order.cancel_reason_text)}</p>
+      </article>
+    `);
+  }
+  if (order.dispute_reason) {
+    cards.push(`
+      <article class="reason-card">
+        <strong>申訴原因</strong>
+        <p>${escapeHtml(order.dispute_reason)}</p>
+      </article>
+    `);
+  }
+  if (order.platform_review_reason) {
+    cards.push(`
+      <article class="reason-card">
+        <strong>平台審核原因</strong>
+        <p>${escapeHtml(order.platform_review_reason)}</p>
+      </article>
+    `);
+  }
+  return cards.length ? cards.join('') : '<p class="empty compact-empty">目前沒有取消或申訴原因</p>';
+}
+
 function renderDetail() {
   const order = state.selectedOrder;
   if (!order) {
@@ -298,6 +355,8 @@ function renderDetail() {
     <dt>${escapeHtml(label)}</dt>
     <dd>${escapeHtml(value)}</dd>
   `).join('') + imageGallery + `
+    <dt>原因紀錄</dt>
+    <dd>${renderReasonCards(order)}</dd>
     <dt>案件時間軸</dt>
     <dd>${renderTimeline(order)}</dd>
     <dt>內部備註</dt>
@@ -417,6 +476,56 @@ async function selectCustomer(customerId) {
       `).join('') : '<p class="empty">沒有歷史案件</p>'}
     </div>
   `;
+}
+
+async function loadSupportTickets() {
+  const params = new URLSearchParams();
+  if (els.supportStatusFilter.value) params.set('status', els.supportStatusFilter.value);
+  const suffix = params.toString() ? `?${params}` : '';
+  els.supportStatus.textContent = '載入中';
+  const result = await api(`/api/admin/support-tickets${suffix}`);
+  state.supportTickets = result.data || [];
+  els.supportStatus.textContent = `${state.supportTickets.length} 筆`;
+  renderSupportTickets();
+}
+
+function supportCustomerName(ticket) {
+  const customer = ticket.customer || {};
+  return customer.name || customer.line_display_name || customer.line_user_id || `客戶 ${ticket.user_id || ''}`;
+}
+
+function renderSupportTickets() {
+  if (!state.supportTickets.length) {
+    els.supportTicketList.innerHTML = '<p class="empty compact-empty">目前沒有客服單</p>';
+    return;
+  }
+
+  els.supportTicketList.innerHTML = state.supportTickets.map((ticket) => {
+    const order = ticket.order || {};
+    return `
+      <article class="support-ticket-item" data-ticket-id="${ticket.id}">
+        <strong>${escapeHtml(ticket.ticket_no)}｜${escapeHtml(supportTypeText(ticket.type))}</strong>
+        <span>${escapeHtml(supportStatusText(ticket.status))}｜${escapeHtml(supportCustomerName(ticket))}</span>
+        <small>${escapeHtml(order.order_no || '未綁定報修單')}｜${escapeHtml(formatDate(ticket.created_at))}</small>
+        <p>${escapeHtml(ticket.message || '')}</p>
+        <div class="support-ticket-actions">
+          ${order.id ? `<button type="button" data-support-order="${order.id}">看訂單</button>` : ''}
+          <button type="button" data-support-status="in_progress">處理中</button>
+          <button type="button" data-support-status="resolved">已處理</button>
+          <button type="button" class="secondary" data-support-status="closed">關閉</button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+async function updateSupportTicketStatus(ticketId, status) {
+  await api(`/api/admin/support-tickets/${ticketId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
+  showToast('客服單狀態已更新');
+  await loadSupportTickets();
 }
 
 async function loadTechnicians() {
@@ -570,6 +679,22 @@ els.memberBroadcastForm.addEventListener('submit', async (event) => {
     button.disabled = false;
   }
 });
+els.loadSupportButton.addEventListener('click', () => loadSupportTickets().catch((error) => showToast(error.message)));
+els.supportStatusFilter.addEventListener('change', () => loadSupportTickets().catch((error) => showToast(error.message)));
+els.supportTicketList.addEventListener('click', (event) => {
+  const orderButton = event.target.closest('button[data-support-order]');
+  if (orderButton) {
+    selectOrder(orderButton.dataset.supportOrder).catch((error) => showToast(error.message));
+    return;
+  }
+
+  const statusButton = event.target.closest('button[data-support-status]');
+  const item = event.target.closest('[data-ticket-id]');
+  if (statusButton && item) {
+    updateSupportTicketStatus(item.dataset.ticketId, statusButton.dataset.supportStatus)
+      .catch((error) => showToast(error.message));
+  }
+});
 els.loadTechniciansButton.addEventListener('click', () => loadTechnicians().catch((error) => showToast(error.message)));
 els.technicianList.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-copy-technician]');
@@ -600,7 +725,7 @@ els.createTechnicianForm.addEventListener('submit', async (event) => {
 });
 
 function loadAll() {
-  Promise.all([loadOrders(), loadTechnicians(), loadCustomers()]).catch((error) => showToast(error.message));
+  Promise.all([loadOrders(), loadTechnicians(), loadCustomers(), loadSupportTickets()]).catch((error) => showToast(error.message));
 }
 
 loadAll();

@@ -1,5 +1,6 @@
 const userRepository = require('../repositories/user.repository');
 const orderRepository = require('../repositories/order.repository');
+const supportTicketRepository = require('../repositories/support-ticket.repository');
 const lineMessageService = require('./line-message.service');
 
 function latestDate(values) {
@@ -121,9 +122,51 @@ async function broadcastToMembers(payload) {
   };
 }
 
+async function listSupportTickets(filters = {}) {
+  const [tickets, users, orders] = await Promise.all([
+    supportTicketRepository.listTickets(filters),
+    userRepository.listUsers({}),
+    orderRepository.listOrders({}),
+  ]);
+  const usersById = new Map(users.map((user) => [String(user.id), user]));
+  const ordersById = new Map(orders.map((order) => [String(order.id), order]));
+
+  return tickets.map((ticket) => ({
+    ...ticket,
+    customer: ticket.user_id ? usersById.get(String(ticket.user_id)) || null : null,
+    order: ticket.order_id ? ordersById.get(String(ticket.order_id)) || null : null,
+  }));
+}
+
+async function updateSupportTicket(ticketId, payload = {}) {
+  const status = String(payload.status || '').trim();
+  const allowed = new Set(['open', 'in_progress', 'resolved', 'closed']);
+  if (!allowed.has(status)) {
+    const error = new Error('Invalid support ticket status');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const changes = {
+    status,
+    resolved_at: ['resolved', 'closed'].includes(status)
+      ? new Date().toISOString()
+      : null,
+  };
+  const updated = await supportTicketRepository.updateTicket(ticketId, changes);
+  if (!updated) {
+    const error = new Error('Support ticket not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  return updated;
+}
+
 module.exports = {
   listCustomers,
   getCustomerDetail,
   summarizeCustomer,
   broadcastToMembers,
+  listSupportTickets,
+  updateSupportTicket,
 };
