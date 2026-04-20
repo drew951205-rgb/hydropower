@@ -34,6 +34,7 @@ router.post(
   upload.array('images', env.uploadMaxFiles),
   liffController.submitSupportTicket
 );
+router.get('/customer/orders', liffController.listCustomerOrders);
 router.get('/technician/orders', liffController.listTechnicianOrders);
 
 module.exports = router;

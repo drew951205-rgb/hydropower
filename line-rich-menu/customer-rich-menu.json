@@ -26,9 +26,9 @@
     {
       "bounds": { "x": 833, "y": 843, "width": 834, "height": 843 },
       "action": {
-        "type": "message",
+        "type": "uri",
         "label": "我的案件",
-        "text": "我的案件"
+        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/my-cases"
       }
     },
     {

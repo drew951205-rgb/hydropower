@@ -232,6 +232,19 @@ async function listTechnicianOrders(req, res, next) {
   }
 }
 
+async function listCustomerOrders(req, res, next) {
+  try {
+    const user = await resolveUser(req, { role: 'customer' });
+    const orders = await orderRepository.listOrders({ customer_id: user.id });
+    const sorted = orders
+      .slice()
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    res.json({ data: sorted });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function submitQuote(req, res, next) {
   try {
     const user = await resolveUser(req);
@@ -431,6 +444,7 @@ module.exports = {
   updateCustomerProfile,
   createRepair,
   getOrder,
+  listCustomerOrders,
   listTechnicianOrders,
   submitQuote,
   submitChangeRequest,

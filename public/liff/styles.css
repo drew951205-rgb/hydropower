@@ -195,6 +195,33 @@ button:disabled {
   font-size: 18px;
 }
 
+.case-section {
+  display: grid;
+  gap: 12px;
+}
+
+.case-section > h2 {
+  margin: 10px 0 0;
+  font-size: 20px;
+}
+
+.case-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.case-head span {
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: #e8f4ef;
+  color: #168466;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

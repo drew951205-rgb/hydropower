@@ -164,6 +164,100 @@ function orderSummary(order) {
   ].filter(Boolean).join('<br>');
 }
 
+function statusText(status) {
+  return {
+    pending_review: '等待平台審核',
+    waiting_customer_info: '等待補充資料',
+    pending_dispatch: '等待派單',
+    dispatching: '尋找師傅中',
+    assigned: '師傅已接單',
+    quoted: '等待確認報價',
+    in_progress: '師傅準備前往',
+    arrived: '師傅已到場',
+    completed_pending_customer: '等待確認結案',
+    closed: '已結案',
+    customer_cancelled: '客戶已取消',
+    technician_cancelled: '師傅已取消',
+    platform_cancelled: '平台已取消',
+    platform_review: '平台處理中',
+    dispute_review: '申訴處理中',
+  }[status] || status || '未知狀態';
+}
+
+function customerCaseActions(order) {
+  const actions = [];
+  if (
+    order.status === 'quoted' ||
+    (order.status === 'platform_review' && order.change_request_status === 'pending')
+  ) {
+    actions.push({
+      label: '查看報價',
+      href: liffPath(`/liff/confirm?order_id=${order.id}&mode=${order.change_request_status === 'pending' ? 'change' : 'quote'}`),
+    });
+  }
+  if (order.status === 'completed_pending_customer') {
+    actions.push({
+      label: '確認結案',
+      href: liffPath(`/liff/confirm?order_id=${order.id}&mode=completion`),
+    });
+  }
+  if (!['closed', 'customer_cancelled', 'technician_cancelled', 'platform_cancelled'].includes(order.status)) {
+    actions.push({
+      label: '取消案件',
+      href: liffPath(`/liff/cancel?order_id=${order.id}`),
+      secondary: true,
+    });
+  }
+  actions.push({
+    label: '聯絡客服',
+    href: liffPath(`/liff/support?order_id=${order.id}`),
+    secondary: true,
+  });
+  return actions;
+}
+
+function technicianCaseActions(order) {
+  const actions = [];
+  if (order.status === 'assigned') {
+    actions.push({ label: '報價', href: liffPath(`/liff/quote?order_id=${order.id}`) });
+  }
+  if (['in_progress', 'arrived', 'platform_review'].includes(order.status)) {
+    actions.push({ label: '追加報價', href: liffPath(`/liff/change-request?order_id=${order.id}`) });
+  }
+  if (!['closed', 'customer_cancelled', 'technician_cancelled', 'platform_cancelled'].includes(order.status)) {
+    actions.push({
+      label: '取消案件',
+      href: liffPath(`/liff/cancel?order_id=${order.id}&role=technician`),
+      secondary: true,
+    });
+  }
+  return actions;
+}
+
+function renderCaseCard(order, role) {
+  const actions = role === 'technician'
+    ? technicianCaseActions(order)
+    : customerCaseActions(order);
+  return `
+    <article class="case-card">
+      <div class="case-head">
+        <h2>${escapeHtml(order.order_no || '')}</h2>
+        <span>${escapeHtml(statusText(order.status))}</span>
+      </div>
+      <p>${orderSummary(order)}</p>
+      ${actions.length ? `
+        <div class="actions">
+          ${actions.slice(0, 4).map((action) => `
+            <a href="${escapeHtml(action.href)}">
+              <button type="button" class="${action.secondary ? 'secondary' : ''}">${escapeHtml(action.label)}</button>
+            </a>
+          `).join('')}
+        </div>
+      ` : ''}
+    </article>
+  `;
+}
+
 function supportOrderContextHtml(order) {
   return `
     <div class="linked-order">
@@ -604,22 +698,40 @@ async function submitQuoteConfirmSafe(orderId, accepted) {
 
 async function setupMyCases() {
   if (!requireLineUser()) return;
-  const orders = await api(withLineUser('/api/liff/technician/orders'));
+  setStatus('正在載入案件...');
+  const [customerOrders, technicianOrders] = await Promise.all([
+    api(withLineUser('/api/liff/customer/orders')).catch(() => []),
+    api(withLineUser('/api/liff/technician/orders')).catch(() => []),
+  ]);
   const list = $('#case-list');
-  if (!orders.length) {
-    list.innerHTML = '<p class="notice">目前沒有進行中的案件。</p>';
+  const customerList = customerOrders || [];
+  const technicianList = technicianOrders || [];
+  setStatus('');
+
+  if (!customerList.length && !technicianList.length) {
+    list.innerHTML = `
+      <p class="notice">目前沒有案件。</p>
+      <div class="actions">
+        <a href="${liffPath('/liff/repair')}"><button type="button">我要報修</button></a>
+      </div>
+    `;
     return;
   }
-  list.innerHTML = orders.map((order) => `
-    <article class="case-card">
-      <h2>${order.order_no}</h2>
-      <p>${orderSummary(order)}</p>
-      <div class="actions">
-        <a href="/liff/quote?order_id=${order.id}&line_user_id=${encodeURIComponent(lineUserId())}"><button>報價</button></a>
-        <a href="/liff/change-request?order_id=${order.id}&line_user_id=${encodeURIComponent(lineUserId())}"><button class="secondary">追加報價</button></a>
-      </div>
-    </article>
-  `).join('');
+
+  list.innerHTML = [
+    customerList.length ? `
+      <section class="case-section">
+        <h2>我的報修</h2>
+        ${customerList.map((order) => renderCaseCard(order, 'customer')).join('')}
+      </section>
+    ` : '',
+    technicianList.length ? `
+      <section class="case-section">
+        <h2>我接的案件</h2>
+        ${technicianList.map((order) => renderCaseCard(order, 'technician')).join('')}
+      </section>
+    ` : '',
+  ].join('');
 }
 
 async function setupProfile() {

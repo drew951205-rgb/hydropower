@@ -148,6 +148,29 @@ test('customer rich menu texts list orders and support info', async () => {
   }
 });
 
+test('LIFF my cases can list customer repair orders', async () => {
+  const server = app.listen(0);
+  try {
+    const { lineUserId, order } = await createRepairOrder(server, {
+      service_type: '漏水',
+      area: '西區',
+    });
+
+    const response = await request(
+      server,
+      'GET',
+      `/api/liff/customer/orders?line_user_id=${encodeURIComponent(lineUserId)}`
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.data.length, 1);
+    assert.equal(response.body.data[0].id, order.id);
+    assert.equal(response.body.data[0].order_no, order.order_no);
+  } finally {
+    server.close();
+  }
+});
+
 test('admin can add internal order notes and timeline logs', async () => {
   const server = app.listen(0);
   try {
