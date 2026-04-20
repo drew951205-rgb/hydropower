@@ -387,6 +387,15 @@ async function setupSupport() {
 async function setupCancel() {
   const form = $('#cancel-form');
   const order = await loadOrder();
+  const role = params().get('role') || 'customer';
+  const isTechnician = role === 'technician';
+  if (isTechnician) {
+    document.querySelector('h1').textContent = '\u5e2b\u5085\u53d6\u6d88\u63a5\u6848';
+    const lead = $('#cancel-lead');
+    if (lead) {
+      lead.textContent = '\u8acb\u586b\u5beb\u53d6\u6d88\u539f\u56e0\uff0c\u5e73\u53f0\u6703\u4fdd\u7559\u7d00\u9304\u3001\u901a\u77e5\u5ba2\u6236\uff0c\u4e26\u5c07\u6848\u4ef6\u9000\u56de\u91cd\u65b0\u6d3e\u55ae\u3002';
+    }
+  }
   $('#order-panel').innerHTML = orderSummary(order);
 
   form.addEventListener('submit', async (event) => {
@@ -397,17 +406,22 @@ async function setupCancel() {
     setStatus('\u6b63\u5728\u53d6\u6d88\u6848\u4ef6...');
     try {
       const data = Object.fromEntries(new FormData(form).entries());
-      const result = await api(`/api/liff/orders/${order.id}/cancel`, {
+      const endpoint = isTechnician
+        ? `/api/liff/orders/${order.id}/technician-cancel`
+        : `/api/liff/orders/${order.id}/cancel`;
+      const result = await api(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: jsonWithLineUser(data),
       });
       showSubmitDone(
         form,
-        '\u6848\u4ef6\u5df2\u53d6\u6d88',
-        '\u5df2\u53d6\u6d88\u6848\u4ef6 ' + result.order.order_no + '\uff0c\u53d6\u6d88\u539f\u56e0\u5df2\u7559\u5b58\u5728\u5e73\u53f0\u7d00\u9304\u3002',
+        isTechnician ? '\u5df2\u53d6\u6d88\u63a5\u6848' : '\u6848\u4ef6\u5df2\u53d6\u6d88',
+        isTechnician
+          ? '\u5df2\u53d6\u6d88\u6848\u4ef6 ' + result.order.order_no + '\uff0c\u5e73\u53f0\u5df2\u901a\u77e5\u5ba2\u6236\uff0c\u4e26\u5c07\u6848\u4ef6\u9000\u56de\u91cd\u65b0\u6d3e\u55ae\u3002'
+          : '\u5df2\u53d6\u6d88\u6848\u4ef6 ' + result.order.order_no + '\uff0c\u53d6\u6d88\u539f\u56e0\u5df2\u7559\u5b58\u5728\u5e73\u53f0\u7d00\u9304\u3002',
         [
-          { label: '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
+          { label: isTechnician ? '\u67e5\u770b\u6211\u7684\u6848\u4ef6' : '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
           { label: '\u518d\u6b21\u5831\u4fee', href: liffPath('/liff/repair') },
         ]
       );

@@ -410,6 +410,21 @@ async function cancelOrderByCustomer(req, res, next) {
   }
 }
 
+async function cancelOrderByTechnician(req, res, next) {
+  try {
+    const user = await resolveUser(req);
+    if (user.role !== 'technician') throw forbidden('Technician role required');
+    const data = await supportTicketService.cancelOrderByTechnician(
+      user,
+      req.params.id,
+      req.body
+    );
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getConfig,
   getCustomerProfile,
@@ -425,4 +440,5 @@ module.exports = {
   submitTechnicianReview,
   submitSupportTicket,
   cancelOrderByCustomer,
+  cancelOrderByTechnician,
 };

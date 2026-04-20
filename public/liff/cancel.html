@@ -10,7 +10,7 @@
   <main class="page">
     <p class="eyebrow">師傅抵嘉</p>
     <h1>取消案件</h1>
-    <p class="lead">請填寫取消原因，平台會保留紀錄；如果案件已有師傅，系統也會通知師傅。</p>
+    <p class="lead" id="cancel-lead">請填寫取消原因，平台會保留紀錄；如果案件已有師傅，系統也會通知師傅。</p>
     <p id="status" class="notice" hidden></p>
     <section id="order-panel" class="panel">載入案件中...</section>
     <form id="cancel-form">
@@ -21,6 +21,8 @@
           <option value="schedule_changed">時間不方便</option>
           <option value="issue_resolved">問題已自行解決</option>
           <option value="price_concern">價格或預算考量</option>
+          <option value="technician_unavailable">師傅臨時無法服務</option>
+          <option value="out_of_scope">現場狀況超出可服務範圍</option>
           <option value="duplicate_order">重複送單</option>
           <option value="other">其他原因</option>
         </select>

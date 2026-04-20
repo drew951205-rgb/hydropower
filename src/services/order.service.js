@@ -37,6 +37,7 @@ const allowedFromByAction = {
     ORDER_STATUS.QUOTED,
     ORDER_STATUS.IN_PROGRESS,
     ORDER_STATUS.ARRIVED,
+    ORDER_STATUS.PLATFORM_REVIEW,
   ],
   customer_dispute: [
     ORDER_STATUS.ASSIGNED,
@@ -276,16 +277,19 @@ async function addAdminNote(orderId, note, operatorId = null) {
   return message;
 }
 
-async function requeueAfterTechnicianCancel(orderId, technicianId = null) {
+async function requeueAfterTechnicianCancel(orderId, technicianId = null, reason = null) {
   return transitionOrder(
     orderId,
     ORDER_STATUS.PENDING_DISPATCH,
     'technician_cancel_requeue',
     'technician',
     technicianId,
-    'Technician cancelled; order returned to dispatch queue',
+    reason || 'Technician cancelled; order returned to dispatch queue',
     {
       technician_id: null,
+      cancelled_by: 'technician',
+      cancel_reason_code: 'technician_liff_cancel',
+      cancel_reason_text: reason || 'Technician cancelled; order returned to dispatch queue',
       quote_amount: null,
       estimated_arrival_time: null,
       final_amount: null,

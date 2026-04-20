@@ -122,7 +122,8 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.match(JSON.stringify(assigned.contents), /顧客照片/);
   assert.equal(footerActions(assigned)[0].type, 'uri');
   assert.match(footerActions(assigned)[0].uri, /\/quote\?order_id=12/);
-  assert.equal(footerActions(assigned)[1].data, 'technician:cancel:12');
+  assert.equal(footerActions(assigned)[1].type, 'uri');
+  assert.match(footerActions(assigned)[1].uri, /\/cancel\?order_id=12&role=technician/);
 
   const quotePrompt = quotePromptMessage(order);
   assert.equal(quotePrompt.type, 'flex');
@@ -130,7 +131,8 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.match(JSON.stringify(quotePrompt.contents), /Pipe leak under sink/);
   assert.equal(footerActions(quotePrompt)[0].type, 'uri');
   assert.match(footerActions(quotePrompt)[0].uri, /\/quote\?order_id=12/);
-  assert.equal(footerActions(quotePrompt)[1].data, 'technician:cancel:12');
+  assert.equal(footerActions(quotePrompt)[1].type, 'uri');
+  assert.match(footerActions(quotePrompt)[1].uri, /\/cancel\?order_id=12&role=technician/);
 
   const changePrompt = changeRequestPromptMessage(order);
   assert.equal(changePrompt.type, 'flex');
@@ -143,7 +145,8 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.equal(footerActions(acceptedQuote)[1].type, 'uri');
   assert.match(footerActions(acceptedQuote)[1].uri, /\/change-request\?order_id=12/);
   assert.equal(footerActions(acceptedQuote)[2].data, 'technician:complete:12');
-  assert.equal(footerActions(acceptedQuote)[3].data, 'technician:cancel:12');
+  assert.equal(footerActions(acceptedQuote)[3].type, 'uri');
+  assert.match(footerActions(acceptedQuote)[3].uri, /\/cancel\?order_id=12&role=technician/);
 
   const acceptedChange = acceptedChangeRequestTechnicianMessage(order);
   assert.equal(acceptedChange.type, 'flex');
@@ -152,7 +155,8 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.equal(footerActions(acceptedChange)[0].data, 'technician:complete:12');
   assert.equal(footerActions(acceptedChange)[1].type, 'uri');
   assert.match(footerActions(acceptedChange)[1].uri, /\/change-request\?order_id=12/);
-  assert.equal(footerActions(acceptedChange)[2].data, 'technician:cancel:12');
+  assert.equal(footerActions(acceptedChange)[2].type, 'uri');
+  assert.match(footerActions(acceptedChange)[2].uri, /\/cancel\?order_id=12&role=technician/);
 
   const arrived = arrivedTechnicianMessage(order);
   assert.equal(arrived.type, 'flex');
@@ -160,7 +164,8 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.equal(footerActions(arrived)[0].type, 'uri');
   assert.match(footerActions(arrived)[0].uri, /\/change-request\?order_id=12/);
   assert.equal(footerActions(arrived)[1].data, 'technician:complete:12');
-  assert.equal(footerActions(arrived)[2].data, 'technician:cancel:12');
+  assert.equal(footerActions(arrived)[2].type, 'uri');
+  assert.match(footerActions(arrived)[2].uri, /\/cancel\?order_id=12&role=technician/);
 });
 
 test('technician quote and change request text can omit order id', () => {

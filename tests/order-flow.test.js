@@ -489,6 +489,80 @@ test('technician cancellation returns order to dispatch queue', async () => {
   }
 });
 
+test('technician cancellation form requires and stores cancel reason', async () => {
+  const server = app.listen(0);
+  try {
+    const customerId = `U-customer-tech-form-cancel-${Date.now()}`;
+    const technicianId = `U-technician-tech-form-cancel-${Date.now()}`;
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '\u6f0f\u6c34',
+      area: '\u897f\u5340',
+      address: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def720\u865f',
+      preferred_time_text: '\u4eca\u5929\u4e0b\u5348',
+      issue_description: '\u5eda\u623f\u6f0f\u6c34',
+      contact_phone: '0912777888',
+    });
+
+    const technician = await request(server, 'POST', '/api/technicians', {
+      line_user_id: technicianId,
+      name: 'Cancel Form Technician',
+      phone: '0911777888',
+      available: true,
+      service_areas: [],
+      service_types: []
+    });
+
+    await request(server, 'POST', `/api/orders/${order.id}/review`, {
+      action: 'approve',
+      note: 'ok'
+    });
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [technician.body.data.id]
+    });
+    const assignment = dispatched.body.data[0];
+    await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'tech-form-cancel-accept',
+          source: { userId: technicianId },
+          postback: { data: `technician:accept_assignment:${assignment.id}` }
+        }
+      ]
+    });
+
+    const missingReason = await request(server, 'POST', `/api/liff/orders/${order.id}/technician-cancel`, {
+      line_user_id: technicianId,
+      reason_code: 'technician_unavailable',
+      reason: '',
+    });
+    assert.equal(missingReason.status, 400);
+
+    const cancelled = await request(server, 'POST', `/api/liff/orders/${order.id}/technician-cancel`, {
+      line_user_id: technicianId,
+      reason_code: 'technician_unavailable',
+      reason: '\u81e8\u6642\u5bb6\u4e2d\u6709\u4e8b\u7121\u6cd5\u524d\u5f80',
+    });
+
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.body.data.order.status, 'pending_dispatch');
+    assert.equal(cancelled.body.data.order.technician_id, null);
+    assert.equal(cancelled.body.data.order.cancelled_by, 'technician');
+    assert.equal(cancelled.body.data.order.cancel_reason_text, '\u81e8\u6642\u5bb6\u4e2d\u6709\u4e8b\u7121\u6cd5\u524d\u5f80');
+    assert.match(cancelled.body.data.ticket.ticket_no, /^TC-/);
+
+    const tickets = await supportTicketRepository.listTickets({
+      order_id: order.id,
+      type: 'technician_cancel',
+    });
+    assert.equal(tickets.length, 1);
+    assert.equal(tickets[0].message, '\u81e8\u6642\u5bb6\u4e2d\u6709\u4e8b\u7121\u6cd5\u524d\u5f80');
+  } finally {
+    server.close();
+  }
+});
+
 test('customer completion dispute stores the dispute reason', async () => {
   const server = app.listen(0);
   try {

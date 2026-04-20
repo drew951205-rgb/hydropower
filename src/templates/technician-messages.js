@@ -59,6 +59,13 @@ function button(action, style = 'secondary') {
   };
 }
 
+function cancelAction(order) {
+  return uriAction('取消案件', '/liff/cancel', {
+    order_id: order.id,
+    role: 'technician',
+  });
+}
+
 function photoCount(order) {
   if (Array.isArray(order.images)) return order.images.length;
   return Number(order.image_count || 0);
@@ -169,7 +176,7 @@ function assignedMessage(order) {
         uriAction('報價', '/liff/quote', { order_id: order.id }),
         'primary'
       ),
-      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+      button(cancelAction(order)),
     ],
   });
 }
@@ -197,7 +204,7 @@ function quotePromptMessage(order) {
         uriAction('開啟報價頁', '/liff/quote', { order_id: order.id }),
         'primary'
       ),
-      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+      button(cancelAction(order)),
     ],
   });
 }
@@ -218,7 +225,7 @@ function changeRequestPromptMessage(order) {
         uriAction('開啟追加頁', '/liff/change-request', { order_id: order.id }),
         'primary'
       ),
-      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+      button(cancelAction(order)),
     ],
   });
 }
@@ -240,7 +247,7 @@ function acceptedQuoteTechnicianMessage(order) {
       button(postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'), 'primary'),
       button(uriAction('追加報價', '/liff/change-request', { order_id: order.id })),
       button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
-      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+      button(cancelAction(order)),
     ],
   });
 }
@@ -270,7 +277,7 @@ function acceptedChangeRequestTechnicianMessage(order) {
     actions: [
       button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報'), 'primary'),
       button(uriAction('再次追加報價', '/liff/change-request', { order_id: order.id })),
-      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+      button(cancelAction(order)),
     ],
   });
 }
@@ -291,7 +298,7 @@ function arrivedTechnicianMessage(order) {
     actions: [
       button(uriAction('追加報價', '/liff/change-request', { order_id: order.id }), 'primary'),
       button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
-      button(postbackAction('取消案件', `technician:cancel:${order.id}`, '取消案件')),
+      button(cancelAction(order)),
     ],
   });
 }
