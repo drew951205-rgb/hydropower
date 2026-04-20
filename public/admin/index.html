@@ -62,6 +62,36 @@
             <tbody id="ordersTable"></tbody>
           </table>
         </div>
+
+        <section class="support-section support-main-section" aria-labelledby="supportTitle">
+          <div class="section-head compact">
+            <div>
+              <h2 id="supportTitle">客服中心</h2>
+              <p id="supportStatus">尚未載入</p>
+            </div>
+            <div class="mini-filter">
+              <select id="supportStatusFilter" aria-label="客服狀態">
+                <option value="">全部</option>
+                <option value="open">待處理</option>
+                <option value="in_progress">處理中</option>
+                <option value="resolved">已回覆</option>
+                <option value="closed">已關閉</option>
+              </select>
+              <select id="supportTypeFilter" aria-label="客服類型">
+                <option value="">全部類型</option>
+                <option value="general">一般客服</option>
+                <option value="completion_dispute">完工爭議</option>
+                <option value="quote_dispute">報價爭議</option>
+                <option value="technician_no_show">師傅未到場</option>
+                <option value="service_quality">服務品質</option>
+                <option value="customer_cancel">客戶取消</option>
+                <option value="technician_cancel">師傅取消</option>
+              </select>
+              <button id="loadSupportButton" type="button">載入</button>
+            </div>
+          </div>
+          <div id="supportTicketList" class="support-ticket-list"></div>
+        </section>
       </section>
 
       <aside class="side-panel" aria-labelledby="detailTitle">
@@ -80,36 +110,6 @@
         <section class="actions-section" aria-labelledby="actionsTitle">
           <h2 id="actionsTitle">案件操作</h2>
           <div id="actions" class="actions"></div>
-        </section>
-
-        <section class="support-section" aria-labelledby="supportTitle">
-          <div class="section-head compact">
-            <div>
-              <h2 id="supportTitle">客服中心</h2>
-              <p id="supportStatus">尚未載入</p>
-            </div>
-            <div class="mini-filter">
-              <select id="supportStatusFilter" aria-label="客服狀態">
-                <option value="">全部</option>
-                <option value="open">待處理</option>
-                <option value="in_progress">處理中</option>
-                <option value="resolved">已處理</option>
-                <option value="closed">已關閉</option>
-              </select>
-              <select id="supportTypeFilter" aria-label="客服類型">
-                <option value="">全部類型</option>
-                <option value="general">一般客服</option>
-                <option value="completion_dispute">完工申訴</option>
-                <option value="quote_dispute">報價問題</option>
-                <option value="technician_no_show">師傅未到場</option>
-                <option value="service_quality">施工品質</option>
-                <option value="customer_cancel">客戶取消</option>
-                <option value="technician_cancel">師傅取消</option>
-              </select>
-              <button id="loadSupportButton" type="button">載入</button>
-            </div>
-          </div>
-          <div id="supportTicketList" class="support-ticket-list"></div>
         </section>
 
         <section class="crm-section" aria-labelledby="customersTitle">

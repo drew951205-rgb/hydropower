@@ -238,6 +238,24 @@ tbody tr.selected {
   padding: 0 18px;
 }
 
+.support-main-section {
+  padding: 18px;
+  border-top: 1px solid var(--line);
+  background: #fbfdfc;
+}
+
+.support-main-section .section-head.compact {
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+
+.support-main-section .support-ticket-list {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-bottom: 0;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: 108px 1fr;
