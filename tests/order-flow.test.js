@@ -171,31 +171,65 @@ test('LIFF my cases can list customer repair orders', async () => {
   }
 });
 
-test('customer LINE replies are saved to the latest active order', async () => {
+test('customer LINE support messages create a support ticket after support prompt', async () => {
   const server = app.listen(0);
   try {
     const { lineUserId, order } = await createRepairOrder(server, {
-      issue_description: '水槽下方漏水',
+      issue_description: '??????',
     });
 
-    const response = await request(server, 'POST', '/webhook', {
+    const plainResponse = await request(server, 'POST', '/webhook', {
       events: [
         {
           type: 'message',
-          replyToken: 'customer-extra-reply',
+          replyToken: 'customer-plain-reply',
           source: { userId: lineUserId },
-          message: { type: 'text', text: '補充：水會滴到櫃子裡' },
+          message: { type: 'text', text: '\u88dc\u5145\uff1a\u6c34\u6703\u6ef4\u5230\u6ac3\u5b50\u88e1' },
         },
       ],
     });
-    assert.equal(response.status, 200);
+    assert.equal(plainResponse.status, 200);
+
+    const supportPrompt = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'customer-support-prompt',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '\u806f\u7d61\u5ba2\u670d' },
+        },
+      ],
+    });
+    assert.equal(supportPrompt.status, 200);
+    assert.equal(supportPrompt.body.results[0].customerSupportPrompted, true);
+
+    const supportMessage = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'message',
+          replyToken: 'customer-support-message',
+          source: { userId: lineUserId },
+          message: { type: 'text', text: '\u6211\u60f3\u88dc\u5145\u6f0f\u6c34\u4f4d\u7f6e' },
+        },
+      ],
+    });
+    assert.equal(supportMessage.status, 200);
+    assert.equal(supportMessage.body.results[0].supportTicketCreated, true);
+
+    const tickets = await supportTicketRepository.listTickets({ order_id: order.id });
+    assert.ok(tickets.some((ticket) =>
+      ticket.type === 'general' &&
+      ticket.message === '\u6211\u60f3\u88dc\u5145\u6f0f\u6c34\u4f4d\u7f6e'
+    ));
 
     const detail = await request(server, 'GET', `/api/orders/${order.id}`);
     assert.equal(detail.status, 200);
+    assert.ok(!detail.body.data.messages.some((message) =>
+      message.message_type === 'customer_reply'
+    ));
     assert.ok(detail.body.data.messages.some((message) =>
-      message.message_type === 'customer_reply' &&
-      message.sender_role === 'customer' &&
-      message.content === '補充：水會滴到櫃子裡'
+      message.message_type === 'support_ticket' &&
+      message.content.includes('\u6211\u60f3\u88dc\u5145\u6f0f\u6c34\u4f4d\u7f6e')
     ));
   } finally {
     server.close();

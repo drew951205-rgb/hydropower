@@ -4,7 +4,7 @@ const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
 const fileUploadService = require('./file-upload.service');
 const orderRepository = require('../repositories/order.repository');
-const messageRepository = require('../repositories/message.repository');
+const supportTicketService = require('./support-ticket.service');
 const { ORDER_STATUS } = require('../utils/order-status');
 const {
   customerMessages,
@@ -174,34 +174,52 @@ async function listCustomerOrders(user, event) {
 }
 
 async function showCustomerSupport(user, event) {
+  const order = await findLatestCustomerOpenOrder(user);
+  await sessionRepository.upsertForUser(user.id, {
+    flow_type: 'customer_support',
+    current_step: 'message',
+    temp_payload: {
+      order_id: order?.id || null,
+    },
+  });
+
   await lineMessageService.replyText(
     event,
     [
-      '師傅抵嘉客服說明',
+      '\u5e2b\u5085\u62b5\u5609\u5ba2\u670d\u4e2d\u5fc3',
       '',
-      '服務時間：每日 09:00-21:00',
-      '若你已有案件，請直接回覆案件編號，平台會依紀錄協助處理。',
+      '\u670d\u52d9\u6642\u9593\uff1a\u6bcf\u65e5 09:00-21:00',
+      order
+        ? `\u76ee\u524d\u6703\u5148\u5c0d\u61c9\u6848\u4ef6 ${order.order_no}\u3002`
+        : '\u76ee\u524d\u6c92\u6709\u5c0d\u61c9\u5230\u672a\u7d50\u6848\u6848\u4ef6\uff0c\u6703\u4ee5\u4e00\u822c\u5ba2\u670d\u55ae\u8655\u7406\u3002',
       '',
-      '若現場有漏電、瓦斯味、火花或立即危險，請先停止使用相關設備並聯絡緊急單位。',
+      '\u8acb\u76f4\u63a5\u8f38\u5165\u4f60\u8981\u806f\u7d61\u5ba2\u670d\u7684\u5167\u5bb9\uff0c\u9001\u51fa\u5f8c\u5e73\u53f0\u6703\u5efa\u7acb\u5ba2\u670d\u55ae\u3002',
+      '',
+      '\u82e5\u73fe\u5834\u6709\u6f0f\u96fb\u3001\u74e6\u65af\u5473\u3001\u706b\u82b1\u6216\u7acb\u5373\u5371\u96aa\uff0c\u8acb\u5148\u505c\u6b62\u4f7f\u7528\u76f8\u95dc\u8a2d\u5099\u4e26\u806f\u7d61\u7dca\u6025\u55ae\u4f4d\u3002',
     ].join('\n')
   );
-  return { customerSupportPrompted: true };
+  return { customerSupportPrompted: true, orderId: order?.id || null };
 }
-
-async function recordCustomerTextToLatestOrder(user, text) {
+async function createSupportTicketFromSession(user, event, session, text) {
   const content = String(text || '').trim();
-  if (!content) return null;
+  if (!content) {
+    await lineMessageService.replyText(event, '請輸入想詢問或申訴的內容。');
+    return { supportValidationError: true };
+  }
 
-  const order = await findLatestCustomerOpenOrder(user);
-  if (!order) return null;
-
-  return messageRepository.createMessage({
-    order_id: order.id,
-    sender_role: 'customer',
-    sender_id: user.id,
-    message_type: 'customer_reply',
-    content,
+  const ticket = await supportTicketService.createSupportTicket(user, {
+    order_id: session.temp_payload?.order_id || null,
+    type: 'general',
+    title: 'LINE customer support message',
+    message: content,
   });
+
+  await sessionRepository.clearForUser(user.id);
+  await lineMessageService.replyText(
+    event,
+    `已收到你的客服訊息，客服單號 ${ticket.ticket_no}。平台會依紀錄協助處理。`
+  );
+  return { supportTicketCreated: true, ticket };
 }
 
 async function handleCustomerText(user, event, text) {
@@ -211,11 +229,12 @@ async function handleCustomerText(user, event, text) {
     await lineMessageService.replyMessages(event, customerReviewThanksMessage());
     return { customerReviewSessionCleared: true };
   }
+  if (session?.flow_type === 'customer_support')
+    return createSupportTicketFromSession(user, event, session, text);
 
   if (isMyOrdersText(text)) return listCustomerOrders(user, event);
   if (isSupportText(text)) return showCustomerSupport(user, event);
 
-  await recordCustomerTextToLatestOrder(user, text);
   return startRepairFlow(user, event);
 }
 
