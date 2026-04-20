@@ -3,6 +3,7 @@ const completionService = require('./completion.service');
 const quoteService = require('./quote.service');
 const orderService = require('./order.service');
 const orderRepository = require('../repositories/order.repository');
+const assignmentRepository = require('../repositories/assignment.repository');
 const userRepository = require('../repositories/user.repository');
 const sessionRepository = require('../repositories/session.repository');
 const lineMessageService = require('./line-message.service');
@@ -325,36 +326,39 @@ async function submitLineChangeRequest(user, event, changeRequest) {
 async function cancelByTechnician(user, event, orderId) {
   const order = await orderRepository.findById(orderId);
   if (!order) {
-    await lineMessageService.replyText(event, '找不到這張案件，請確認案件 ID。');
+    await lineMessageService.replyText(event, '\u627e\u4e0d\u5230\u9019\u5f35\u6848\u4ef6\uff0c\u8acb\u78ba\u8a8d\u6848\u4ef6 ID\u3002');
     return null;
   }
 
   if (String(order.technician_id) !== String(user.id)) {
-    await lineMessageService.replyText(event, '這張案件不是由你接單，不能取消。');
+    await lineMessageService.replyText(event, '\u9019\u5f35\u6848\u4ef6\u4e0d\u662f\u7531\u4f60\u63a5\u55ae\uff0c\u4e0d\u80fd\u53d6\u6d88\u3002');
     return { cancelled: false, reason: 'wrong_technician' };
   }
 
-  const cancelled = await orderService.cancelOrder(
-    order.id,
-    {
-      cancelled_by: 'technician',
-      reason_code: 'line_technician_cancel',
-      reason_text: 'Technician cancelled from LINE',
-    },
-    'technician',
-    user.id
+  const assignments = await assignmentRepository.listAssignments({
+    order_id: order.id,
+    technician_id: user.id,
+  });
+  await Promise.all(
+    assignments
+      .filter((assignment) => assignment.status === 'accepted')
+      .map((assignment) =>
+        assignmentRepository.updateAssignment(assignment.id, { status: 'rejected' })
+      )
   );
 
-  const customer = await userRepository.findById(cancelled.customer_id);
+  const requeued = await orderService.requeueAfterTechnicianCancel(order.id, user.id);
+
+  const customer = await userRepository.findById(requeued.customer_id);
   if (customer?.line_user_id) {
     await lineMessageService.pushMessages(
       customer.line_user_id,
-      `師傅已取消案件 ${cancelled.order_no}，平台會協助重新安排。`
+      '\u5e2b\u5085\u81e8\u6642\u53d6\u6d88\u6848\u4ef6 ' + requeued.order_no + '\uff0c\u5e73\u53f0\u6703\u91cd\u65b0\u5e6b\u4f60\u5b89\u6392\u5e2b\u5085\u3002'
     );
   }
 
-  await lineMessageService.replyText(event, '已取消案件，平台已記錄。');
-  return { cancelled: true, order: cancelled };
+  await lineMessageService.replyText(event, '\u5df2\u53d6\u6d88\u63a5\u6848\uff0c\u6848\u4ef6\u6703\u56de\u5230\u5e73\u53f0\u91cd\u65b0\u6d3e\u55ae\u3002');
+  return { cancelled: true, requeued: true, order: requeued };
 }
 
 async function startTechnicianReview(user, event, order) {

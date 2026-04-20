@@ -33,6 +33,28 @@ function setStatus(message, isError = false) {
   node.hidden = !message;
 }
 
+function showSubmitDone(form, title, message, actions = []) {
+  setStatus(message);
+  let panel = form.nextElementSibling;
+  if (!panel || !panel.classList.contains('submit-done')) {
+    panel = document.createElement('section');
+    panel.className = 'submit-done notice';
+    form.insertAdjacentElement('afterend', panel);
+  }
+  panel.innerHTML = `
+    <h2>${escapeHtml(title)}</h2>
+    <p>${escapeHtml(message)}</p>
+    ${actions.length ? `
+      <div class="actions">
+        ${actions.map((action) => `<a href="${escapeHtml(action.href)}"><button type="button">${escapeHtml(action.label)}</button></a>`).join('')}
+      </div>
+    ` : ''}
+  `;
+  panel.hidden = false;
+  form.hidden = true;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function lineUserId() {
   return (
     state.profile?.userId ||
@@ -242,7 +264,12 @@ async function setupRepair() {
         body: formDataWithProfile(form),
       });
       form.reset();
-      setStatus(`已建立案件 ${order.order_no}，平台會先審核資料。`);
+      showSubmitDone(
+        form,
+        '\u5831\u4fee\u5df2\u9001\u51fa',
+        '\u5df2\u5efa\u7acb\u6848\u4ef6 ' + order.order_no + '\uff0c\u5e73\u53f0\u6703\u5148\u5be9\u6838\u8cc7\u6599\uff0c\u5be9\u6838\u901a\u904e\u5f8c\u6703\u99ac\u4e0a\u5e6b\u4f60\u627e\u9644\u8fd1\u7684\u5e2b\u5085\u3002',
+        [{ label: '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') }]
+      );
     } catch (error) {
       setStatus(error.message, true);
     } finally {
@@ -274,7 +301,7 @@ async function setupQuote() {
         headers: { 'Content-Type': 'application/json' },
         body: jsonWithLineUser(data),
       });
-      setStatus('報價已送出，已通知顧客確認。');
+      showSubmitDone(form, '\u5831\u50f9\u5df2\u9001\u51fa', '\u5df2\u901a\u77e5\u9867\u5ba2\u78ba\u8a8d\u5831\u50f9\uff0c\u9867\u5ba2\u540c\u610f\u5f8c\u4f60\u6703\u6536\u5230\u4e0b\u4e00\u6b65\u901a\u77e5\u3002');
     } catch (error) {
       setStatus(error.message, true);
     }
@@ -296,7 +323,7 @@ async function setupChangeRequest() {
         method: 'POST',
         body: formDataWithProfile(form),
       });
-      setStatus('追加報價已送出，已通知顧客確認。');
+      showSubmitDone(form, '\u8ffd\u52a0\u5831\u50f9\u5df2\u9001\u51fa', '\u5df2\u901a\u77e5\u9867\u5ba2\u78ba\u8a8d\u8ffd\u52a0\u5831\u50f9\uff0c\u9867\u5ba2\u540c\u610f\u5f8c\u4f60\u6703\u6536\u5230\u5b8c\u5de5\u56de\u5831\u6307\u5f15\u3002');
     } catch (error) {
       setStatus(error.message, true);
     }
@@ -381,7 +408,12 @@ async function setupConfirm() {
         </label>
         <button type="submit">確認結案並送出評價</button>
       </form>
-      <button id="dispute-button" class="danger">我要申訴</button>
+      <div class="dispute-box">
+        <label>\u7533\u8a34\u539f\u56e0
+          <textarea id="dispute-reason" maxlength="500" placeholder="\u8acb\u8aaa\u660e\u54ea\u88e1\u6c92\u6709\u5b8c\u6210\u3001\u91d1\u984d\u6709\u7591\u554f\u6216\u73fe\u5834\u72c0\u6cc1\u3002" required></textarea>
+        </label>
+        <button id="dispute-button" class="danger">\u9001\u51fa\u7533\u8a34</button>
+      </div>
     `;
     $('#completion-form').addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -394,12 +426,18 @@ async function setupConfirm() {
       showReviewThanks(actions);
     });
     $('#dispute-button').addEventListener('click', async () => {
+      const reason = $('#dispute-reason').value.trim();
+      if (!reason) {
+        setStatus('\u8acb\u5148\u586b\u5beb\u7533\u8a34\u539f\u56e0\uff0c\u5e73\u53f0\u624d\u80fd\u5354\u52a9\u5224\u65b7\u3002', true);
+        return;
+      }
       await api(`/api/liff/orders/${order.id}/confirm-completion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: jsonWithLineUser({ confirmed: false, comment: 'Customer disputed from LIFF' }),
+        body: jsonWithLineUser({ confirmed: false, comment: reason }),
       });
-      setStatus('已收到申訴，平台會協助處理。');
+      setStatus('\u5df2\u6536\u5230\u7533\u8a34\uff0c\u5e73\u53f0\u6703\u4f9d\u4f60\u586b\u5beb\u7684\u539f\u56e0\u5354\u52a9\u8655\u7406\u3002');
+      actions.innerHTML = handledCard('\u7533\u8a34\u5df2\u9001\u51fa\uff0c\u8acb\u7b49\u5f85\u5e73\u53f0\u806f\u7e6b\u3002');
     });
     return;
   }

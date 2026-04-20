@@ -49,7 +49,10 @@ async function customerConfirmCompletion(orderId, payload, customerId = null) {
       'customer_dispute_completion',
       'customer',
       customerId,
-      payload.comment || 'Customer did not confirm completion'
+      payload.comment || 'Customer did not confirm completion',
+      {
+        dispute_reason: payload.comment || 'Customer did not confirm completion',
+      }
     );
   }
 

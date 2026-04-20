@@ -263,6 +263,23 @@ button:disabled {
   word-break: break-word;
 }
 
+.submit-done {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.submit-done h2,
+.submit-done p {
+  margin: 0;
+}
+
+.dispute-box {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
 @media (max-width: 640px) {
   .page {
     padding: 16px;

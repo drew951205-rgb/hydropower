@@ -32,6 +32,12 @@ const allowedFromByAction = {
   technician_complete: [ORDER_STATUS.ARRIVED],
   customer_confirm_completion: [ORDER_STATUS.COMPLETED_PENDING_CUSTOMER],
   customer_dispute_completion: [ORDER_STATUS.COMPLETED_PENDING_CUSTOMER],
+  technician_cancel_requeue: [
+    ORDER_STATUS.ASSIGNED,
+    ORDER_STATUS.QUOTED,
+    ORDER_STATUS.IN_PROGRESS,
+    ORDER_STATUS.ARRIVED,
+  ],
   customer_dispute: [
     ORDER_STATUS.ASSIGNED,
     ORDER_STATUS.ARRIVED,
@@ -270,6 +276,26 @@ async function addAdminNote(orderId, note, operatorId = null) {
   return message;
 }
 
+async function requeueAfterTechnicianCancel(orderId, technicianId = null) {
+  return transitionOrder(
+    orderId,
+    ORDER_STATUS.PENDING_DISPATCH,
+    'technician_cancel_requeue',
+    'technician',
+    technicianId,
+    'Technician cancelled; order returned to dispatch queue',
+    {
+      technician_id: null,
+      quote_amount: null,
+      estimated_arrival_time: null,
+      final_amount: null,
+      change_request_amount: null,
+      change_request_reason: null,
+      change_request_status: null,
+    }
+  );
+}
+
 async function addImages(orderId, images, category) {
   return imageRepository.createImages(orderId, images, category);
 }
@@ -282,5 +308,6 @@ module.exports = {
   getOrderDetail,
   cancelOrder,
   addAdminNote,
+  requeueAfterTechnicianCancel,
   addImages,
 };

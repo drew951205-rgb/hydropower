@@ -421,6 +421,146 @@ test('technician with active orders is paused but cannot leave role', async () =
   }
 });
 
+test('technician cancellation returns order to dispatch queue', async () => {
+  const server = app.listen(0);
+  try {
+    const customerId = `U-customer-tech-cancel-${Date.now()}`;
+    const technicianId = `U-technician-tech-cancel-${Date.now()}`;
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '\u6f0f\u6c34',
+      area: '\u897f\u5340',
+      address: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def700\u865f',
+      preferred_time_text: '\u4eca\u5929\u4e0b\u5348',
+      issue_description: '\u6d74\u5ba4\u6f0f\u6c34',
+      contact_phone: '0912777888',
+    });
+
+    const technician = await request(server, 'POST', '/api/technicians', {
+      line_user_id: technicianId,
+      name: 'Cancel Technician',
+      phone: '0911777888',
+      available: true,
+      service_areas: [],
+      service_types: []
+    });
+
+    await request(server, 'POST', `/api/orders/${order.id}/review`, {
+      action: 'approve',
+      note: 'ok'
+    });
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [technician.body.data.id]
+    });
+    const assignment = dispatched.body.data[0];
+
+    await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'cancel-accept',
+          source: { userId: technicianId },
+          postback: { data: `technician:accept_assignment:${assignment.id}` }
+        }
+      ]
+    });
+
+    const cancelled = await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'cancel-tech',
+          source: { userId: technicianId },
+          postback: { data: `technician:cancel:${order.id}` }
+        }
+      ]
+    });
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.body.results[0].requeued, true);
+    assert.equal(cancelled.body.results[0].order.status, 'pending_dispatch');
+    assert.equal(cancelled.body.results[0].order.technician_id, null);
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.ok(detail.body.data.logs.some((log) => log.action === 'technician_cancel_requeue'));
+    assert.ok(detail.body.data.assignments.some((item) => item.status === 'rejected'));
+  } finally {
+    server.close();
+  }
+});
+
+test('customer completion dispute stores the dispute reason', async () => {
+  const server = app.listen(0);
+  try {
+    const customerId = `U-customer-dispute-${Date.now()}`;
+    const technicianId = `U-technician-dispute-${Date.now()}`;
+    const { order } = await createRepairOrder(server, {
+      line_user_id: customerId,
+      service_type: '\u6f0f\u6c34',
+      area: '\u897f\u5340',
+      address: '\u5609\u7fa9\u5e02\u897f\u5340\u4e2d\u5c71\u8def710\u865f',
+      preferred_time_text: '\u4eca\u5929\u4e0b\u5348',
+      issue_description: '\u5eda\u623f\u6f0f\u6c34',
+      contact_phone: '0912777999',
+    });
+
+    const technician = await request(server, 'POST', '/api/technicians', {
+      line_user_id: technicianId,
+      name: 'Dispute Technician',
+      phone: '0911777999',
+      available: true,
+      service_areas: [],
+      service_types: []
+    });
+
+    await request(server, 'POST', `/api/orders/${order.id}/review`, {
+      action: 'approve',
+      note: 'ok'
+    });
+    const dispatched = await request(server, 'POST', `/api/orders/${order.id}/dispatch`, {
+      technician_ids: [technician.body.data.id]
+    });
+    const assignment = dispatched.body.data[0];
+    await request(server, 'POST', '/webhook', {
+      events: [
+        {
+          type: 'postback',
+          replyToken: 'dispute-accept',
+          source: { userId: technicianId },
+          postback: { data: `technician:accept_assignment:${assignment.id}` }
+        }
+      ]
+    });
+    await request(server, 'POST', `/api/orders/${order.id}/quote`, {
+      technician_id: technician.body.data.id,
+      amount: 1500,
+      note: 'basic repair'
+    });
+    await request(server, 'POST', `/api/orders/${order.id}/customer-confirm-quote`, {
+      accepted: true,
+      customer_id: order.customer_id
+    });
+    await request(server, 'POST', `/api/orders/${order.id}/arrive`, {
+      technician_id: technician.body.data.id
+    });
+    await request(server, 'POST', `/api/orders/${order.id}/complete`, {
+      technician_id: technician.body.data.id,
+      final_amount: 1500,
+      summary: 'done'
+    });
+
+    const disputed = await request(server, 'POST', `/api/liff/orders/${order.id}/confirm-completion`, {
+      line_user_id: customerId,
+      confirmed: false,
+      comment: '\u6c34\u9f8d\u982d\u9084\u5728\u6ef4\u6c34'
+    });
+    assert.equal(disputed.status, 200);
+    assert.equal(disputed.body.data.status, 'dispute_review');
+    assert.equal(disputed.body.data.dispute_reason, '\u6c34\u9f8d\u982d\u9084\u5728\u6ef4\u6c34');
+  } finally {
+    server.close();
+  }
+});
+
 test('technician acceptance notifies the customer and moves order to assigned', async () => {
   const server = app.listen(0);
   try {
