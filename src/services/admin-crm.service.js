@@ -131,34 +131,83 @@ async function listSupportTickets(filters = {}) {
   const usersById = new Map(users.map((user) => [String(user.id), user]));
   const ordersById = new Map(orders.map((order) => [String(order.id), order]));
 
-  return tickets.map((ticket) => ({
-    ...ticket,
-    customer: ticket.user_id ? usersById.get(String(ticket.user_id)) || null : null,
-    order: ticket.order_id ? ordersById.get(String(ticket.order_id)) || null : null,
-  }));
+  return tickets.map((ticket) => {
+    const order = ticket.order_id ? ordersById.get(String(ticket.order_id)) || null : null;
+    const reporter = ticket.user_id ? usersById.get(String(ticket.user_id)) || null : null;
+    const customer = order?.customer_id
+      ? usersById.get(String(order.customer_id)) || reporter
+      : reporter;
+    return {
+      ...ticket,
+      reporter,
+      customer,
+      order,
+    };
+  });
 }
 
 async function updateSupportTicket(ticketId, payload = {}) {
   const status = String(payload.status || '').trim();
+  const replyMessage = String(payload.reply_message || '').trim();
   const allowed = new Set(['open', 'in_progress', 'resolved', 'closed']);
-  if (!allowed.has(status)) {
+  if (status && !allowed.has(status)) {
     const error = new Error('Invalid support ticket status');
     error.statusCode = 400;
     throw error;
   }
 
+  if (!status && !replyMessage) {
+    const error = new Error('Support ticket update is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const ticket = await supportTicketRepository.findById(ticketId);
+  if (!ticket) {
+    const error = new Error('Support ticket not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
   const changes = {
-    status,
-    resolved_at: ['resolved', 'closed'].includes(status)
-      ? new Date().toISOString()
-      : null,
+    status: status || (replyMessage ? 'in_progress' : ticket.status),
   };
+
+  if (status) {
+    changes.resolved_at = ['resolved', 'closed'].includes(status)
+      ? new Date().toISOString()
+      : null;
+  }
+
+  if (replyMessage) {
+    changes.admin_reply = replyMessage;
+    changes.admin_replied_at = new Date().toISOString();
+    changes.admin_replied_by = String(payload.admin_name || 'admin').trim() || 'admin';
+  }
+
   const updated = await supportTicketRepository.updateTicket(ticketId, changes);
   if (!updated) {
     const error = new Error('Support ticket not found');
     error.statusCode = 404;
     throw error;
   }
+
+  if (replyMessage) {
+    const order = ticket.order_id ? await orderRepository.findById(ticket.order_id) : null;
+    const recipientId =
+      ticket.type === 'technician_cancel' && order?.customer_id
+        ? order.customer_id
+        : ticket.user_id;
+    const recipient = recipientId ? await userRepository.findById(recipientId) : null;
+    if (recipient?.line_user_id) {
+      const orderLine = order?.order_no ? `案件編號：${order.order_no}\n` : '';
+      await lineMessageService.pushMessages(
+        recipient.line_user_id,
+        `【師傅抵嘉客服回覆】\n${orderLine}${replyMessage}`
+      );
+    }
+  }
+
   return updated;
 }
 

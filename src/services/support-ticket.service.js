@@ -74,6 +74,13 @@ async function createSupportTicket(user, payload = {}) {
     image_urls: payload.image_urls || [],
   });
 
+  console.log('[support-ticket:new]', JSON.stringify({
+    ticket_no: ticket.ticket_no,
+    type: ticket.type,
+    user_id: ticket.user_id,
+    order_id: ticket.order_id,
+  }));
+
   if (order) {
     await messageRepository.createMessage({
       order_id: order.id,
@@ -132,6 +139,13 @@ async function cancelOrderByCustomer(user, orderId, payload = {}) {
     image_urls: [],
   });
 
+  console.log('[support-ticket:customer-cancel]', JSON.stringify({
+    ticket_no: ticket.ticket_no,
+    user_id: user.id,
+    order_id: order.id,
+    reason,
+  }));
+
   await messageRepository.createMessage({
     order_id: order.id,
     sender_role: 'customer',
@@ -188,12 +202,20 @@ async function cancelOrderByTechnician(user, orderId, payload = {}) {
     user_id: user.id,
     order_id: order.id,
     type: 'technician_cancel',
-    status: 'closed',
+    status: 'open',
     title: 'Technician cancelled order',
     message: reason,
     phone: String(payload.phone || user.phone || '').trim() || null,
     image_urls: [],
   });
+
+  console.log('[support-ticket:technician-cancel]', JSON.stringify({
+    ticket_no: ticket.ticket_no,
+    technician_id: user.id,
+    order_id: order.id,
+    reason,
+    next_step: 're_dispatch',
+  }));
 
   await messageRepository.createMessage({
     order_id: order.id,
@@ -207,7 +229,7 @@ async function cancelOrderByTechnician(user, orderId, payload = {}) {
   if (customer?.line_user_id) {
     await lineMessageService.pushMessages(
       customer.line_user_id,
-      `師傅取消案件 ${order.order_no}\n原因：${reason}\n平台會重新幫你安排師傅。`
+      `原師傅無法服務案件 ${order.order_no}\n原因：${reason}\n\n平台正在重新幫你安排師傅，請稍候通知。`
     );
   }
 

@@ -558,6 +558,7 @@ test('technician cancellation form requires and stores cancel reason', async () 
     });
     assert.equal(tickets.length, 1);
     assert.equal(tickets[0].message, '\u81e8\u6642\u5bb6\u4e2d\u6709\u4e8b\u7121\u6cd5\u524d\u5f80');
+    assert.equal(tickets[0].status, 'open');
   } finally {
     server.close();
   }
@@ -691,6 +692,14 @@ test('admin can list and update support tickets', async () => {
     assert.ok(ticket);
     assert.equal(ticket.order.order_no, order.order_no);
     assert.equal(ticket.customer.line_user_id, lineUserId);
+
+    const replied = await request(server, 'PATCH', `/api/admin/support-tickets/${ticket.id}`, {
+      reply_message: '客服已收到，會協助你確認報價。',
+    });
+    assert.equal(replied.status, 200);
+    assert.equal(replied.body.data.status, 'in_progress');
+    assert.equal(replied.body.data.admin_reply, '客服已收到，會協助你確認報價。');
+    assert.ok(replied.body.data.admin_replied_at);
 
     const updated = await request(server, 'PATCH', `/api/admin/support-tickets/${ticket.id}`, {
       status: 'in_progress',

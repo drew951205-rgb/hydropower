@@ -17,3 +17,9 @@ create table if not exists support_tickets (
 create index if not exists support_tickets_user_id_idx on support_tickets(user_id);
 create index if not exists support_tickets_order_id_idx on support_tickets(order_id);
 create index if not exists support_tickets_status_idx on support_tickets(status);
+create index if not exists support_tickets_type_idx on support_tickets(type);
+
+alter table support_tickets
+  add column if not exists admin_reply text,
+  add column if not exists admin_replied_at timestamptz,
+  add column if not exists admin_replied_by text;

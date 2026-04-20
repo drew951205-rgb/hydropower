@@ -179,7 +179,7 @@ h3 {
 
 .mini-filter {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 1fr auto;
   gap: 8px;
 }
 
@@ -348,6 +348,22 @@ tbody tr.selected {
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   margin-top: 6px;
+}
+
+.support-reply {
+  border-left: 3px solid var(--brand);
+  padding-left: 8px;
+  color: var(--muted);
+}
+
+.support-reply-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.support-reply-form textarea {
+  min-height: 72px;
 }
 
 .reason-card {

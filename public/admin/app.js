@@ -25,6 +25,7 @@ const els = {
   memberBroadcastForm: document.querySelector('#memberBroadcastForm'),
   supportStatus: document.querySelector('#supportStatus'),
   supportStatusFilter: document.querySelector('#supportStatusFilter'),
+  supportTypeFilter: document.querySelector('#supportTypeFilter'),
   supportTicketList: document.querySelector('#supportTicketList'),
   loadSupportButton: document.querySelector('#loadSupportButton'),
   technicianStatus: document.querySelector('#technicianStatus'),
@@ -481,11 +482,13 @@ async function selectCustomer(customerId) {
 async function loadSupportTickets() {
   const params = new URLSearchParams();
   if (els.supportStatusFilter.value) params.set('status', els.supportStatusFilter.value);
+  if (els.supportTypeFilter.value) params.set('type', els.supportTypeFilter.value);
   const suffix = params.toString() ? `?${params}` : '';
   els.supportStatus.textContent = '載入中';
   const result = await api(`/api/admin/support-tickets${suffix}`);
   state.supportTickets = result.data || [];
-  els.supportStatus.textContent = `${state.supportTickets.length} 筆`;
+  const openCount = state.supportTickets.filter((ticket) => ticket.status === 'open').length;
+  els.supportStatus.textContent = `${state.supportTickets.length} 筆，${openCount} 筆待處理`;
   renderSupportTickets();
 }
 
@@ -502,18 +505,32 @@ function renderSupportTickets() {
 
   els.supportTicketList.innerHTML = state.supportTickets.map((ticket) => {
     const order = ticket.order || {};
+    const customer = ticket.customer || {};
+    const reporter = ticket.reporter || {};
+    const phone = ticket.phone || customer.phone || order.contact_phone || '';
+    const reporterName = reporter.id && String(reporter.id) !== String(customer.id || '')
+      ? `｜提出者：${supportCustomerName({ customer: reporter })}`
+      : '';
+    const adminReply = ticket.admin_reply
+      ? `<p class="support-reply">上次回覆：${escapeHtml(ticket.admin_reply)}</p>`
+      : '';
     return `
       <article class="support-ticket-item" data-ticket-id="${ticket.id}">
         <strong>${escapeHtml(ticket.ticket_no)}｜${escapeHtml(supportTypeText(ticket.type))}</strong>
         <span>${escapeHtml(supportStatusText(ticket.status))}｜${escapeHtml(supportCustomerName(ticket))}</span>
-        <small>${escapeHtml(order.order_no || '未綁定報修單')}｜${escapeHtml(formatDate(ticket.created_at))}</small>
+        <small>${escapeHtml(order.order_no || '未綁定報修單')}｜${escapeHtml(phone || '未留電話')}｜${escapeHtml(formatDate(ticket.created_at))}${escapeHtml(reporterName)}</small>
         <p>${escapeHtml(ticket.message || '')}</p>
+        ${adminReply}
         <div class="support-ticket-actions">
           ${order.id ? `<button type="button" data-support-order="${order.id}">看訂單</button>` : ''}
           <button type="button" data-support-status="in_progress">處理中</button>
           <button type="button" data-support-status="resolved">已處理</button>
           <button type="button" class="secondary" data-support-status="closed">關閉</button>
         </div>
+        <form class="support-reply-form">
+          <textarea name="reply_message" maxlength="500" required placeholder="輸入客服回覆，會直接傳 LINE 給客戶或提出客服單的人。"></textarea>
+          <button type="submit">回覆 LINE</button>
+        </form>
       </article>
     `;
   }).join('');
@@ -525,6 +542,15 @@ async function updateSupportTicketStatus(ticketId, status) {
     body: JSON.stringify({ status })
   });
   showToast('客服單狀態已更新');
+  await loadSupportTickets();
+}
+
+async function replySupportTicket(ticketId, message) {
+  await api(`/api/admin/support-tickets/${ticketId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reply_message: message })
+  });
+  showToast('已回覆並推送 LINE');
   await loadSupportTickets();
 }
 
@@ -681,6 +707,7 @@ els.memberBroadcastForm.addEventListener('submit', async (event) => {
 });
 els.loadSupportButton.addEventListener('click', () => loadSupportTickets().catch((error) => showToast(error.message)));
 els.supportStatusFilter.addEventListener('change', () => loadSupportTickets().catch((error) => showToast(error.message)));
+els.supportTypeFilter.addEventListener('change', () => loadSupportTickets().catch((error) => showToast(error.message)));
 els.supportTicketList.addEventListener('click', (event) => {
   const orderButton = event.target.closest('button[data-support-order]');
   if (orderButton) {
@@ -694,6 +721,21 @@ els.supportTicketList.addEventListener('click', (event) => {
     updateSupportTicketStatus(item.dataset.ticketId, statusButton.dataset.supportStatus)
       .catch((error) => showToast(error.message));
   }
+});
+els.supportTicketList.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = event.target.closest('.support-reply-form');
+  const item = event.target.closest('[data-ticket-id]');
+  if (!form || !item) return;
+  const formData = new FormData(form);
+  const message = String(formData.get('reply_message') || '').trim();
+  if (!message) {
+    showToast('請輸入回覆內容');
+    return;
+  }
+  replySupportTicket(item.dataset.ticketId, message)
+    .then(() => form.reset())
+    .catch((error) => showToast(error.message));
 });
 els.loadTechniciansButton.addEventListener('click', () => loadTechnicians().catch((error) => showToast(error.message)));
 els.technicianList.addEventListener('click', (event) => {
