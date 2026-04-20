@@ -18,6 +18,7 @@ const els = {
   ordersTable: document.querySelector('#ordersTable'),
   detailHint: document.querySelector('#detailHint'),
   orderDetail: document.querySelector('#orderDetail'),
+  customerReplies: document.querySelector('#customerReplies'),
   actions: document.querySelector('#actions'),
   customerStatus: document.querySelector('#customerStatus'),
   customerList: document.querySelector('#customerList'),
@@ -329,6 +330,7 @@ function renderDetail() {
   const order = state.selectedOrder;
   if (!order) {
     els.orderDetail.innerHTML = '';
+    els.customerReplies.innerHTML = '<p class="empty compact-empty">請先選擇案件</p>';
     return;
   }
 
@@ -385,11 +387,10 @@ function renderDetail() {
     <dd>${renderReasonCards(order)}</dd>
     <dt>案件時間軸</dt>
     <dd>${renderTimeline(order)}</dd>
-    <dt>客戶回覆</dt>
-    <dd>${renderCustomerReplies(order)}</dd>
     <dt>內部備註</dt>
     <dd>${renderAdminNotes(order)}</dd>
   `;
+  els.customerReplies.innerHTML = renderCustomerReplies(order);
 }
 
 function renderActions() {
