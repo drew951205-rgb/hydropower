@@ -296,6 +296,56 @@ function renderCustomerReplies(order) {
   `;
 }
 
+function renderCustomerConversation(order) {
+  const customerMessages = (order.messages || [])
+    .filter((message) => ['customer_reply', 'support_ticket', 'customer_cancel'].includes(message.message_type))
+    .map((message) => ({
+      id: `message-${message.id || message.created_at}`,
+      side: 'left',
+      role: message.message_type === 'support_ticket'
+        ? '客戶客服'
+        : message.message_type === 'customer_cancel'
+          ? '客戶取消'
+          : '客戶訊息',
+      meta: message.message_type === 'support_ticket' ? '已建立客服單' : '',
+      content: message.content,
+      created_at: message.created_at,
+    }));
+
+  const adminReplies = (order.support_tickets || [])
+    .filter((ticket) => ticket.admin_reply)
+    .map((ticket) => ({
+      id: `ticket-reply-${ticket.id || ticket.created_at}`,
+      side: 'right',
+      role: '平台客服',
+      meta: ticket.ticket_no || '',
+      content: ticket.admin_reply,
+      created_at: ticket.admin_replied_at || ticket.updated_at || ticket.created_at,
+    }));
+
+  const timeline = [...customerMessages, ...adminReplies]
+    .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+  if (!timeline.length) return '<p class="empty compact-empty">目前還沒有客戶對話紀錄</p>';
+
+  return `
+    <div class="chat-thread">
+      ${timeline.map((entry) => `
+        <article class="chat-row ${entry.side === 'right' ? 'is-admin' : 'is-customer'}" data-chat-id="${escapeHtml(entry.id)}">
+          <div class="chat-meta">
+            <strong>${escapeHtml(entry.role)}</strong>
+            <time>${escapeHtml(formatDate(entry.created_at))}</time>
+          </div>
+          <div class="chat-bubble">
+            ${entry.meta ? `<span class="chat-tag">${escapeHtml(entry.meta)}</span>` : ''}
+            <p>${escapeHtml(entry.content)}</p>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderReasonCards(order) {
   const cards = [];
   if (order.cancel_reason_text) {
@@ -390,7 +440,7 @@ function renderDetail() {
     <dt>內部備註</dt>
     <dd>${renderAdminNotes(order)}</dd>
   `;
-  els.customerReplies.innerHTML = renderCustomerReplies(order);
+  els.customerReplies.innerHTML = renderCustomerConversation(order);
 }
 
 function renderActions() {

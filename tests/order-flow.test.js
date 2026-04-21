@@ -823,6 +823,14 @@ test('admin can list and update support tickets', async () => {
     });
     assert.equal(updated.status, 200);
     assert.equal(updated.body.data.status, 'in_progress');
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(detail.status, 200);
+    assert.ok(Array.isArray(detail.body.data.support_tickets));
+    assert.ok(detail.body.data.support_tickets.some((item) =>
+      item.id === ticket.id &&
+      item.admin_reply === '客服已收到，會協助你確認報價。'
+    ));
   } finally {
     server.close();
   }

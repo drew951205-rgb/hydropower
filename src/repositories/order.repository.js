@@ -115,7 +115,7 @@ async function getOrderDetail(id) {
   if (!order) return null;
 
   if (hasSupabase()) {
-    const [messages, images, logs, assignments] = await Promise.all([
+    const [messages, images, logs, assignments, supportTickets] = await Promise.all([
       supabase
         .from('order_messages')
         .select('*')
@@ -136,9 +136,14 @@ async function getOrderDetail(id) {
         .select('*')
         .eq('order_id', id)
         .order('created_at', { ascending: true }),
+      supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('order_id', id)
+        .order('created_at', { ascending: true }),
     ]);
 
-    [messages, images, logs, assignments].forEach((result) =>
+    [messages, images, logs, assignments, supportTickets].forEach((result) =>
       throwIfSupabaseError(result.error)
     );
 
@@ -148,6 +153,7 @@ async function getOrderDetail(id) {
       images: images.data || [],
       logs: logs.data || [],
       assignments: assignments.data || [],
+      support_tickets: supportTickets.data || [],
     };
   }
 
@@ -167,6 +173,10 @@ async function getOrderDetail(id) {
     ),
     assignments: store.filter(
       'assignments',
+      (item) => String(item.order_id) === String(id)
+    ),
+    support_tickets: store.filter(
+      'support_tickets',
       (item) => String(item.order_id) === String(id)
     ),
   };
