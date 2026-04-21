@@ -1033,6 +1033,11 @@ els.supportTicketList.addEventListener('click', (event) => {
     return;
   }
 
+  const interactiveTarget = event.target.closest('textarea, input, select, option, button, label, .support-reply-form');
+  if (interactiveTarget) {
+    return;
+  }
+
   const ticketCard = event.target.closest('[data-support-ticket]');
   if (ticketCard) {
     selectSupportTicket(ticketCard.dataset.supportTicket);
