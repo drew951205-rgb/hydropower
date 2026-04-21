@@ -370,6 +370,33 @@ async function prefillPhone(form) {
   }
 }
 
+function isActiveCustomerOrder(order) {
+  return [
+    'pending_review',
+    'waiting_customer_info',
+    'pending_dispatch',
+    'dispatching',
+    'assigned',
+    'quoted',
+    'in_progress',
+    'arrived',
+    'completed_pending_customer',
+    'platform_review',
+    'dispute_review',
+  ].includes(order?.status);
+}
+
+async function findLatestCustomerActiveOrder() {
+  if (!lineUserId()) return null;
+  try {
+    const orders = await api(withLineUser('/api/liff/customer/orders'));
+    return (orders || []).find((order) => isActiveCustomerOrder(order)) || null;
+  } catch (error) {
+    console.warn('[support:latest-order:skip]', error);
+    return null;
+  }
+}
+
 async function setupRepair() {
   const form = $('#repair-form');
   await prefillRepairProfile(form);
@@ -453,11 +480,19 @@ async function setupChangeRequest() {
 
 async function setupSupport() {
   const form = $('#support-form');
-  const orderId = params().get('order_id') || '';
+  let orderId = params().get('order_id') || '';
   const type = params().get('type') || 'general';
-  $('#support-order-id').value = orderId;
   form.type.value = type;
   await prefillPhone(form);
+
+  if (!orderId) {
+    const latestOrder = await findLatestCustomerActiveOrder();
+    if (latestOrder?.id) {
+      orderId = String(latestOrder.id);
+    }
+  }
+
+  $('#support-order-id').value = orderId;
 
   if (orderId) {
     const order = await loadOrder();

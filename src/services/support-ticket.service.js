@@ -5,6 +5,7 @@ const lineMessageService = require('./line-message.service');
 const userRepository = require('../repositories/user.repository');
 const messageRepository = require('../repositories/message.repository');
 const assignmentRepository = require('../repositories/assignment.repository');
+const { ORDER_STATUS } = require('../utils/order-status');
 
 const cancellableStatuses = new Set([
   'pending_review',
@@ -24,6 +25,20 @@ const disputeStatuses = new Set([
   'arrived',
   'completed_pending_customer',
   'platform_review',
+]);
+
+const autoLinkedStatuses = new Set([
+  ORDER_STATUS.PENDING_REVIEW,
+  ORDER_STATUS.WAITING_CUSTOMER_INFO,
+  ORDER_STATUS.PENDING_DISPATCH,
+  ORDER_STATUS.DISPATCHING,
+  ORDER_STATUS.ASSIGNED,
+  ORDER_STATUS.QUOTED,
+  ORDER_STATUS.IN_PROGRESS,
+  ORDER_STATUS.ARRIVED,
+  ORDER_STATUS.COMPLETED_PENDING_CUSTOMER,
+  ORDER_STATUS.PLATFORM_REVIEW,
+  ORDER_STATUS.DISPUTE_REVIEW,
 ]);
 
 function createTicketNo(prefix = 'CS') {
@@ -50,13 +65,23 @@ async function ensureCustomerOwnsOrder(user, orderId) {
   return order;
 }
 
+async function findLatestCustomerActiveOrder(user) {
+  const orders = await orderRepository.listOrders({ customer_id: user.id });
+  return (
+    orders
+      .filter((order) => autoLinkedStatuses.has(order.status))
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0] ||
+    null
+  );
+}
+
 async function createSupportTicket(user, payload = {}) {
   const message = String(payload.message || '').trim();
   if (!message) throw badRequest('Support message is required');
 
   const order = payload.order_id
     ? await ensureCustomerOwnsOrder(user, payload.order_id)
-    : null;
+    : await findLatestCustomerActiveOrder(user);
 
   const ticket = await supportTicketRepository.createTicket({
     ticket_no: createTicketNo('CS'),

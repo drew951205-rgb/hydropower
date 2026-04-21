@@ -757,6 +757,35 @@ test('customer support ticket form stores details', async () => {
   }
 });
 
+test('customer support ticket form auto-links latest active order when order_id is missing', async () => {
+  const server = app.listen(0);
+  try {
+    const { lineUserId, order } = await createRepairOrder(server, {
+      service_type: '\u6f0f\u6c34',
+      preferred_time_text: '\u4eca\u5929\u4e0b\u5348',
+    });
+
+    const response = await request(server, 'POST', '/api/liff/support-tickets', {
+      line_user_id: lineUserId,
+      type: 'general',
+      phone: '0912345678',
+      message: '\u5f9e rich menu \u76f4\u63a5\u9032\u4f86\u7684\u5ba2\u670d\u8a0a\u606f',
+    });
+
+    assert.equal(response.status, 201);
+    assert.equal(response.body.data.order_id, order.id);
+
+    const detail = await request(server, 'GET', `/api/orders/${order.id}`);
+    assert.equal(detail.status, 200);
+    assert.ok(detail.body.data.messages.some((message) =>
+      message.message_type === 'support_ticket' &&
+      message.content.includes('\u5f9e rich menu \u76f4\u63a5\u9032\u4f86\u7684\u5ba2\u670d\u8a0a\u606f')
+    ));
+  } finally {
+    server.close();
+  }
+});
+
 test('admin can list and update support tickets', async () => {
   const server = app.listen(0);
   try {
