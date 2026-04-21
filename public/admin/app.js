@@ -7,7 +7,10 @@ const state = {
   dispatchCandidates: [],
   selectedOrderId: null,
   selectedOrder: null,
-  seenConversationByOrder: loadSeenConversationState()
+  selectedSupportTicketId: null,
+  selectedSupportTicket: null,
+  seenConversationByOrder: loadSeenConversationState(),
+  seenConversationBySupport: loadSeenSupportConversationState()
 };
 
 const els = {
@@ -51,6 +54,22 @@ function saveSeenConversationState() {
   localStorage.setItem(
     'shiFuDiJiaSeenConversation',
     JSON.stringify(state.seenConversationByOrder || {})
+  );
+}
+
+function loadSeenSupportConversationState() {
+  try {
+    return JSON.parse(localStorage.getItem('shiFuDiJiaSeenSupportConversation') || '{}');
+  } catch (error) {
+    console.warn('[admin:seen-support-conversation:reset]', error);
+    return {};
+  }
+}
+
+function saveSeenSupportConversationState() {
+  localStorage.setItem(
+    'shiFuDiJiaSeenSupportConversation',
+    JSON.stringify(state.seenConversationBySupport || {})
   );
 }
 
@@ -217,6 +236,8 @@ function renderOrders() {
 
 async function selectOrder(orderId) {
   state.selectedOrderId = orderId;
+  state.selectedSupportTicketId = null;
+  state.selectedSupportTicket = null;
   const result = await api(`/api/orders/${orderId}`);
   state.selectedOrder = result.data;
   if (can(state.selectedOrder, 'dispatch')) {
@@ -226,10 +247,9 @@ async function selectOrder(orderId) {
   }
   els.detailHint.textContent = state.selectedOrder.order_no;
   renderOrders();
+  renderSupportTickets();
   renderDetail();
   renderActions();
-  scrollConversationToLatest();
-  markConversationSeen(state.selectedOrder);
 }
 
 function timelineLabel(log) {
@@ -356,11 +376,27 @@ function getSeenConversationAt(orderId) {
   return state.seenConversationByOrder?.[String(orderId)] || null;
 }
 
+function getSeenSupportConversationAt(ticketId) {
+  return state.seenConversationBySupport?.[String(ticketId)] || null;
+}
+
 function markConversationSeen(order) {
   const latestAt = latestConversationAt(order);
   if (!order?.id || !latestAt) return;
   state.seenConversationByOrder[String(order.id)] = latestAt;
   saveSeenConversationState();
+}
+
+function latestSupportConversationAt(ticket) {
+  const entries = supportConversationEntries(ticket);
+  return entries.length ? entries[entries.length - 1].created_at : null;
+}
+
+function markSupportConversationSeen(ticket) {
+  const latestAt = latestSupportConversationAt(ticket);
+  if (!ticket?.id || !latestAt) return;
+  state.seenConversationBySupport[String(ticket.id)] = latestAt;
+  saveSeenSupportConversationState();
 }
 
 function scrollConversationToLatest() {
@@ -401,6 +437,79 @@ function renderCustomerConversation(order) {
   `;
 }
 
+function supportConversationEntries(ticket) {
+  const timeline = [];
+
+  if (ticket?.message) {
+    timeline.push({
+      id: `support-message-${ticket.id || ticket.created_at}`,
+      side: 'left',
+      role: '客戶',
+      meta: ticket.ticket_no || '',
+      content: ticket.message,
+      created_at: ticket.created_at,
+    });
+  }
+
+  if (ticket?.admin_reply) {
+    timeline.push({
+      id: `support-reply-${ticket.id || ticket.admin_replied_at}`,
+      side: 'right',
+      role: '平台客服',
+      meta: ticket.status || '',
+      content: ticket.admin_reply,
+      created_at: ticket.admin_replied_at || ticket.updated_at || ticket.created_at,
+    });
+  }
+
+  return timeline
+    .filter((entry) => entry.content && entry.created_at)
+    .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+}
+
+function renderSupportConversation(ticket) {
+  const timeline = supportConversationEntries(ticket);
+  const seenAt = getSeenSupportConversationAt(ticket.id);
+
+  if (!timeline.length) return '<p class="empty compact-empty">目前沒有客服對話紀錄</p>';
+
+  return `
+    <div class="chat-thread">
+      ${timeline.map((entry) => `
+        <article class="chat-row ${entry.side === 'right' ? 'is-admin' : 'is-customer'} ${isUnreadConversationEntry(entry, seenAt) ? 'is-unread' : ''}" data-chat-id="${escapeHtml(entry.id)}">
+          <div class="chat-meta">
+            <strong>${escapeHtml(entry.role)}</strong>
+            <time>${escapeHtml(formatDate(entry.created_at))}</time>
+          </div>
+          <div class="chat-bubble">
+            ${entry.meta ? `<span class="chat-tag">${escapeHtml(entry.meta)}</span>` : ''}
+            ${isUnreadConversationEntry(entry, seenAt) ? '<span class="chat-unread">未讀</span>' : ''}
+            <p>${escapeHtml(entry.content)}</p>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderConversationPanel() {
+  if (state.selectedSupportTicket) {
+    els.customerReplies.innerHTML = renderSupportConversation(state.selectedSupportTicket);
+    scrollConversationToLatest();
+    markSupportConversationSeen(state.selectedSupportTicket);
+    return;
+  }
+
+  if (state.selectedOrder) {
+    els.customerReplies.innerHTML = renderCustomerConversation(state.selectedOrder);
+    scrollConversationToLatest();
+    markConversationSeen(state.selectedOrder);
+    return;
+  }
+
+  els.customerReplies.innerHTML = '<p class="empty compact-empty">請先選擇案件或客服單</p>';
+}
+
 function renderReasonCards(order) {
   const cards = [];
   if (order.cancel_reason_text) {
@@ -435,7 +544,7 @@ function renderDetail() {
   const order = state.selectedOrder;
   if (!order) {
     els.orderDetail.innerHTML = '';
-    els.customerReplies.innerHTML = '<p class="empty compact-empty">請先選擇案件</p>';
+    renderConversationPanel();
     return;
   }
 
@@ -444,58 +553,58 @@ function renderDetail() {
     .find((message) => message.message_type === 'technician_review');
 
   const rows = [
-    ['狀態', statusText(order.status)],
-    ['下一步', nextStepText(order)],
-    ['案件編號', order.order_no],
-    ['服務類型', order.service_type],
-    ['服務模式', order.service_mode === 'scheduled' ? '預約' : '急件'],
-    ['時間需求', order.preferred_time_text || '越快越好'],
-    ['區域', order.area],
-    ['地址', order.address],
-    ['問題', order.issue_description],
-    ['姓名 / 稱呼', order.contact_name],
-    ['電話', order.contact_phone],
-    ['客戶 ID', order.customer_id],
-    ['師傅 ID', order.technician_id || ''],
-    ['報價', money(order.quote_amount)],
-    ['追加', money(order.change_request_amount)],
-    ['實收', money(order.paid_amount || order.final_amount)],
-    ['客戶評分', order.rating ? `${order.rating} / 5` : ''],
-    ['客戶評語', order.customer_comment || ''],
-    ['師傅心得', technicianReview?.content || ''],
-    ['紀錄', `${order.logs?.length || 0} 筆`]
+    ['\u72c0\u614b', statusText(order.status)],
+    ['\u4e0b\u4e00\u6b65', nextStepText(order)],
+    ['\u6848\u4ef6\u7de8\u865f', order.order_no],
+    ['\u670d\u52d9\u985e\u578b', order.service_type],
+    ['\u670d\u52d9\u6a21\u5f0f', order.service_mode === 'scheduled' ? '\u9810\u7d04' : '\u7acb\u5373'],
+    ['\u9810\u7d04\u6642\u9593', order.preferred_time_text || '\u672a\u586b'],
+    ['\u5340\u57df', order.area],
+    ['\u5730\u5740', order.address],
+    ['\u554f\u984c\u63cf\u8ff0', order.issue_description],
+    ['\u806f\u7d61\u4eba', order.contact_name],
+    ['\u96fb\u8a71', order.contact_phone],
+    ['\u5ba2\u6236 ID', order.customer_id],
+    ['\u5e2b\u5085 ID', order.technician_id || ''],
+    ['\u539f\u59cb\u5831\u50f9', money(order.quote_amount)],
+    ['\u8ffd\u52a0\u5831\u50f9', money(order.change_request_amount)],
+    ['\u6700\u7d42\u91d1\u984d', money(order.paid_amount || order.final_amount)],
+    ['\u5ba2\u6236\u8a55\u5206', order.rating ? `${order.rating} / 5` : ''],
+    ['\u5ba2\u6236\u8a55\u8a9e', order.customer_comment || ''],
+    ['\u5e2b\u5085\u5fc3\u5f97', technicianReview?.content || ''],
+    ['\u7d00\u9304\u7b46\u6578', `${order.logs?.length || 0} \u7b46`]
   ];
 
   const images = order.images || [];
   const imageGallery = images.length
     ? `
-      <dt>照片</dt>
+      <dt>\u6848\u4ef6\u7167\u7247</dt>
       <dd>
         <div class="image-grid">
           ${images.map((image) => {
             const url = image.image_url || '';
             const isImageUrl = /^https?:\/\//.test(url);
             return isImageUrl
-              ? `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer"><img src="${escapeHtml(url)}" alt="案件照片"></a>`
+              ? `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer"><img src="${escapeHtml(url)}" alt="\u6848\u4ef6\u7167\u7247"></a>`
               : `<span class="image-token">${escapeHtml(url)}</span>`;
           }).join('')}
         </div>
       </dd>
     `
-    : '<dt>照片</dt><dd>未提供</dd>';
+    : '<dt>\u6848\u4ef6\u7167\u7247</dt><dd>\u5c1a\u672a\u4e0a\u50b3</dd>';
 
   els.orderDetail.innerHTML = rows.map(([label, value]) => `
     <dt>${escapeHtml(label)}</dt>
     <dd>${escapeHtml(value)}</dd>
   `).join('') + imageGallery + `
-    <dt>原因紀錄</dt>
+    <dt>\u539f\u56e0\u6458\u8981</dt>
     <dd>${renderReasonCards(order)}</dd>
-    <dt>案件時間軸</dt>
+    <dt>\u6848\u4ef6\u6642\u9593\u8ef8</dt>
     <dd>${renderTimeline(order)}</dd>
-    <dt>內部備註</dt>
+    <dt>\u5167\u90e8\u5099\u8a3b</dt>
     <dd>${renderAdminNotes(order)}</dd>
   `;
-  els.customerReplies.innerHTML = renderCustomerConversation(order);
+  renderConversationPanel();
 }
 
 function renderActions() {
@@ -651,22 +760,43 @@ async function loadSupportTickets() {
   if (els.supportStatusFilter.value) params.set('status', els.supportStatusFilter.value);
   if (els.supportTypeFilter.value) params.set('type', els.supportTypeFilter.value);
   const suffix = params.toString() ? `?${params}` : '';
-  els.supportStatus.textContent = '載入中';
+  els.supportStatus.textContent = '\u8f09\u5165\u4e2d...';
   const result = await api(`/api/admin/support-tickets${suffix}`);
   state.supportTickets = result.data || [];
+  state.selectedSupportTicket = state.selectedSupportTicketId
+    ? state.supportTickets.find((ticket) => String(ticket.id) === String(state.selectedSupportTicketId)) || null
+    : null;
+  if (!state.selectedSupportTicket) state.selectedSupportTicketId = null;
   const openCount = state.supportTickets.filter((ticket) => ticket.status === 'open').length;
-  els.supportStatus.textContent = `${state.supportTickets.length} 筆，${openCount} 筆待處理`;
+  els.supportStatus.textContent = `${state.supportTickets.length} \u7b46\uff0c${openCount} \u7b46\u5f85\u8655\u7406`;
   renderSupportTickets();
+  renderConversationPanel();
 }
 
 function supportCustomerName(ticket) {
   const customer = ticket.customer || {};
-  return customer.name || customer.line_display_name || customer.line_user_id || `客戶 ${ticket.user_id || ''}`;
+  return customer.name || customer.line_display_name || customer.line_user_id || `\u5ba2\u6236 ${ticket.user_id || ''}`;
+}
+
+function selectSupportTicket(ticketId) {
+  const ticket = state.supportTickets.find((item) => String(item.id) === String(ticketId));
+  if (!ticket) return;
+
+  state.selectedSupportTicketId = ticket.id;
+  state.selectedSupportTicket = ticket;
+  state.selectedOrderId = null;
+  state.selectedOrder = null;
+  state.dispatchCandidates = [];
+  els.detailHint.textContent = ticket.order?.order_no || ticket.ticket_no;
+  renderOrders();
+  renderSupportTickets();
+  renderDetail();
+  renderActions();
 }
 
 function renderSupportTickets() {
   if (!state.supportTickets.length) {
-    els.supportTicketList.innerHTML = '<p class="empty compact-empty">目前沒有客服單</p>';
+    els.supportTicketList.innerHTML = '<p class="empty compact-empty">\u76ee\u524d\u6c92\u6709\u5ba2\u670d\u55ae</p>';
     return;
   }
 
@@ -676,27 +806,30 @@ function renderSupportTickets() {
     const reporter = ticket.reporter || {};
     const phone = ticket.phone || customer.phone || order.contact_phone || '';
     const reporterName = reporter.id && String(reporter.id) !== String(customer.id || '')
-      ? `｜提出者：${supportCustomerName({ customer: reporter })}`
+      ? ` / \u4ee3\u5831\u4eba\uff1a${supportCustomerName({ customer: reporter })}`
       : '';
     const adminReply = ticket.admin_reply
-      ? `<p class="support-reply">上次回覆：${escapeHtml(ticket.admin_reply)}</p>`
+      ? `<p class="support-reply">\u5ba2\u670d\u56de\u8986\uff1a${escapeHtml(ticket.admin_reply)}</p>`
       : '';
     return `
-      <article class="support-ticket-item" data-ticket-id="${ticket.id}">
-        <strong>${escapeHtml(ticket.ticket_no)}｜${escapeHtml(supportTypeText(ticket.type))}</strong>
-        <span>${escapeHtml(supportStatusText(ticket.status))}｜${escapeHtml(supportCustomerName(ticket))}</span>
-        <small>${escapeHtml(order.order_no || '未綁定報修單')}｜${escapeHtml(phone || '未留電話')}｜${escapeHtml(formatDate(ticket.created_at))}${escapeHtml(reporterName)}</small>
+      <article
+        class="support-ticket-item ${String(ticket.id) === String(state.selectedSupportTicketId) ? 'selected' : ''}"
+        data-ticket-id="${ticket.id}"
+        data-support-ticket="${ticket.id}">
+        <strong>${escapeHtml(ticket.ticket_no)} / ${escapeHtml(supportTypeText(ticket.type))}</strong>
+        <span>${escapeHtml(supportStatusText(ticket.status))} / ${escapeHtml(supportCustomerName(ticket))}</span>
+        <small>${escapeHtml(order.order_no || '\u672a\u7d81\u5b9a\u6848\u4ef6')} / ${escapeHtml(phone || '\u672a\u586b\u96fb\u8a71')} / ${escapeHtml(formatDate(ticket.created_at))}${escapeHtml(reporterName)}</small>
         <p>${escapeHtml(ticket.message || '')}</p>
         ${adminReply}
         <div class="support-ticket-actions">
-          ${order.id ? `<button type="button" data-support-order="${order.id}">看訂單</button>` : ''}
-          <button type="button" data-support-status="in_progress">處理中</button>
-          <button type="button" data-support-status="resolved">已處理</button>
-          <button type="button" class="secondary" data-support-status="closed">關閉</button>
+          ${order.id ? `<button type="button" data-support-order="${order.id}">\u770b\u8a02\u55ae</button>` : ''}
+          <button type="button" data-support-status="in_progress">\u8655\u7406\u4e2d</button>
+          <button type="button" data-support-status="resolved">\u5df2\u8655\u7406</button>
+          <button type="button" class="secondary" data-support-status="closed">\u5df2\u7d50\u675f</button>
         </div>
         <form class="support-reply-form">
-          <textarea name="reply_message" maxlength="500" required placeholder="輸入客服回覆，會直接傳 LINE 給客戶或提出客服單的人。"></textarea>
-          <button type="submit">回覆 LINE</button>
+          <textarea name="reply_message" maxlength="500" required placeholder="\u8f38\u5165\u5ba2\u670d\u56de\u8986\uff0c\u6703\u76f4\u63a5\u900f\u904e LINE \u50b3\u7d66\u5ba2\u6236\u3002"></textarea>
+          <button type="submit">\u56de\u8986 LINE</button>
         </form>
       </article>
     `;
@@ -897,6 +1030,12 @@ els.supportTicketList.addEventListener('click', (event) => {
   const orderButton = event.target.closest('button[data-support-order]');
   if (orderButton) {
     selectOrder(orderButton.dataset.supportOrder).catch((error) => showToast(error.message));
+    return;
+  }
+
+  const ticketCard = event.target.closest('[data-support-ticket]');
+  if (ticketCard) {
+    selectSupportTicket(ticketCard.dataset.supportTicket);
     return;
   }
 
