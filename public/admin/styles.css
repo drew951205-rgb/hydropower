@@ -595,6 +595,12 @@ tbody tr.selected {
   gap: 10px;
 }
 
+.customer-replies-section #customerReplies {
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
 .chat-thread {
   display: grid;
   gap: 12px;
@@ -626,6 +632,10 @@ tbody tr.selected {
   justify-content: flex-end;
 }
 
+.chat-row.is-unread .chat-meta strong {
+  color: var(--green-dark);
+}
+
 .chat-bubble {
   display: grid;
   gap: 6px;
@@ -647,6 +657,10 @@ tbody tr.selected {
   color: #fff;
 }
 
+.chat-row.is-unread .chat-bubble {
+  box-shadow: 0 0 0 2px rgba(31, 138, 112, 0.18), 0 4px 14px rgba(20, 48, 40, 0.08);
+}
+
 .chat-bubble p {
   margin: 0;
   white-space: pre-wrap;
@@ -666,6 +680,22 @@ tbody tr.selected {
 
 .chat-row.is-admin .chat-tag {
   background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.chat-unread {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #ffefe1;
+  color: #b55d17;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chat-row.is-admin .chat-unread {
+  background: rgba(255, 255, 255, 0.22);
   color: #fff;
 }
 

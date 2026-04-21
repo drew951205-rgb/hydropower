@@ -6,7 +6,8 @@ const state = {
   supportTickets: [],
   dispatchCandidates: [],
   selectedOrderId: null,
-  selectedOrder: null
+  selectedOrder: null,
+  seenConversationByOrder: loadSeenConversationState()
 };
 
 const els = {
@@ -36,6 +37,22 @@ const els = {
   createTechnicianForm: document.querySelector('#createTechnicianForm'),
   toast: document.querySelector('#toast')
 };
+
+function loadSeenConversationState() {
+  try {
+    return JSON.parse(localStorage.getItem('shiFuDiJiaSeenConversation') || '{}');
+  } catch (error) {
+    console.warn('[admin:seen-conversation:reset]', error);
+    return {};
+  }
+}
+
+function saveSeenConversationState() {
+  localStorage.setItem(
+    'shiFuDiJiaSeenConversation',
+    JSON.stringify(state.seenConversationByOrder || {})
+  );
+}
 
 const statusLabels = {
   pending_review: '待審核',
@@ -211,6 +228,8 @@ async function selectOrder(orderId) {
   renderOrders();
   renderDetail();
   renderActions();
+  scrollConversationToLatest();
+  markConversationSeen(state.selectedOrder);
 }
 
 function timelineLabel(log) {
@@ -296,7 +315,7 @@ function renderCustomerReplies(order) {
   `;
 }
 
-function renderCustomerConversation(order) {
+function conversationEntries(order) {
   const customerMessages = (order.messages || [])
     .filter((message) => ['customer_reply', 'support_ticket', 'customer_cancel'].includes(message.message_type))
     .map((message) => ({
@@ -323,21 +342,57 @@ function renderCustomerConversation(order) {
       created_at: ticket.admin_replied_at || ticket.updated_at || ticket.created_at,
     }));
 
-  const timeline = [...customerMessages, ...adminReplies]
+  return [...customerMessages, ...adminReplies]
+    .filter((entry) => entry.created_at)
     .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+}
+
+function latestConversationAt(order) {
+  const entries = conversationEntries(order);
+  return entries.length ? entries[entries.length - 1].created_at : null;
+}
+
+function getSeenConversationAt(orderId) {
+  return state.seenConversationByOrder?.[String(orderId)] || null;
+}
+
+function markConversationSeen(order) {
+  const latestAt = latestConversationAt(order);
+  if (!order?.id || !latestAt) return;
+  state.seenConversationByOrder[String(order.id)] = latestAt;
+  saveSeenConversationState();
+}
+
+function scrollConversationToLatest() {
+  window.requestAnimationFrame(() => {
+    if (!els.customerReplies) return;
+    els.customerReplies.scrollTop = els.customerReplies.scrollHeight;
+  });
+}
+
+function isUnreadConversationEntry(entry, seenAt) {
+  if (!entry?.created_at) return false;
+  if (!seenAt) return true;
+  return new Date(entry.created_at) > new Date(seenAt);
+}
+
+function renderCustomerConversation(order) {
+  const timeline = conversationEntries(order);
+  const seenAt = getSeenConversationAt(order.id);
 
   if (!timeline.length) return '<p class="empty compact-empty">目前還沒有客戶對話紀錄</p>';
 
   return `
     <div class="chat-thread">
       ${timeline.map((entry) => `
-        <article class="chat-row ${entry.side === 'right' ? 'is-admin' : 'is-customer'}" data-chat-id="${escapeHtml(entry.id)}">
+        <article class="chat-row ${entry.side === 'right' ? 'is-admin' : 'is-customer'} ${isUnreadConversationEntry(entry, seenAt) ? 'is-unread' : ''}" data-chat-id="${escapeHtml(entry.id)}">
           <div class="chat-meta">
             <strong>${escapeHtml(entry.role)}</strong>
             <time>${escapeHtml(formatDate(entry.created_at))}</time>
           </div>
           <div class="chat-bubble">
             ${entry.meta ? `<span class="chat-tag">${escapeHtml(entry.meta)}</span>` : ''}
+            ${isUnreadConversationEntry(entry, seenAt) ? '<span class="chat-unread">未讀</span>' : ''}
             <p>${escapeHtml(entry.content)}</p>
           </div>
         </article>
