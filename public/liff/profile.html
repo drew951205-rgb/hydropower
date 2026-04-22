@@ -10,42 +10,48 @@
   <main class="page">
     <p class="eyebrow">師傅抵嘉</p>
     <h1>加入會員</h1>
-    <p class="lead">先留下常用聯絡資訊，之後報修會更快，也能不定期收到優惠與服務通知。</p>
+    <p class="lead">先把常用資料存起來，之後報修時就能自動帶入姓名、電話、地址與常用區域。</p>
     <p id="status" class="notice" hidden></p>
     <form id="profile-form">
       <input id="line_user_id" name="line_user_id" type="hidden">
+
       <label>姓名
-        <input name="name" autocomplete="name" placeholder="王小明">
+        <input name="name" autocomplete="name" placeholder="王小姐">
       </label>
+
       <label>聯絡電話
         <input name="phone" inputmode="tel" autocomplete="tel" placeholder="0912345678">
       </label>
+
       <label>常用地址
         <input name="default_address" autocomplete="street-address" placeholder="嘉義市西區中山路100號">
       </label>
+
+      <label>常用區域
+        <input name="preferred_area" placeholder="例如：西區、東區、民雄">
+      </label>
+
       <details class="terms-box">
-        <summary>查看水電媒合平台會員條款</summary>
+        <summary>點我查看會員條款</summary>
         <ol>
           <li>
             <strong>會員資格</strong>
             <ul>
-              <li>本平台會員分為一般用戶（報修者）與服務提供者（師傅）。</li>
-              <li>會員須提供真實、正確且完整之個人資料。</li>
-              <li>如資料有變更，會員應即時更新。</li>
+              <li>本平台會員分為一般用戶與服務提供者。</li>
+              <li>會員須提供真實、正確且完整之資料，若有變更應即時更新。</li>
             </ul>
           </li>
           <li>
             <strong>帳號與安全</strong>
             <ul>
-              <li>會員須妥善保管帳號，不得轉讓或借用他人。</li>
+              <li>會員須妥善保管自己的帳號資訊，不得轉讓或借用他人。</li>
               <li>若發現帳號遭盜用，應立即通知本平台。</li>
-              <li>因帳號管理不當所造成之損失，需由會員自行負責。</li>
             </ul>
           </li>
           <li>
             <strong>服務內容</strong>
             <ul>
-              <li>本平台提供水電維修媒合服務，包括報修需求發布、師傅接單與訊息通知。</li>
+              <li>本平台提供水電維修媒合服務，包括報修需求發布、師傅接單與通知服務。</li>
               <li>本平台僅為媒合角色，不直接參與交易與施工。</li>
             </ul>
           </li>
@@ -53,68 +59,62 @@
             <strong>交易與責任</strong>
             <ul>
               <li>用戶與師傅之間之服務契約，屬雙方自行成立。</li>
-              <li>本平台不負責施工品質、報價爭議、金錢糾紛等事項。</li>
-              <li>若發生爭議，雙方應自行協調或透過法律途徑處理。</li>
+              <li>施工品質、報價爭議與金錢糾紛，原則上由雙方自行協調。</li>
             </ul>
           </li>
           <li>
             <strong>費用與收費</strong>
             <ul>
-              <li>本平台可能收取媒合服務費、接單費、廣告或曝光費。</li>
-              <li>收費標準以平台公告為準。</li>
+              <li>本平台未來可能收取媒合服務費、接單費或曝光費，實際標準以平台公告為準。</li>
             </ul>
           </li>
           <li>
             <strong>會員行為規範</strong>
             <ul>
-              <li>會員不得提供不實資訊、惡意取消訂單、詐騙或不當收費、散播不當或違法內容，或影響平台正常運作。</li>
-              <li>違反者，本平台有權停權、刪除帳號，並保留法律追訴權。</li>
+              <li>會員不得提供不實資訊、惡意取消訂單、詐騙、不當收費或散播違法內容。</li>
+              <li>違反者，本平台有權停權、刪除帳號並保留法律追訴權。</li>
             </ul>
           </li>
           <li>
-            <strong>評價與回饋機制</strong>
+            <strong>評價與回饋</strong>
             <ul>
-              <li>用戶可對師傅進行評價。</li>
-              <li>評價須基於真實體驗，不得惡意攻擊。</li>
-              <li>平台有權刪除不當評論。</li>
+              <li>用戶可依真實體驗給予評價，平台有權刪除惡意或不當評論。</li>
             </ul>
           </li>
           <li>
-            <strong>隱私權保護</strong>
+            <strong>隱私保護</strong>
             <ul>
-              <li>本平台依照相關法規保護會員資料。</li>
-              <li>會員資料僅用於媒合服務、系統通知與客戶服務。</li>
-              <li>未經同意，不會提供第三方，法律要求除外。</li>
+              <li>會員資料僅用於媒合服務、系統通知與客服處理，除法律要求外，不會任意提供第三方。</li>
             </ul>
           </li>
           <li>
             <strong>服務中斷與終止</strong>
             <ul>
-              <li>本平台可能因系統維護、不可抗力因素、資安事件暫停服務。</li>
-              <li>會員若違反條款或長期未使用帳號，本平台可終止會員資格。</li>
+              <li>本平台可能因系統維護、不可抗力或資安事件暫停服務。</li>
+              <li>若會員違反條款或長期未使用帳號，本平台得終止會員資格。</li>
             </ul>
           </li>
           <li>
             <strong>條款修改</strong>
             <ul>
-              <li>本平台有權隨時修改本條款，修改後將公告於平台。</li>
-              <li>繼續使用即視為同意新條款。</li>
+              <li>本平台有權隨時修改本條款，修改後會公告於平台，繼續使用即視為同意。</li>
             </ul>
           </li>
           <li>
             <strong>法律適用</strong>
             <ul>
-              <li>本條款依中華民國法律解釋。</li>
-              <li>若發生爭議，以本平台所在地法院為管轄法院。</li>
+              <li>本條款依中華民國法律解釋，若有爭議，以本平台所在地法院為管轄法院。</li>
             </ul>
           </li>
         </ol>
       </details>
+
       <label class="checkbox-label">
         <input name="member_terms_accepted" type="checkbox" value="true" required>
         <span>我已閱讀並同意會員條款</span>
       </label>
-      <button type="submit">加入會員並儲存資料</button>
+
+      <button type="submit">儲存會員資料</button>
     </form>
   </main>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>

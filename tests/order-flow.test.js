@@ -295,6 +295,7 @@ test('customer can update profile from LIFF profile API', async () => {
       name: 'Profile Customer',
       phone: '0912555666',
       default_address: '嘉義市西區文化路88號',
+      preferred_area: '西區',
       line_display_name: 'LINE Profile Customer',
       line_picture_url: 'https://example.com/profile.png',
       line_language: 'zh-TW',
@@ -305,6 +306,7 @@ test('customer can update profile from LIFF profile API', async () => {
     assert.equal(saved.body.data.name, 'Profile Customer');
     assert.equal(saved.body.data.phone, '0912555666');
     assert.equal(saved.body.data.default_address, '嘉義市西區文化路88號');
+    assert.equal(saved.body.data.preferred_area, '西區');
     assert.equal(saved.body.data.line_display_name, 'LINE Profile Customer');
     assert.equal(saved.body.data.line_picture_url, 'https://example.com/profile.png');
     assert.equal(saved.body.data.is_member, true);
@@ -1340,6 +1342,7 @@ test('admin CRM lists customers with profile and order summary', async () => {
 
     assert.equal(customer.phone, '0922333444');
     assert.equal(customer.default_address, '\u5609\u7fa9\u5e02\u6771\u5340\u5f4c\u9640\u8def66\u865f');
+    assert.equal(customer.preferred_area, '東區');
     assert.equal(customer.order_count, 1);
 
     const detail = await request(server, 'GET', `/api/admin/customers/${customer.id}`);

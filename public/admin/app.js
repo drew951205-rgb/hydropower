@@ -754,6 +754,7 @@ async function selectCustomer(customerId) {
       <dt>名稱</dt><dd>${escapeHtml(customerName(customer))}</dd>
       <dt>電話</dt><dd>${escapeHtml(customer.phone || '')}</dd>
       <dt>常用地址</dt><dd>${escapeHtml(customer.default_address || '')}</dd>
+      <dt>常用區域</dt><dd>${escapeHtml(customer.preferred_area || '')}</dd>
       <dt>LINE ID</dt><dd>${escapeHtml(customer.line_user_id || '')}</dd>
       <dt>累計案件</dt><dd>${customer.order_count || 0} 件</dd>
       <dt>完成案件</dt><dd>${customer.closed_order_count || 0} 件</dd>

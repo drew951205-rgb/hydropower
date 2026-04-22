@@ -8,6 +8,7 @@ create table if not exists users (
   line_picture_url text,
   line_language text,
   default_address text,
+  preferred_area text,
   is_member boolean not null default false,
   member_terms_accepted_at timestamptz,
   available_time_text text,

@@ -359,12 +359,16 @@ async function prefillRepairProfile(form) {
     const phone = form.querySelector('[name="contact_phone"]');
     const address = form.querySelector('[name="address"]');
     const contactName = form.querySelector('[name="contact_name"]');
+    const area = form.querySelector('[name="area"]');
     if (contactName && (profile.name || profile.line_display_name) && !contactName.value) {
       contactName.value = profile.name || profile.line_display_name;
     }
     if (phone && profile.phone && !phone.value) phone.value = profile.phone;
     if (address && profile.default_address && !address.value) {
       address.value = profile.default_address;
+    }
+    if (area && profile.preferred_area && !area.value) {
+      area.value = profile.preferred_area;
     }
   } catch (error) {
     console.warn('[repair:profile-prefill:skip]', error);
@@ -835,6 +839,7 @@ async function setupProfile() {
   form.name.value = profile.name || profile.line_display_name || '';
   form.phone.value = profile.phone || '';
   form.default_address.value = profile.default_address || '';
+  if (form.preferred_area) form.preferred_area.value = profile.preferred_area || '';
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();

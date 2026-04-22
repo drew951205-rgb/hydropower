@@ -10,13 +10,15 @@
   <main class="page">
     <p class="eyebrow">師傅抵嘉</p>
     <h1>我要報修</h1>
-    <p class="lead">填好資料後，平台會先審核案件，再幫你找合適師傅。</p>
+    <p class="lead">請盡量填完整，平台會先審核資料，再幫你安排合適的師傅。</p>
     <p id="status" class="notice" hidden></p>
     <form id="repair-form">
       <input id="line_user_id" name="line_user_id" type="hidden">
+
       <label>姓名 / 稱呼
-        <input name="contact_name" autocomplete="name" placeholder="例如：王先生、陳小姐" required>
+        <input name="contact_name" autocomplete="name" placeholder="王小姐" required>
       </label>
+
       <label>服務類型
         <select name="service_type" required>
           <option value="">請選擇</option>
@@ -24,46 +26,55 @@
           <option>馬桶堵塞</option>
           <option>插座故障</option>
           <option>熱水器問題</option>
-          <option>其他水電</option>
+          <option>其他維修</option>
         </select>
       </label>
-      <label>所在區域
-        <input name="area" placeholder="例如：嘉義市西區" required>
+
+      <label>案件區域
+        <input name="area" placeholder="例如：西區、東區、民雄" required>
       </label>
-      <label>完整地址
-        <input name="address" placeholder="例如：嘉義市西區中山路100號" required>
+
+      <label>報修地址
+        <input name="address" placeholder="嘉義市西區中山路100號" required>
       </label>
-      <label>預約時間
-        <input name="preferred_time_text" placeholder="例如：越快越好、明天下午 2-5 點" required>
+
+      <label>希望處理時間
+        <input name="preferred_time_text" placeholder="例如：今天下午、今晚 7 點後、週六上午" required>
       </label>
+
       <label>問題描述
-        <textarea name="issue_description" placeholder="請描述位置、狀況、多久了，越清楚越好報價。" required></textarea>
+        <textarea name="issue_description" placeholder="請寫清楚位置、狀況、發生多久了，越清楚越方便報價。" required></textarea>
       </label>
-      <label>上傳照片
+
+      <label>案件照片
         <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
       </label>
+
       <label>聯絡電話
         <input name="contact_phone" inputmode="tel" placeholder="0912345678" required>
       </label>
+
       <details class="terms-box">
-        <summary>查看報修平台條款</summary>
+        <summary>點我查看報修平台條款</summary>
         <ol>
           <li>本平台僅提供媒合服務，不參與實際交易、報價及收款流程。</li>
           <li>用戶不得私下與服務提供者進行交易以規避平台機制，違者平台有權限制或終止帳號使用。</li>
           <li>所有服務內容、施工方式及價格，均由用戶與服務提供者自行約定，本平台不負擔履約責任。</li>
           <li>本平台不保證案件一定媒合成功，亦不保證服務提供者之到達時間。</li>
           <li>本平台不保證服務提供者之專業能力、證照資格或施工品質。</li>
-          <li>因施工所產生之任何損害、風險或安全問題，包含但不限於漏電、漏水、瓦斯相關事故，由用戶與服務提供者自行負責。</li>
+          <li>因施工所產生之任何損害、風險或安全問題，由用戶與服務提供者自行負責。</li>
           <li>若服務過程中產生價格或履約爭議，應由雙方自行協商解決，本平台得依通訊紀錄提供協助調解。</li>
           <li>用戶應確保所填寫之報修資料正確，因資料錯誤導致之損失，由用戶自行負責。</li>
           <li>若會員有詐騙、惡意棄單、騷擾他人或其他違法行為，本平台有權停權或終止服務。</li>
           <li>本平台保留帳號管理、服務調整及終止服務之權利。</li>
         </ol>
       </details>
+
       <label class="checkbox-label">
         <input name="terms_accepted" type="checkbox" value="true" required>
-        <span>我已閱讀並同意平台條款</span>
+        <span>我已閱讀並同意報修平台條款</span>
       </label>
+
       <button type="submit">送出報修</button>
     </form>
   </main>

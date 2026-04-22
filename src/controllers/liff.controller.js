@@ -91,6 +91,7 @@ async function updateCustomerProfile(req, res, next) {
       name: String(req.body.name || '').trim() || null,
       phone: String(req.body.phone || '').trim() || null,
       default_address: String(req.body.default_address || '').trim() || null,
+      preferred_area: String(req.body.preferred_area || '').trim() || null,
       is_member: true,
       member_terms_accepted_at: new Date().toISOString(),
       role: user.role === 'admin' || user.role === 'technician' ? user.role : 'customer',
@@ -114,6 +115,7 @@ async function updateCustomerProfileWithFallback(userId, changes) {
       name: changes.name,
       phone: changes.phone,
       default_address: changes.default_address,
+      preferred_area: changes.preferred_area,
       role: changes.role,
       status: changes.status,
     },
@@ -186,6 +188,7 @@ async function createRepair(req, res, next) {
       name: req.body.contact_name,
       phone: req.body.contact_phone,
       default_address: req.body.address,
+      preferred_area: req.body.area,
     }).catch(() =>
       userRepository.updateUser(user.id, { phone: req.body.contact_phone })
     );
