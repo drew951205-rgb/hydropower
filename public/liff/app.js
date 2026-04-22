@@ -216,6 +216,16 @@ function customerCaseActions(order) {
   return actions;
 }
 
+function customerDisputeStatus(order) {
+  if (order.status === 'dispute_review') {
+    return '申訴處理中，平台會依案件紀錄與雙方回報協助處理。';
+  }
+  if (order.dispute_reason) {
+    return '此案件已有申訴紀錄，若平台已回覆，請留意 LINE 通知。';
+  }
+  return '';
+}
+
 function technicianCaseActions(order) {
   const actions = [];
   if (order.status === 'assigned') {
@@ -238,6 +248,7 @@ function renderCaseCard(order, role) {
   const actions = role === 'technician'
     ? technicianCaseActions(order)
     : customerCaseActions(order);
+  const disputeStatus = role === 'customer' ? customerDisputeStatus(order) : '';
   return `
     <article class="case-card">
       <div class="case-head">
@@ -245,6 +256,7 @@ function renderCaseCard(order, role) {
         <span>${escapeHtml(statusText(order.status))}</span>
       </div>
       <p>${orderSummary(order)}</p>
+      ${disputeStatus ? `<p class="case-note">${escapeHtml(disputeStatus)}</p>` : ''}
       ${actions.length ? `
         <div class="actions">
           ${actions.slice(0, 4).map((action) => `

@@ -222,6 +222,16 @@ button:disabled {
   white-space: nowrap;
 }
 
+.case-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fff7e8;
+  color: #8a5a00;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

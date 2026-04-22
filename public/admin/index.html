@@ -10,7 +10,7 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">師傅抵嘉</p>
-        <h1>營運後台</h1>
+        <h1>管理後台</h1>
       </div>
       <div class="auth">
         <label for="adminKey">管理金鑰</label>
@@ -24,22 +24,22 @@
         <div class="section-head">
           <div>
             <h2 id="ordersTitle">案件</h2>
-            <p id="statusText">準備載入</p>
+            <p id="statusText">尚未載入</p>
           </div>
           <div class="filters">
             <select id="statusFilter" aria-label="案件狀態">
               <option value="">全部狀態</option>
-              <option value="pending_review">待審核</option>
+              <option value="pending_review">待平台審核</option>
               <option value="pending_dispatch">待派單</option>
               <option value="dispatching">派單中</option>
-              <option value="assigned">已接單</option>
-              <option value="quoted">已報價</option>
-              <option value="in_progress">客戶已接受報價</option>
+              <option value="assigned">已指派</option>
+              <option value="quoted">待顧客確認報價</option>
+              <option value="in_progress">施工中</option>
               <option value="arrived">已到場</option>
-              <option value="completed_pending_customer">待客戶確認</option>
+              <option value="completed_pending_customer">待顧客確認完工</option>
               <option value="closed">已結案</option>
-              <option value="platform_review">平台審核</option>
-              <option value="dispute_review">爭議審核</option>
+              <option value="platform_review">平台審核中</option>
+              <option value="dispute_review">申訴處理中</option>
             </select>
             <button id="refreshButton" type="button">重新整理</button>
           </div>
@@ -49,14 +49,14 @@
           <table>
             <thead>
               <tr>
-                <th>編號</th>
+                <th>案件編號</th>
                 <th>狀態</th>
                 <th>區域</th>
-              <th>類型</th>
-              <th>時間</th>
-              <th>師傅</th>
-              <th>下一步</th>
-                <th>建立</th>
+                <th>服務類型</th>
+                <th>預約時間</th>
+                <th>師傅</th>
+                <th>下一步</th>
+                <th>建立時間</th>
               </tr>
             </thead>
             <tbody id="ordersTable"></tbody>
@@ -66,24 +66,24 @@
         <section class="support-section support-main-section" aria-labelledby="supportTitle">
           <div class="section-head compact">
             <div>
-              <h2 id="supportTitle">客服中心</h2>
+              <h2 id="supportTitle">申訴中心</h2>
               <p id="supportStatus">尚未載入</p>
             </div>
             <div class="mini-filter">
-              <select id="supportStatusFilter" aria-label="客服狀態">
-                <option value="">全部</option>
+              <select id="supportStatusFilter" aria-label="申訴狀態">
+                <option value="">全部狀態</option>
                 <option value="open">待處理</option>
                 <option value="in_progress">處理中</option>
-                <option value="resolved">已回覆</option>
-                <option value="closed">已關閉</option>
+                <option value="resolved">已處理</option>
+                <option value="closed">已結束</option>
               </select>
-              <select id="supportTypeFilter" aria-label="客服類型">
+              <select id="supportTypeFilter" aria-label="申訴類型">
                 <option value="">全部類型</option>
-                <option value="general">一般客服</option>
-                <option value="completion_dispute">完工爭議</option>
-                <option value="quote_dispute">報價爭議</option>
+                <option value="completion_dispute">完工申訴</option>
+                <option value="quote_dispute">報價申訴</option>
                 <option value="technician_no_show">師傅未到場</option>
-                <option value="service_quality">服務品質</option>
+                <option value="service_quality">施工品質</option>
+                <option value="cancel_order">取消案件爭議</option>
                 <option value="customer_cancel">客戶取消</option>
                 <option value="technician_cancel">師傅取消</option>
               </select>
@@ -110,8 +110,8 @@
         <section class="customer-replies-section" aria-labelledby="customerRepliesTitle">
           <div class="section-head compact">
             <div>
-              <h2 id="customerRepliesTitle">客戶回覆</h2>
-              <p>客戶在 LINE 補充的訊息會顯示在這裡</p>
+              <h2 id="customerRepliesTitle">對話紀錄</h2>
+              <p>顧客 LINE 回覆、申訴與平台處理紀錄會集中在這裡。</p>
             </div>
           </div>
           <div id="customerReplies" class="note-list"></div>
@@ -126,7 +126,7 @@
           <div class="section-head compact">
             <div>
               <h2 id="customersTitle">客戶名單</h2>
-              <p id="customerStatus">準備載入</p>
+              <p id="customerStatus">尚未載入</p>
             </div>
             <button id="loadCustomersButton" type="button">載入</button>
           </div>
@@ -134,14 +134,14 @@
           <div id="customerDetail" class="customer-detail"></div>
 
           <form id="memberBroadcastForm" class="stack-form">
-            <h3>會員最新消息</h3>
+            <h3>會員通知</h3>
             <label>
               標題
-              <input name="title" maxlength="40" required placeholder="例如：雨季漏水檢查提醒">
+              <input name="title" maxlength="40" required placeholder="例如：雨季提醒">
             </label>
             <label>
               內容
-              <textarea name="message" maxlength="500" required placeholder="輸入要傳給會員的最新消息"></textarea>
+              <textarea name="message" maxlength="500" required placeholder="輸入要發送給會員的訊息內容"></textarea>
             </label>
             <button type="submit">發送給會員</button>
           </form>
@@ -151,7 +151,7 @@
           <div class="section-head compact">
             <div>
               <h2 id="techniciansTitle">師傅</h2>
-              <p id="technicianStatus">準備載入</p>
+              <p id="technicianStatus">尚未載入</p>
             </div>
             <button id="loadTechniciansButton" type="button">載入</button>
           </div>
@@ -182,9 +182,9 @@
             </label>
             <label>
               可接時段
-              <input name="available_time_text" placeholder="平日 18:00 後、週六全天">
+              <input name="available_time_text" placeholder="平日 18:00 後、週六上午">
             </label>
-            <button type="submit">建立師傅</button>
+            <button type="submit">新增師傅</button>
           </form>
         </section>
       </aside>

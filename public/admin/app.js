@@ -145,20 +145,32 @@ function supportStatusText(status) {
 
 function supportTypeText(type) {
   return {
-    general: '????',
-    completion_dispute: '????',
-    quote_dispute: '????',
-    technician_no_show: '?????',
-    service_quality: '????',
-    cancel_order: '??????',
-    customer_cancel: '????',
-    technician_cancel: '????'
+    general: '一般諮詢',
+    completion_dispute: '完工申訴',
+    quote_dispute: '報價申訴',
+    technician_no_show: '師傅未到場',
+    service_quality: '施工品質',
+    cancel_order: '取消案件爭議',
+    customer_cancel: '客戶取消',
+    technician_cancel: '師傅取消'
   }[type] || type || '';
 }
 
 function isDisputeSupportType(type) {
   return ['completion_dispute', 'quote_dispute', 'technician_no_show', 'service_quality', 'cancel_order']
     .includes(type);
+}
+
+function visibleSupportTickets(tickets) {
+  return (tickets || []).filter((ticket) =>
+    isDisputeSupportType(ticket.type) || ['customer_cancel', 'technician_cancel'].includes(ticket.type)
+  );
+}
+
+function renderSupportImagePreview(ticket) {
+  const images = Array.isArray(ticket.image_urls) ? ticket.image_urls.filter(Boolean) : [];
+  if (!images.length) return '';
+  return `<div class="support-image-preview">${images.slice(0, 3).map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer"><img src="${escapeHtml(url)}" alt="????"></a>`).join('')}</div>`;
 }
 
 function nextStepText(order) {
@@ -772,8 +784,9 @@ async function loadSupportTickets() {
     ? state.supportTickets.find((ticket) => String(ticket.id) === String(state.selectedSupportTicketId)) || null
     : null;
   if (!state.selectedSupportTicket) state.selectedSupportTicketId = null;
-  const openCount = state.supportTickets.filter((ticket) => ticket.status === 'open').length;
-  els.supportStatus.textContent = `${state.supportTickets.length} \u7b46\uff0c${openCount} \u7b46\u5f85\u8655\u7406`;
+  const tickets = visibleSupportTickets(state.supportTickets);
+  const openCount = tickets.filter((ticket) => ticket.status === 'open').length;
+  els.supportStatus.textContent = `${tickets.length} 筆，${openCount} 筆待處理`;
   renderSupportTickets();
   renderConversationPanel();
 }
@@ -800,25 +813,26 @@ function selectSupportTicket(ticketId) {
 }
 
 function renderSupportTickets() {
-  if (!state.supportTickets.length) {
-    els.supportTicketList.innerHTML = '<p class="empty compact-empty">\u76ee\u524d\u6c92\u6709\u5ba2\u670d\u55ae</p>';
+  const tickets = visibleSupportTickets(state.supportTickets);
+  if (!tickets.length) {
+    els.supportTicketList.innerHTML = '<p class="empty compact-empty">目前沒有申訴單</p>';
     return;
   }
 
-  els.supportTicketList.innerHTML = state.supportTickets.map((ticket) => {
+  els.supportTicketList.innerHTML = tickets.map((ticket) => {
     const order = ticket.order || {};
     const customer = ticket.customer || {};
     const reporter = ticket.reporter || {};
     const phone = ticket.phone || customer.phone || order.contact_phone || '';
     const reporterName = reporter.id && String(reporter.id) !== String(customer.id || '')
-      ? ` / \u4ee3\u5831\u4eba\uff1a${supportCustomerName({ customer: reporter })}`
+            ? ` / 代報人：${supportCustomerName({ customer: reporter })}`
       : '';
     const adminReply = ticket.admin_reply
-      ? `<p class="support-reply">?????${escapeHtml(ticket.admin_reply)}</p>`
+      ? `<p class="support-reply">平台回覆：${escapeHtml(ticket.admin_reply)}</p>`
       : '';
     const ticketHint = isDisputeSupportType(ticket.type)
       ? '<small class="support-ticket-hint">??? / ?????????????????</small>'
-      : '<small class="support-ticket-hint">??? / ?????????</small>';
+      : '<small class="support-ticket-hint">???? / ?????????????</small>';
     return `
       <article
         class="support-ticket-item ${String(ticket.id) === String(state.selectedSupportTicketId) ? 'selected' : ''}"
@@ -829,19 +843,19 @@ function renderSupportTickets() {
         <small>${escapeHtml(order.order_no || '未綁定案件')} / ${escapeHtml(phone || '未填電話')} / ${escapeHtml(formatDate(ticket.created_at))}${escapeHtml(reporterName)}</small>
         ${ticketHint}
         <p>${escapeHtml(ticket.message || '')}</p>
+        ${renderSupportImagePreview(ticket)}
         ${adminReply}
         <div class="support-ticket-actions">
-          ${order.id ? `<button type="button" data-support-order="${order.id}">\u770b\u8a02\u55ae</button>` : ''}
-          <button type="button" data-support-status="in_progress">\u8655\u7406\u4e2d</button>
-          <button type="button" data-support-status="resolved">\u5df2\u8655\u7406</button>
-          <button type="button" class="secondary" data-support-status="closed">\u5df2\u7d50\u675f</button>
+          ${order.id ? `<button type="button" data-support-order="${order.id}">看訂單</button>` : ''}
+          <button type="button" data-support-status="in_progress">看訂單</button>
+          <button type="button" data-support-status="resolved">看訂單</button>
+          <button type="button" class="secondary" data-support-status="closed">看訂單</button>
         </div>
         <form class="support-reply-form">
-          <textarea name="reply_message" maxlength="500" required placeholder="\u8f38\u5165\u5ba2\u670d\u56de\u8986\uff0c\u6703\u76f4\u63a5\u900f\u904e LINE \u50b3\u7d66\u5ba2\u6236\u3002"></textarea>
-          <button type="submit">\u56de\u8986 LINE</button>
+          <textarea name="reply_message" maxlength="500" required placeholder="輸入申訴回覆，會直接透過 LINE 傳給客戶。"></textarea>
+          <button type="submit">回覆 LINE</button>
         </form>
-      </article>
-    `;
+      </article>`;
   }).join('');
 }
 
