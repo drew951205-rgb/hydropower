@@ -10,12 +10,14 @@ process.env.ADMIN_API_KEY = 'change-me';
 process.env.DISPATCH_TIMEOUT_MINUTES = '1';
 
 const { app } = require('../src/app');
+const { resetRateLimit } = require('../src/middlewares/rate-limit');
 const assignmentRepository = require('../src/repositories/assignment.repository');
 const supportTicketRepository = require('../src/repositories/support-ticket.repository');
 const { runDispatchTimeoutJob } = require('../src/jobs/dispatch-timeout.job');
 
 function request(server, method, path, body, headers = {}) {
   return new Promise((resolve, reject) => {
+    resetRateLimit();
     const payload = body ? JSON.stringify(body) : '';
     const req = http.request({
       method,
@@ -1227,6 +1229,13 @@ test('technician can quote, arrive, and complete after customer accepts', async 
     assert.equal(customerAccepted.status, 200);
     assert.equal(customerAccepted.body.results[0].order.status, 'in_progress');
 
+    const enRoute = await request(server, 'POST', `/api/liff/orders/${order.id}/en-route`, {
+      line_user_id: technicianId,
+    });
+    assert.equal(enRoute.status, 200);
+    assert.equal(enRoute.body.data.status, 'in_progress');
+    assert.match(enRoute.body.data.maps_url, /google\.com\/maps\/search/);
+
     const staleAccept = await request(server, 'POST', '/webhook', {
       events: [
         {
@@ -1350,6 +1359,7 @@ test('technician can quote, arrive, and complete after customer accepts', async 
 
     const finalDetail = await request(server, 'GET', `/api/orders/${order.id}`);
     assert.equal(finalDetail.body.data.status, 'closed');
+    assert.ok(finalDetail.body.data.logs.some((log) => log.action === 'technician_en_route'));
     assert.equal(finalDetail.body.data.images.length, 1);
     assert.equal(finalDetail.body.data.images[0].image_url, 'line-image:line-image-tech-flow-1');
     assert.equal(finalDetail.body.data.rating, 5);

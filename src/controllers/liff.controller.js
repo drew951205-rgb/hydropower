@@ -320,6 +320,17 @@ async function submitChangeRequest(req, res, next) {
   }
 }
 
+async function notifyTechnicianEnRoute(req, res, next) {
+  try {
+    const user = await resolveUser(req);
+    if (user.role !== 'technician') throw forbidden('Technician role required');
+    const data = await completionService.notifyEnRoute(req.params.id, user.id);
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function confirmQuote(req, res, next) {
   try {
     const user = await resolveUser(req);
@@ -451,6 +462,7 @@ module.exports = {
   listTechnicianOrders,
   submitQuote,
   submitChangeRequest,
+  notifyTechnicianEnRoute,
   confirmQuote,
   confirmCompletion,
   submitCustomerReview,

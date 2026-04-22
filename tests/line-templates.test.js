@@ -141,12 +141,14 @@ test('technician LINE messages include quote, change request, and cancel actions
 
   const acceptedQuote = acceptedQuoteTechnicianMessage(order);
   assert.equal(acceptedQuote.type, 'flex');
-  assert.equal(footerActions(acceptedQuote)[0].data, 'technician:arrived:12');
-  assert.equal(footerActions(acceptedQuote)[1].type, 'uri');
-  assert.match(footerActions(acceptedQuote)[1].uri, /\/change-request\?order_id=12/);
-  assert.equal(footerActions(acceptedQuote)[2].data, 'technician:complete:12');
-  assert.equal(footerActions(acceptedQuote)[3].type, 'uri');
-  assert.match(footerActions(acceptedQuote)[3].uri, /\/cancel\?order_id=12&role=technician/);
+  assert.equal(footerActions(acceptedQuote)[0].type, 'uri');
+  assert.match(footerActions(acceptedQuote)[0].uri, /\/navigate\?order_id=12/);
+  assert.equal(footerActions(acceptedQuote)[1].data, 'technician:arrived:12');
+  assert.equal(footerActions(acceptedQuote)[2].type, 'uri');
+  assert.match(footerActions(acceptedQuote)[2].uri, /\/change-request\?order_id=12/);
+  assert.equal(footerActions(acceptedQuote)[3].data, 'technician:complete:12');
+  assert.equal(footerActions(acceptedQuote)[4].type, 'uri');
+  assert.match(footerActions(acceptedQuote)[4].uri, /\/cancel\?order_id=12&role=technician/);
 
   const acceptedChange = acceptedChangeRequestTechnicianMessage(order);
   assert.equal(acceptedChange.type, 'flex');

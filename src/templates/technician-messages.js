@@ -66,6 +66,12 @@ function cancelAction(order) {
   });
 }
 
+function navigateAction(order) {
+  return uriAction('??????', '/liff/navigate', {
+    order_id: order.id,
+  });
+}
+
 function photoCount(order) {
   if (Array.isArray(order.images)) return order.images.length;
   return Number(order.image_count || 0);
@@ -232,21 +238,23 @@ function changeRequestPromptMessage(order) {
 
 function acceptedQuoteTechnicianMessage(order) {
   return technicianCard({
-    altText: `客戶已接受報價 ${order.order_no}`,
-    status: '客戶已接受報價',
-    title: '可以前往現場',
-    summary: '請依案件資訊前往。若現場有額外項目，請按「追加報價」讓客戶確認。',
+    altText: `??????? ${order.order_no}`,
+    status: '???????',
+    title: '?????????',
+    summary:
+      '???????????????????????????????????????????????????????',
     rows: [
-      infoRow('案件編號', order.order_no),
-      infoRow('時間需求', preferredTimeLabel(order)),
-      infoRow('地址', order.address),
-      infoRow('姓名 / 稱呼', order.contact_name || '未提供'),
-      infoRow('電話', order.contact_phone || '未提供'),
+      infoRow('????', order.order_no),
+      infoRow('????', preferredTimeLabel(order)),
+      infoRow('??', order.address),
+      infoRow('?? / ??', order.contact_name || '???'),
+      infoRow('??', order.contact_phone || '???'),
     ],
     actions: [
-      button(postbackAction('已到場', `technician:arrived:${order.id}`, '已到場'), 'primary'),
-      button(uriAction('追加報價', '/liff/change-request', { order_id: order.id })),
-      button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
+      button(navigateAction(order), 'primary'),
+      button(postbackAction('???', `technician:arrived:${order.id}`, '???')),
+      button(uriAction('????', '/liff/change-request', { order_id: order.id })),
+      button(postbackAction('????', `technician:complete:${order.id}`, '????')),
       button(cancelAction(order)),
     ],
   });

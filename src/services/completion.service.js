@@ -7,6 +7,67 @@ const lineMessageService = require('./line-message.service');
 const { completionMessage } = require('../templates/customer-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 
+function googleMapsUrl(address = '') {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`;
+}
+
+async function notifyEnRoute(orderId, technicianId = null) {
+  const order = await orderRepository.getOrderDetail(orderId);
+  if (!order) {
+    const error = new Error('Order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (technicianId && String(order.technician_id) !== String(technicianId)) {
+    const error = new Error('Technician does not own this order');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (order.status !== ORDER_STATUS.IN_PROGRESS) {
+    const error = new Error('Order is not ready for en route notification');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const alreadySent = (order.logs || []).some(
+    (log) => log.action === 'technician_en_route'
+  );
+
+  if (!alreadySent) {
+    await logRepository.createLog({
+      order_id: order.id,
+      from_status: order.status,
+      to_status: order.status,
+      action: 'technician_en_route',
+      operator_role: 'technician',
+      operator_id: technicianId,
+      note: 'Technician is heading to the site',
+    });
+
+    const customer = await userRepository.findById(order.customer_id);
+    if (customer?.line_user_id) {
+      await lineMessageService.pushMessages(
+        customer.line_user_id,
+        [
+          '師傅即將趕往現場',
+          `案件編號：${order.order_no}`,
+          `地址：${order.address || '未提供'}`,
+          '請先留意電話並提前整理施工位置，方便師傅到場後直接處理。',
+        ].join('\n')
+      );
+    }
+  }
+
+  return {
+    ...order,
+    en_route_notified: true,
+    maps_url: googleMapsUrl(order.address),
+    duplicate: alreadySent,
+  };
+}
+
 async function arrive(orderId, technicianId = null) {
   return orderService.transitionOrder(
     orderId,
@@ -33,11 +94,12 @@ async function complete(orderId, payload, technicianId = null) {
     }
   );
   const customer = await userRepository.findById(order.customer_id);
-  if (customer?.line_user_id)
+  if (customer?.line_user_id) {
     await lineMessageService.pushMessages(
       customer.line_user_id,
       completionMessage(order)
     );
+  }
   return order;
 }
 
@@ -51,7 +113,8 @@ async function customerConfirmCompletion(orderId, payload, customerId = null) {
       customerId,
       payload.comment || 'Customer did not confirm completion',
       {
-        dispute_reason: payload.comment || 'Customer did not confirm completion',
+        dispute_reason:
+          payload.comment || 'Customer did not confirm completion',
       }
     );
   }
@@ -137,7 +200,8 @@ async function submitTechnicianReview(orderId, technicianId, comment) {
     throw error;
   }
 
-  const content = String(comment || '').trim() || '師傅未填寫本案心得';
+  const content =
+    String(comment || '').trim() || '師傅已提交本案心得，感謝此次服務。';
   const message = await messageRepository.createMessage({
     order_id: order.id,
     sender_role: 'technician',
@@ -160,6 +224,7 @@ async function submitTechnicianReview(orderId, technicianId, comment) {
 }
 
 module.exports = {
+  notifyEnRoute,
   arrive,
   complete,
   customerConfirmCompletion,

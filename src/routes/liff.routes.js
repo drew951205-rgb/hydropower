@@ -23,6 +23,7 @@ router.post(
   upload.array('images', env.uploadMaxFiles),
   liffController.submitChangeRequest
 );
+router.post('/orders/:id/en-route', liffController.notifyTechnicianEnRoute);
 router.post('/orders/:id/confirm-quote', liffController.confirmQuote);
 router.post('/orders/:id/confirm-completion', liffController.confirmCompletion);
 router.post('/orders/:id/cancel', liffController.cancelOrderByCustomer);

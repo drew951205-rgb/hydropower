@@ -2,6 +2,10 @@ const { securityConfig } = require('../config/security');
 
 const buckets = new Map();
 
+function resetRateLimit() {
+  buckets.clear();
+}
+
 function rateLimit(req, res, next) {
   const key = req.ip || req.headers['x-forwarded-for'] || 'unknown';
   const now = Date.now();
@@ -22,4 +26,4 @@ function rateLimit(req, res, next) {
   next();
 }
 
-module.exports = { rateLimit };
+module.exports = { rateLimit, resetRateLimit };

@@ -650,6 +650,50 @@ async function setupCancel() {
   });
 }
 
+async function setupNavigate() {
+  const order = await loadOrder();
+  const panel = $('#order-panel');
+  const statusNode = $('#status');
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address || '')}`;
+
+  if (panel) {
+    panel.innerHTML = `
+      <div class="linked-order">
+        <p class="eyebrow">即將趕往現場</p>
+        <h2>${escapeHtml(order.order_no || '')}</h2>
+        <dl class="summary-list">
+          <dt>地址</dt><dd>${escapeHtml(order.address || '')}</dd>
+          <dt>時間需求</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
+          <dt>客戶</dt><dd>${escapeHtml(order.contact_name || '未提供')}</dd>
+          <dt>電話</dt><dd>${escapeHtml(order.contact_phone || '未提供')}</dd>
+        </dl>
+      </div>
+    `;
+  }
+
+  setStatus('正在通知客戶並開啟 Google Maps...');
+
+  try {
+    const result = await api(`/api/liff/orders/${order.id}/en-route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: jsonWithLineUser({}),
+    });
+    window.location.href = result.maps_url || mapUrl;
+  } catch (error) {
+    if (statusNode) {
+      statusNode.hidden = false;
+    }
+    setStatus(`${error.message}，可直接點下方按鈕開啟地圖。`, true);
+    if (panel) {
+      panel.insertAdjacentHTML(
+        'beforeend',
+        `<div class="actions"><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer"><button type="button">開啟 Google Maps</button></a></div>`
+      );
+    }
+  }
+}
+
 function confirmDetailHtml(order, mode) {
   const baseQuote = Number(order.quote_amount || 0);
   const changeAmount = Number(order.change_request_amount || 0);
@@ -895,6 +939,7 @@ async function main() {
     if (page === 'support') await setupSupport();
     if (page === 'faq') await setupFaq();
     if (page === 'cancel') await setupCancel();
+    if (page === 'navigate') await setupNavigate();
   } catch (error) {
     setStatus(error.message, true);
   }
