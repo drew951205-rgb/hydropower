@@ -67,7 +67,7 @@ function cancelAction(order) {
 }
 
 function navigateAction(order) {
-  return uriAction('??????', '/liff/navigate', {
+  return uriAction('即將趕往現場', '/liff/navigate', {
     order_id: order.id,
   });
 }
@@ -238,23 +238,23 @@ function changeRequestPromptMessage(order) {
 
 function acceptedQuoteTechnicianMessage(order) {
   return technicianCard({
-    altText: `??????? ${order.order_no}`,
-    status: '???????',
-    title: '?????????',
+    altText: `客戶已接受報價 ${order.order_no}`,
+    status: '客戶已接受報價',
+    title: '可先通知客戶再出發',
     summary:
-      '???????????????????????????????????????????????????????',
+      '請先按「即將趕往現場」通知客戶並開啟導航，到達後再按「已到場」。若現場有額外項目，請按「追加報價」讓客戶確認。',
     rows: [
-      infoRow('????', order.order_no),
-      infoRow('????', preferredTimeLabel(order)),
-      infoRow('??', order.address),
-      infoRow('?? / ??', order.contact_name || '???'),
-      infoRow('??', order.contact_phone || '???'),
+      infoRow('案件編號', order.order_no),
+      infoRow('時間需求', preferredTimeLabel(order)),
+      infoRow('地址', order.address),
+      infoRow('姓名 / 稱呼', order.contact_name || '未提供'),
+      infoRow('電話', order.contact_phone || '未提供'),
     ],
     actions: [
       button(navigateAction(order), 'primary'),
-      button(postbackAction('???', `technician:arrived:${order.id}`, '???')),
-      button(uriAction('????', '/liff/change-request', { order_id: order.id })),
-      button(postbackAction('????', `technician:complete:${order.id}`, '????')),
+      button(postbackAction('已到場', `technician:arrived:${order.id}`, '已到場')),
+      button(uriAction('追加報價', '/liff/change-request', { order_id: order.id })),
+      button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
       button(cancelAction(order)),
     ],
   });
