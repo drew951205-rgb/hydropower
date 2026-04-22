@@ -109,7 +109,7 @@ test('customer can create an order from LIFF repair form API', async () => {
   }
 });
 
-test('customer rich menu texts list orders and support info', async () => {
+test('customer rich menu texts list orders and faq info', async () => {
   const server = app.listen(0);
   try {
     const { lineUserId } = await createRepairOrder(server, {
@@ -142,7 +142,7 @@ test('customer rich menu texts list orders and support info', async () => {
       ],
     });
     assert.equal(supportResponse.status, 200);
-    assert.equal(supportResponse.body.results[0].customerSupportPrompted, true);
+    assert.equal(supportResponse.body.results[0].customerFaqPrompted, true);
   } finally {
     server.close();
   }
@@ -171,7 +171,7 @@ test('LIFF my cases can list customer repair orders', async () => {
   }
 });
 
-test('customer LINE support messages create a support ticket after support prompt', async () => {
+test('customer LINE support text shows faq instead of creating a support ticket', async () => {
   const server = app.listen(0);
   try {
     const { lineUserId, order } = await createRepairOrder(server, {
@@ -201,7 +201,7 @@ test('customer LINE support messages create a support ticket after support promp
       ],
     });
     assert.equal(supportPrompt.status, 200);
-    assert.equal(supportPrompt.body.results[0].customerSupportPrompted, true);
+    assert.equal(supportPrompt.body.results[0].customerFaqPrompted, true);
 
     const supportMessage = await request(server, 'POST', '/webhook', {
       events: [
@@ -214,10 +214,10 @@ test('customer LINE support messages create a support ticket after support promp
       ],
     });
     assert.equal(supportMessage.status, 200);
-    assert.equal(supportMessage.body.results[0].supportTicketCreated, true);
+    assert.equal(supportMessage.body.results[0].repairFormPrompted, true);
 
     const tickets = await supportTicketRepository.listTickets({ order_id: order.id });
-    assert.ok(tickets.some((ticket) =>
+    assert.ok(!tickets.some((ticket) =>
       ticket.type === 'general' &&
       ticket.message === '\u6211\u60f3\u88dc\u5145\u6f0f\u6c34\u4f4d\u7f6e'
     ));
@@ -227,7 +227,7 @@ test('customer LINE support messages create a support ticket after support promp
     assert.ok(!detail.body.data.messages.some((message) =>
       message.message_type === 'customer_reply'
     ));
-    assert.ok(detail.body.data.messages.some((message) =>
+    assert.ok(!detail.body.data.messages.some((message) =>
       message.message_type === 'support_ticket' &&
       message.content.includes('\u6211\u60f3\u88dc\u5145\u6f0f\u6c34\u4f4d\u7f6e')
     ));

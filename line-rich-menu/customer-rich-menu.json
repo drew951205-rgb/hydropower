@@ -35,8 +35,8 @@
       "bounds": { "x": 1667, "y": 843, "width": 833, "height": 843 },
       "action": {
         "type": "uri",
-        "label": "聯絡客服",
-        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/support"
+        "label": "常見問題",
+        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/faq"
       }
     }
   ]

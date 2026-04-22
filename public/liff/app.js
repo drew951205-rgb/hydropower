@@ -209,8 +209,8 @@ function customerCaseActions(order) {
     });
   }
   actions.push({
-    label: '聯絡客服',
-    href: liffPath(`/liff/support?order_id=${order.id}`),
+    label: '常見問題',
+    href: liffPath('/liff/faq'),
     secondary: true,
   });
   return actions;
@@ -539,6 +539,13 @@ async function setupSupport() {
   });
 }
 
+async function setupFaq() {
+  const repairLink = $('#faq-repair-link');
+  const casesLink = $('#faq-cases-link');
+  if (repairLink) repairLink.href = liffPath('/liff/repair');
+  if (casesLink) casesLink.href = liffPath('/liff/my-cases');
+}
+
 async function setupCancel() {
   const form = $('#cancel-form');
   const order = await loadOrder();
@@ -830,6 +837,7 @@ async function main() {
     if (page === 'profile') await setupProfile();
     if (page === 'review') await setupReview();
     if (page === 'support') await setupSupport();
+    if (page === 'faq') await setupFaq();
     if (page === 'cancel') await setupCancel();
   } catch (error) {
     setStatus(error.message, true);

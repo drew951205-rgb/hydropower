@@ -74,6 +74,7 @@ app.get('/liff', (req, res) => {
   'profile',
   'review',
   'support',
+  'faq',
   'cancel',
 ].forEach((page) => {
   app.get(`/liff/${page}`, (req, res) => {
