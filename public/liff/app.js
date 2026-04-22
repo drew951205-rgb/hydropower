@@ -481,8 +481,47 @@ async function setupChangeRequest() {
 async function setupSupport() {
   const form = $('#support-form');
   let orderId = params().get('order_id') || '';
-  const type = params().get('type') || 'general';
-  form.type.value = type;
+  const type = params().get('type') || 'quote_dispute';
+  const title = $('#support-title');
+  const lead = $('#support-lead');
+  const typeSelect = $('#support-type');
+  const typeConfigs = {
+    quote_dispute: {
+      title: '報價申訴',
+      lead: '若你對師傅的報價內容、金額或報價方式有疑問，請填寫說明，平台會先協助確認雙方認知。',
+      doneTitle: '報價申訴已送出',
+      doneMessage: '平台已收到你的報價申訴，會先核對案件紀錄與雙方回報，再透過 LINE 通知你處理進度。',
+    },
+    completion_dispute: {
+      title: '完工申訴',
+      lead: '若你認為案件尚未完成、處理結果與預期不符，或完工後仍有相同問題，請填寫申訴內容。',
+      doneTitle: '完工申訴已送出',
+      doneMessage: '平台已收到你的完工申訴，會依案件紀錄與雙方回報協助處理，請留意 LINE 通知。',
+    },
+    technician_no_show: {
+      title: '師傅未到場申訴',
+      lead: '若師傅超過約定時間仍未到場，請留下實際狀況與聯絡紀錄，平台會協助確認。',
+      doneTitle: '未到場申訴已送出',
+      doneMessage: '平台已收到你的申訴，會先確認師傅與案件狀態，再透過 LINE 通知你。',
+    },
+    service_quality: {
+      title: '施工品質申訴',
+      lead: '若你對施工品質、安全性或現場處理方式有疑慮，請盡量附上照片與細節說明。',
+      doneTitle: '施工品質申訴已送出',
+      doneMessage: '平台已收到你的施工品質申訴，會依案件紀錄與你提供的資料協助處理。',
+    },
+    cancel_order: {
+      title: '取消案件爭議',
+      lead: '若你對取消案件的原因、責任或後續安排有疑問，請填寫爭議內容。',
+      doneTitle: '案件爭議已送出',
+      doneMessage: '平台已收到你的案件爭議，會先整理訂單紀錄與雙方回報，再透過 LINE 通知你。',
+    },
+  };
+  const config = typeConfigs[type] || typeConfigs.quote_dispute;
+  form.type.value = type in typeConfigs ? type : 'quote_dispute';
+  if (title) title.textContent = config.title;
+  if (lead) lead.textContent = config.lead;
+  if (typeSelect && type in typeConfigs) typeSelect.value = type;
   await prefillPhone(form);
 
   if (!orderId) {
@@ -524,8 +563,8 @@ async function setupSupport() {
       });
       showSubmitDone(
         form,
-        '\u5df2\u6536\u5230\u4f60\u7684\u5ba2\u670d\u7533\u8acb',
-        '\u7de8\u865f ' + ticket.ticket_no + '\uff0c\u5e73\u53f0\u6703\u4f9d\u7167\u6848\u4ef6\u7d00\u9304\u5354\u52a9\u4e86\u89e3\u72c0\u6cc1\uff0c\u8acb\u7559\u610f LINE \u901a\u77e5\u3002',
+        config.doneTitle,
+        '編號 ' + ticket.ticket_no + '，' + config.doneMessage,
         [
           { label: '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
           { label: '\u518d\u6b21\u5831\u4fee', href: liffPath('/liff/repair') },

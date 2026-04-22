@@ -192,20 +192,32 @@ async function updateSupportTicket(ticketId, payload = {}) {
     throw error;
   }
 
-  if (replyMessage) {
-    const order = ticket.order_id ? await orderRepository.findById(ticket.order_id) : null;
-    const recipientId =
-      ticket.type === 'technician_cancel' && order?.customer_id
-        ? order.customer_id
-        : ticket.user_id;
-    const recipient = recipientId ? await userRepository.findById(recipientId) : null;
-    if (recipient?.line_user_id) {
-      const orderLine = order?.order_no ? `案件編號：${order.order_no}\n` : '';
-      await lineMessageService.pushMessages(
-        recipient.line_user_id,
-        `【師傅抵嘉客服回覆】\n${orderLine}${replyMessage}`
-      );
-    }
+  const order = ticket.order_id ? await orderRepository.findById(ticket.order_id) : null;
+  const recipientId =
+    ticket.type === 'technician_cancel' && order?.customer_id
+      ? order.customer_id
+      : ticket.user_id;
+  const recipient = recipientId ? await userRepository.findById(recipientId) : null;
+  const isDisputeTicket = ['completion_dispute', 'quote_dispute', 'technician_no_show', 'service_quality', 'cancel_order']
+    .includes(ticket.type);
+
+  if (recipient?.line_user_id && replyMessage) {
+    const orderLine = order?.order_no ? `案件編號：${order.order_no}\n` : '';
+    const heading = isDisputeTicket ? '【師傅抵嘉申訴回覆】' : '【師傅抵嘉客服回覆】';
+    await lineMessageService.pushMessages(
+      recipient.line_user_id,
+      `${heading}\n${orderLine}${replyMessage}`
+    );
+  }
+
+  if (recipient?.line_user_id && status && ['resolved', 'closed'].includes(status) && !replyMessage) {
+    const orderLine = order?.order_no ? `案件編號：${order.order_no}\n` : '';
+    const heading = isDisputeTicket ? '【師傅抵嘉申訴進度】' : '【師傅抵嘉客服進度】';
+    const progressText = status === 'resolved' ? '已處理完成' : '已結案';
+    await lineMessageService.pushMessages(
+      recipient.line_user_id,
+      `${heading}\n${orderLine}目前狀態：${progressText}`
+    );
   }
 
   return updated;

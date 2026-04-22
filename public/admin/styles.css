@@ -405,6 +405,11 @@ tbody tr.selected {
   color: var(--muted);
 }
 
+.support-ticket-hint {
+  color: var(--brand);
+  font-size: 12px;
+}
+
 .support-ticket-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

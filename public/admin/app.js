@@ -145,15 +145,20 @@ function supportStatusText(status) {
 
 function supportTypeText(type) {
   return {
-    general: '一般客服',
-    completion_dispute: '完工申訴',
-    quote_dispute: '報價問題',
-    technician_no_show: '師傅未到場',
-    service_quality: '施工品質',
-    cancel_order: '取消案件',
-    customer_cancel: '客戶取消',
-    technician_cancel: '師傅取消'
+    general: '????',
+    completion_dispute: '????',
+    quote_dispute: '????',
+    technician_no_show: '?????',
+    service_quality: '????',
+    cancel_order: '??????',
+    customer_cancel: '????',
+    technician_cancel: '????'
   }[type] || type || '';
+}
+
+function isDisputeSupportType(type) {
+  return ['completion_dispute', 'quote_dispute', 'technician_no_show', 'service_quality', 'cancel_order']
+    .includes(type);
 }
 
 function nextStepText(order) {
@@ -809,8 +814,11 @@ function renderSupportTickets() {
       ? ` / \u4ee3\u5831\u4eba\uff1a${supportCustomerName({ customer: reporter })}`
       : '';
     const adminReply = ticket.admin_reply
-      ? `<p class="support-reply">\u5ba2\u670d\u56de\u8986\uff1a${escapeHtml(ticket.admin_reply)}</p>`
+      ? `<p class="support-reply">?????${escapeHtml(ticket.admin_reply)}</p>`
       : '';
+    const ticketHint = isDisputeSupportType(ticket.type)
+      ? '<small class="support-ticket-hint">??? / ?????????????????</small>'
+      : '<small class="support-ticket-hint">??? / ?????????</small>';
     return `
       <article
         class="support-ticket-item ${String(ticket.id) === String(state.selectedSupportTicketId) ? 'selected' : ''}"
@@ -818,7 +826,8 @@ function renderSupportTickets() {
         data-support-ticket="${ticket.id}">
         <strong>${escapeHtml(ticket.ticket_no)} / ${escapeHtml(supportTypeText(ticket.type))}</strong>
         <span>${escapeHtml(supportStatusText(ticket.status))} / ${escapeHtml(supportCustomerName(ticket))}</span>
-        <small>${escapeHtml(order.order_no || '\u672a\u7d81\u5b9a\u6848\u4ef6')} / ${escapeHtml(phone || '\u672a\u586b\u96fb\u8a71')} / ${escapeHtml(formatDate(ticket.created_at))}${escapeHtml(reporterName)}</small>
+        <small>${escapeHtml(order.order_no || '未綁定案件')} / ${escapeHtml(phone || '未填電話')} / ${escapeHtml(formatDate(ticket.created_at))}${escapeHtml(reporterName)}</small>
+        ${ticketHint}
         <p>${escapeHtml(ticket.message || '')}</p>
         ${adminReply}
         <div class="support-ticket-actions">

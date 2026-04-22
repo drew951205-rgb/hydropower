@@ -27,6 +27,14 @@ const disputeStatuses = new Set([
   'platform_review',
 ]);
 
+const disputeTypes = new Set([
+  'completion_dispute',
+  'quote_dispute',
+  'technician_no_show',
+  'service_quality',
+  'cancel_order',
+]);
+
 const autoLinkedStatuses = new Set([
   ORDER_STATUS.PENDING_REVIEW,
   ORDER_STATUS.WAITING_CUSTOMER_INFO,
@@ -55,6 +63,20 @@ function forbidden(message) {
   return Object.assign(new Error(message), { statusCode: 403 });
 }
 
+function supportTitle(type, order) {
+  const orderNo = order?.order_no ? ` ${order.order_no}` : '';
+  return {
+    general: `一般諮詢${orderNo}`.trim(),
+    completion_dispute: `完工申訴${orderNo}`.trim(),
+    quote_dispute: `報價申訴${orderNo}`.trim(),
+    technician_no_show: `師傅未到場${orderNo}`.trim(),
+    service_quality: `施工品質申訴${orderNo}`.trim(),
+    cancel_order: `取消案件爭議${orderNo}`.trim(),
+    customer_cancel: `客戶取消案件${orderNo}`.trim(),
+    technician_cancel: `師傅取消案件${orderNo}`.trim(),
+  }[type] || `客服單${orderNo}`.trim();
+}
+
 async function ensureCustomerOwnsOrder(user, orderId) {
   if (!orderId) return null;
   const order = await orderRepository.findById(orderId);
@@ -78,6 +100,7 @@ async function findLatestCustomerActiveOrder(user) {
 async function createSupportTicket(user, payload = {}) {
   const message = String(payload.message || '').trim();
   if (!message) throw badRequest('Support message is required');
+  const type = String(payload.type || 'general').trim() || 'general';
 
   const order = payload.order_id
     ? await ensureCustomerOwnsOrder(user, payload.order_id)
@@ -87,13 +110,9 @@ async function createSupportTicket(user, payload = {}) {
     ticket_no: createTicketNo('CS'),
     user_id: user.id,
     order_id: order?.id || null,
-    type: String(payload.type || 'general').trim() || 'general',
+    type,
     status: 'open',
-    title:
-      String(payload.title || '').trim() ||
-      (order
-        ? `Customer support request for ${order.order_no}`
-        : 'Customer support request'),
+    title: String(payload.title || '').trim() || supportTitle(type, order),
     message,
     phone: String(payload.phone || user.phone || '').trim() || null,
     image_urls: payload.image_urls || [],
@@ -114,7 +133,7 @@ async function createSupportTicket(user, payload = {}) {
       message_type: 'support_ticket',
       content: `${ticket.ticket_no}\n${message}`,
     });
-    if (payload.type === 'completion_dispute' && disputeStatuses.has(order.status)) {
+    if (type === 'completion_dispute' && disputeStatuses.has(order.status)) {
       await orderService.transitionOrder(
         order.id,
         'dispute_review',
@@ -124,6 +143,10 @@ async function createSupportTicket(user, payload = {}) {
         message,
         { dispute_reason: message }
       );
+    } else if (disputeTypes.has(type) && order.status !== ORDER_STATUS.DISPUTE_REVIEW) {
+      await orderRepository.updateOrder(order.id, {
+        dispute_reason: message,
+      }).catch(() => null);
     }
   }
 
