@@ -340,6 +340,47 @@ test('customer can update profile from LIFF profile API', async () => {
   }
 });
 
+test('repair form uses preferred area from member profile when customer submits matching area', async () => {
+  const server = app.listen(0);
+  try {
+    const lineUserId = `U-liff-preferred-area-${Date.now()}`;
+    const saved = await request(server, 'POST', '/api/liff/customer-profile', {
+      line_user_id: lineUserId,
+      name: 'Area Customer',
+      phone: '0912333444',
+      default_address: '嘉義市西區新民路100號',
+      preferred_area: '民雄',
+      member_terms_accepted: true,
+    });
+    assert.equal(saved.status, 200);
+    assert.equal(saved.body.data.preferred_area, '民雄');
+
+    const created = await request(server, 'POST', '/api/liff/repair', {
+      line_user_id: lineUserId,
+      contact_name: 'Area Customer',
+      service_type: '漏水',
+      area: '民雄',
+      address: '嘉義縣民雄鄉建國路一段88號',
+      preferred_time_text: '今天下午',
+      issue_description: '廚房水槽漏水',
+      contact_phone: '0912333444',
+      terms_accepted: true,
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.data.area, '民雄');
+
+    const profile = await request(
+      server,
+      'GET',
+      `/api/liff/customer-profile?line_user_id=${encodeURIComponent(lineUserId)}`
+    );
+    assert.equal(profile.status, 200);
+    assert.equal(profile.body.data.preferred_area, '民雄');
+  } finally {
+    server.close();
+  }
+});
+
 test('customer profile membership requires terms acceptance', async () => {
   const server = app.listen(0);
   try {

@@ -10,7 +10,7 @@
   <main class="page">
     <p class="eyebrow">師傅抵嘉</p>
     <h1>加入會員</h1>
-    <p class="lead">先把常用資料存起來，之後報修時就能自動帶入姓名、電話、地址與常用區域。</p>
+    <p class="lead">先把常用資料存起來，之後報修時會自動帶入，填單會快很多。</p>
     <p id="status" class="notice" hidden></p>
     <form id="profile-form">
       <input id="line_user_id" name="line_user_id" type="hidden">
@@ -28,84 +28,30 @@
       </label>
 
       <label>常用區域
-        <input name="preferred_area" placeholder="例如：西區、東區、民雄">
+        <select name="preferred_area">
+          <option value="">請選擇常用區域</option>
+          <option value="西區">西區</option>
+          <option value="東區">東區</option>
+          <option value="民雄">民雄</option>
+          <option value="太保">太保</option>
+          <option value="番路">番路</option>
+          <option value="竹崎">竹崎</option>
+        </select>
       </label>
 
       <details class="terms-box">
         <summary>點我查看會員條款</summary>
         <ol>
-          <li>
-            <strong>會員資格</strong>
-            <ul>
-              <li>本平台會員分為一般用戶與服務提供者。</li>
-              <li>會員須提供真實、正確且完整之資料，若有變更應即時更新。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>帳號與安全</strong>
-            <ul>
-              <li>會員須妥善保管自己的帳號資訊，不得轉讓或借用他人。</li>
-              <li>若發現帳號遭盜用，應立即通知本平台。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>服務內容</strong>
-            <ul>
-              <li>本平台提供水電維修媒合服務，包括報修需求發布、師傅接單與通知服務。</li>
-              <li>本平台僅為媒合角色，不直接參與交易與施工。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>交易與責任</strong>
-            <ul>
-              <li>用戶與師傅之間之服務契約，屬雙方自行成立。</li>
-              <li>施工品質、報價爭議與金錢糾紛，原則上由雙方自行協調。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>費用與收費</strong>
-            <ul>
-              <li>本平台未來可能收取媒合服務費、接單費或曝光費，實際標準以平台公告為準。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>會員行為規範</strong>
-            <ul>
-              <li>會員不得提供不實資訊、惡意取消訂單、詐騙、不當收費或散播違法內容。</li>
-              <li>違反者，本平台有權停權、刪除帳號並保留法律追訴權。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>評價與回饋</strong>
-            <ul>
-              <li>用戶可依真實體驗給予評價，平台有權刪除惡意或不當評論。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>隱私保護</strong>
-            <ul>
-              <li>會員資料僅用於媒合服務、系統通知與客服處理，除法律要求外，不會任意提供第三方。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>服務中斷與終止</strong>
-            <ul>
-              <li>本平台可能因系統維護、不可抗力或資安事件暫停服務。</li>
-              <li>若會員違反條款或長期未使用帳號，本平台得終止會員資格。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>條款修改</strong>
-            <ul>
-              <li>本平台有權隨時修改本條款，修改後會公告於平台，繼續使用即視為同意。</li>
-            </ul>
-          </li>
-          <li>
-            <strong>法律適用</strong>
-            <ul>
-              <li>本條款依中華民國法律解釋，若有爭議，以本平台所在地法院為管轄法院。</li>
-            </ul>
-          </li>
+          <li>本平台會員分為一般用戶與服務提供者，會員須提供真實、正確且完整之資料。</li>
+          <li>會員須妥善保管自己的帳號資訊，若發現異常應立即通知平台。</li>
+          <li>本平台提供水電維修媒合服務，不直接參與交易與施工。</li>
+          <li>施工品質、報價爭議與金錢糾紛，原則上由雙方自行協調。</li>
+          <li>本平台未來可能收取媒合服務費、接單費或曝光費，實際標準以平台公告為準。</li>
+          <li>會員不得提供不實資訊、惡意取消訂單、詐騙或散播違法內容。</li>
+          <li>用戶可依真實體驗給予評價，平台有權刪除惡意或不當評論。</li>
+          <li>會員資料僅用於媒合服務、系統通知與客服處理，除法律要求外不會任意提供第三方。</li>
+          <li>本平台可能因系統維護、不可抗力或資安事件暫停服務。</li>
+          <li>本平台有權隨時修改條款，繼續使用即視為同意更新內容。</li>
         </ol>
       </details>
 
