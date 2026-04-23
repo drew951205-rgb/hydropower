@@ -2,6 +2,8 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
+const { env } = require('./config/env');
+const { roleRouter } = require('./middlewares/role-router');
 const webhookRoutes = require('./routes/webhook.routes');
 const orderRoutes = require('./routes/order.routes');
 const technicianRoutes = require('./routes/technician.routes');
@@ -12,6 +14,41 @@ const { requestLogger } = require('./middlewares/request-logger');
 const { notFound, errorHandler } = require('./middlewares/error-handler');
 
 const app = express();
+
+// CORS configuration - allow specific origins only
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+
+    // Allow Render and production domains
+    if (origin.includes('onrender.com') || origin.includes('liff.line.me')) {
+      return callback(null, true);
+    }
+
+    // For production, check PUBLIC_BASE_URL
+    if (env.publicBaseUrl && origin === env.publicBaseUrl) {
+      return callback(null, true);
+    }
+
+    // Deny all other origins in production
+    if (env.nodeEnv === 'production') {
+      console.warn(`CORS denied for origin: ${origin}`);
+      return callback(new Error('Not allowed by CORS'));
+    }
+
+    // Allow in development
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-admin-api-key', 'x-line-signature', 'authorization'],
+};
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -42,7 +79,7 @@ app.use(helmet({
     }
   }
 }));
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(rateLimit);
 app.use(express.json({
   verify: (req, res, buffer) => {
@@ -50,21 +87,34 @@ app.use(express.json({
   }
 }));
 app.use(requestLogger);
+app.use(roleRouter);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, service: '師傅抵嘉 API' });
 });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// 首頁路由 - 根據身份動態返回
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'liff', 'repair.html'));
+  const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
+  res.sendFile(path.join(__dirname, '..', 'public', 'liff', defaultPage));
 });
+
 app.get('/admin', (req, res) => {
   res.redirect('/admin/');
 });
+
 app.get('/liff', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'liff', 'repair.html'));
+  const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
+  res.sendFile(path.join(__dirname, '..', 'public', 'liff', defaultPage));
 });
+
+// LIFF 頁面 - 對師傅隱藏某些頁面
+const customerPages = ['repair', 'profile', 'review', 'support'];
+const technicianPages = ['my-cases', 'quote', 'confirm', 'support', 'faq', 'cancel', 'navigate', 'change-request'];
+const commonPages = ['quote', 'change-request', 'confirm', 'faq', 'cancel', 'navigate', 'support'];
+
 [
   'repair',
   'quote',
@@ -76,11 +126,23 @@ app.get('/liff', (req, res) => {
   'support',
   'faq',
   'cancel',
+  'navigate',
 ].forEach((page) => {
   app.get(`/liff/${page}`, (req, res) => {
+    // 檢查頁面是否對此用戶開放
+    if (req.userRole === 'technician' && customerPages.includes(page)) {
+      return res.status(403).json({ error: 'Forbidden: This page is for customers only' });
+    }
+
     res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
   });
+
   app.get(`/${page}`, (req, res) => {
+    // 檢查頁面是否對此用戶開放
+    if (req.userRole === 'technician' && customerPages.includes(page)) {
+      return res.status(403).json({ error: 'Forbidden: This page is for customers only' });
+    }
+
     res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
   });
 });
@@ -102,7 +164,9 @@ app.get('*', (req, res, next) => {
     return next();
   }
 
-  return res.sendFile(path.join(__dirname, '..', 'public', 'liff', 'repair.html'));
+  // Fallback：根據用戶身份返回正確的首頁
+  const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
+  return res.sendFile(path.join(__dirname, '..', 'public', 'liff', defaultPage));
 });
 
 app.use(notFound);

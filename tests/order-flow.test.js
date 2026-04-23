@@ -39,6 +39,27 @@ function request(server, method, path, body, headers = {}) {
   });
 }
 
+function requestText(server, method, path, headers = {}) {
+  return new Promise((resolve, reject) => {
+    resetRateLimit();
+    const req = http.request({
+      method,
+      path,
+      port: server.address().port,
+      headers: {
+        accept: 'text/html',
+        ...headers,
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve({ status: res.statusCode, body: data }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 async function createRepairOrder(server, overrides = {}) {
   const stamp = Date.now();
   const lineUserId = overrides.line_user_id || `U-liff-order-${stamp}-${Math.random().toString(36).slice(2, 6)}`;
@@ -106,6 +127,18 @@ test('customer can create an order from LIFF repair form API', async () => {
     assert.equal(response.body.data.contact_name, '王先生');
     assert.equal(response.body.data.service_mode, 'scheduled');
     assert.equal(response.body.data.preferred_time_text, '明天下午 2-5 點');
+  } finally {
+    server.close();
+  }
+});
+
+test('technician navigate LIFF page renders instead of falling back to repair page', async () => {
+  const server = app.listen(0);
+  try {
+    const response = await requestText(server, 'GET', '/liff/navigate');
+    assert.equal(response.status, 200);
+    assert.match(response.body, /即將趕往現場/);
+    assert.doesNotMatch(response.body, /我要報修/);
   } finally {
     server.close();
   }
