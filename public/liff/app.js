@@ -637,10 +637,14 @@ async function setupCancel() {
         isTechnician
           ? '\u5df2\u53d6\u6d88\u6848\u4ef6 ' + result.order.order_no + '\uff0c\u5e73\u53f0\u5df2\u901a\u77e5\u5ba2\u6236\uff0c\u4e26\u5c07\u6848\u4ef6\u9000\u56de\u91cd\u65b0\u6d3e\u55ae\u3002'
           : '\u5df2\u53d6\u6d88\u6848\u4ef6 ' + result.order.order_no + '\uff0c\u53d6\u6d88\u539f\u56e0\u5df2\u7559\u5b58\u5728\u5e73\u53f0\u7d00\u9304\u3002',
-        [
-          { label: isTechnician ? '\u67e5\u770b\u6211\u7684\u6848\u4ef6' : '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
-          { label: '\u518d\u6b21\u5831\u4fee', href: liffPath('/liff/repair') },
-        ]
+        isTechnician
+          ? [
+              { label: '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
+            ]
+          : [
+              { label: '\u67e5\u770b\u6211\u7684\u6848\u4ef6', href: liffPath('/liff/my-cases') },
+              { label: '\u518d\u6b21\u5831\u4fee', href: liffPath('/liff/repair') },
+            ]
       );
     } catch (error) {
       setStatus(error.message, true);
@@ -659,19 +663,19 @@ async function setupNavigate() {
   if (panel) {
     panel.innerHTML = `
       <div class="linked-order">
-        <p class="eyebrow">即將趕往現場</p>
+        <p class="eyebrow">??????</p>
         <h2>${escapeHtml(order.order_no || '')}</h2>
         <dl class="summary-list">
-          <dt>地址</dt><dd>${escapeHtml(order.address || '')}</dd>
-          <dt>時間需求</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
-          <dt>客戶</dt><dd>${escapeHtml(order.contact_name || '未提供')}</dd>
-          <dt>電話</dt><dd>${escapeHtml(order.contact_phone || '未提供')}</dd>
+          <dt>??</dt><dd>${escapeHtml(order.address || '')}</dd>
+          <dt>????</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
+          <dt>??</dt><dd>${escapeHtml(order.contact_name || '???')}</dd>
+          <dt>??</dt><dd>${escapeHtml(order.contact_phone || '???')}</dd>
         </dl>
       </div>
     `;
   }
 
-  setStatus('正在通知客戶並開啟 Google Maps...');
+  setStatus('????????? Google Maps...');
 
   try {
     const result = await api(`/api/liff/orders/${order.id}/en-route`, {
@@ -684,11 +688,11 @@ async function setupNavigate() {
     if (statusNode) {
       statusNode.hidden = false;
     }
-    setStatus(`${error.message}，可直接點下方按鈕開啟地圖。`, true);
+    setStatus(`${error.message}??????????????`, true);
     if (panel) {
       panel.insertAdjacentHTML(
         'beforeend',
-        `<div class="actions"><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer"><button type="button">開啟 Google Maps</button></a></div>`
+        `<div class="actions"><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer"><button type="button">?? Google Maps</button></a></div>`
       );
     }
   }
