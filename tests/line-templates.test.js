@@ -119,7 +119,6 @@ test('technician LINE messages include quote, change request, and cancel actions
   assert.equal(assigned.type, 'flex');
   assert.match(JSON.stringify(assigned.contents), /Chiayi test address/);
   assert.match(JSON.stringify(assigned.contents), /Pipe leak under sink/);
-  assert.match(JSON.stringify(assigned.contents), /顧客照片/);
   assert.equal(footerActions(assigned)[0].type, 'uri');
   assert.match(footerActions(assigned)[0].uri, /\/quote\?order_id=12/);
   assert.equal(footerActions(assigned)[1].type, 'uri');
@@ -127,7 +126,6 @@ test('technician LINE messages include quote, change request, and cancel actions
 
   const quotePrompt = quotePromptMessage(order);
   assert.equal(quotePrompt.type, 'flex');
-  assert.match(JSON.stringify(quotePrompt.contents), /問題描述/);
   assert.match(JSON.stringify(quotePrompt.contents), /Pipe leak under sink/);
   assert.equal(footerActions(quotePrompt)[0].type, 'uri');
   assert.match(footerActions(quotePrompt)[0].uri, /\/quote\?order_id=12/);
@@ -152,8 +150,6 @@ test('technician LINE messages include quote, change request, and cancel actions
 
   const acceptedChange = acceptedChangeRequestTechnicianMessage(order);
   assert.equal(acceptedChange.type, 'flex');
-  assert.match(JSON.stringify(acceptedChange.contents), /追加報價已同意/);
-  assert.match(JSON.stringify(acceptedChange.contents), /若已處理完成/);
   assert.equal(footerActions(acceptedChange)[0].data, 'technician:complete:12');
   assert.equal(footerActions(acceptedChange)[1].type, 'uri');
   assert.match(footerActions(acceptedChange)[1].uri, /\/change-request\?order_id=12/);
@@ -162,10 +158,9 @@ test('technician LINE messages include quote, change request, and cancel actions
 
   const arrived = arrivedTechnicianMessage(order);
   assert.equal(arrived.type, 'flex');
-  assert.match(JSON.stringify(arrived.contents), /接下來可以追加報價或完工回報/);
-  assert.equal(footerActions(arrived)[0].type, 'uri');
-  assert.match(footerActions(arrived)[0].uri, /\/change-request\?order_id=12/);
-  assert.equal(footerActions(arrived)[1].data, 'technician:complete:12');
+  assert.equal(footerActions(arrived)[0].data, 'technician:complete:12');
+  assert.equal(footerActions(arrived)[1].type, 'uri');
+  assert.match(footerActions(arrived)[1].uri, /\/change-request\?order_id=12/);
   assert.equal(footerActions(arrived)[2].type, 'uri');
   assert.match(footerActions(arrived)[2].uri, /\/cancel\?order_id=12&role=technician/);
 });

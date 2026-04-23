@@ -662,16 +662,30 @@ async function setupNavigate() {
 
   if (panel) {
     panel.innerHTML = `
-      <div class="linked-order">
-        <p class="eyebrow">??????</p>
+      <section class="hero-card">
+        <p class="eyebrow">? 1 ??????</p>
         <h2>${escapeHtml(order.order_no || '')}</h2>
+        <p class="muted">??????????????????? Google Maps ???</p>
+      </section>
+      <section class="panel subtle-card">
         <dl class="summary-list">
           <dt>??</dt><dd>${escapeHtml(order.address || '')}</dd>
-          <dt>????</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
+          <dt>????</dt><dd>${escapeHtml(order.preferred_time_text || '???')}</dd>
           <dt>??</dt><dd>${escapeHtml(order.contact_name || '???')}</dd>
           <dt>??</dt><dd>${escapeHtml(order.contact_phone || '???')}</dd>
         </dl>
-      </div>
+      </section>
+      <section class="panel">
+        <div class="photo-head">
+          <strong>?????</strong>
+          <span>???????</span>
+        </div>
+        <ol class="step-list">
+          <li><span class="step-index">1</span><div><strong>????</strong><p>?????????????????????</p></div></li>
+          <li><span class="step-index">2</span><div><strong>????</strong><p>?????? Google Maps????????</p></div></li>
+          <li><span class="step-index">3</span><div><strong>?????</strong><p>???????? LINE ????????</p></div></li>
+        </ol>
+      </section>
     `;
   }
 
@@ -692,7 +706,7 @@ async function setupNavigate() {
     if (panel) {
       panel.insertAdjacentHTML(
         'beforeend',
-        `<div class="actions"><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer"><button type="button">?? Google Maps</button></a></div>`
+        `<div class="actions single"><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer"><button type="button">?? Google Maps</button></a></div>`
       );
     }
   }
@@ -706,33 +720,33 @@ function confirmDetailHtml(order, mode) {
 
   if (mode === 'completion') {
     return `
-      <h2>完工確認</h2>
+      <h2>????</h2>
       <dl class="summary-list">
-        <dt>原始報價</dt><dd>${formatMoney(baseQuote)}</dd>
-        <dt>追加報價</dt><dd>${formatMoney(changeAmount)}</dd>
-        <dt>實付金額</dt><dd>${formatMoney(finalAmount)}</dd>
+        <dt>????</dt><dd>${formatMoney(baseQuote)}</dd>
+        <dt>????</dt><dd>${formatMoney(changeAmount)}</dd>
+        <dt>????</dt><dd>${formatMoney(finalAmount)}</dd>
       </dl>
     `;
   }
 
   if (isChange) {
     return `
-      <h2>追加報價確認</h2>
+      <h2>??????</h2>
       <dl class="summary-list">
-        <dt>原始報價</dt><dd>${formatMoney(baseQuote)}</dd>
-        <dt>追加金額</dt><dd>${formatMoney(changeAmount)}</dd>
-        <dt>追加原因</dt><dd>${escapeHtml(order.change_request_reason || '未填寫')}</dd>
+        <dt>????</dt><dd>${formatMoney(baseQuote)}</dd>
+        <dt>????</dt><dd>${formatMoney(changeAmount)}</dd>
+        <dt>????</dt><dd>${escapeHtml(order.service_type || '')}</dd>
+        <dt>??????</dt><dd>${escapeHtml(order.estimated_arrival_time || '??????')}</dd>
       </dl>
     `;
   }
 
   return `
-    <h2>報價確認</h2>
+    <h2>????</h2>
     <dl class="summary-list">
-      <dt>報價金額</dt><dd>${formatMoney(baseQuote)}</dd>
-      <dt>服務類型</dt><dd>${escapeHtml(order.service_type || '')}</dd>
-      <dt>客戶希望時間</dt><dd>${escapeHtml(order.preferred_time_text || '')}</dd>
-      <dt>師傅預計到場</dt><dd>${escapeHtml(order.estimated_arrival_time || '師傅尚未填寫')}</dd>
+      <dt>????</dt><dd>${formatMoney(baseQuote)}</dd>
+      <dt>????</dt><dd>${escapeHtml(order.service_type || '')}</dd>
+      <dt>??????</dt><dd>${escapeHtml(order.estimated_arrival_time || '??????')}</dd>
     </dl>
   `;
 }

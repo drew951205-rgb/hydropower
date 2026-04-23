@@ -327,6 +327,62 @@ button:disabled {
   margin-top: 16px;
 }
 
+.hero-card {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 18px;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f3fbf8 0%, #ffffff 100%);
+}
+
+.subtle-card {
+  background: #f8fafb;
+}
+
+.step-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-list li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #1f8a70;
+  color: #fff;
+  font-weight: 800;
+}
+
+.step-list strong,
+.step-list p {
+  margin: 0;
+}
+
+.step-list p {
+  margin-top: 4px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.actions.single {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 640px) {
   .page {
     padding: 16px;
