@@ -11,6 +11,15 @@ function resolveSkipLineSignature() {
   return process.env.NODE_ENV !== 'production';
 }
 
+function resolveUseLiffLaunchUrl() {
+  const raw = process.env.LIFF_USE_LAUNCH_URL;
+
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+
+  return process.env.NODE_ENV === 'production';
+}
+
 const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 3000),
@@ -22,7 +31,7 @@ const env = {
   adminApiKey: process.env.ADMIN_API_KEY || 'change-me',
   publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
   liffId: process.env.LIFF_ID || '',
-  useLiffLaunchUrl: process.env.LIFF_USE_LAUNCH_URL === 'true',
+  useLiffLaunchUrl: resolveUseLiffLaunchUrl(),
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60000),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 120),
   dispatchTimeoutMinutes: Number(process.env.DISPATCH_TIMEOUT_MINUTES || 10),

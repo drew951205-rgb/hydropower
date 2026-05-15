@@ -12,7 +12,7 @@
       "action": {
         "type": "uri",
         "label": "我要報修",
-        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/repair"
+        "uri": "https://liff.line.me/2009816775-KmK8OvHO/repair"
       }
     },
     {
@@ -20,7 +20,7 @@
       "action": {
         "type": "uri",
         "label": "加入會員",
-        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/profile"
+        "uri": "https://liff.line.me/2009816775-KmK8OvHO/profile"
       }
     },
     {
@@ -28,7 +28,7 @@
       "action": {
         "type": "uri",
         "label": "我的案件",
-        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/my-cases"
+        "uri": "https://liff.line.me/2009816775-KmK8OvHO/my-cases"
       }
     },
     {
@@ -36,7 +36,7 @@
       "action": {
         "type": "uri",
         "label": "常見問題",
-        "uri": "https://shi-fu-di-jia-api.onrender.com/liff/faq"
+        "uri": "https://liff.line.me/2009816775-KmK8OvHO/faq"
       }
     }
   ]
