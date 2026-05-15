@@ -117,6 +117,7 @@ async function reportClientLog(req, res) {
     sdkVersion: req.body?.sdkVersion || '',
     lineVersion: req.body?.lineVersion || '',
     inClient: req.body?.inClient,
+    isLoggedIn: req.body?.isLoggedIn,
     userAgent: req.body?.userAgent || '',
   }));
 

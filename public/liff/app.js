@@ -240,7 +240,22 @@ async function initLineProfile() {
   if (window.liff && config.liffId && shouldInitLiff()) {
     try {
       await window.liff.init({ liffId: config.liffId });
+      reportClientLog({
+        event: 'liff_init_resolved',
+        sdkVersion: window.liff?.getVersion?.() || '',
+        lineVersion: window.liff?.getLineVersion?.() || '',
+        inClient: window.liff?.isInClient?.() ?? null,
+        search: window.location.search,
+        isLoggedIn: window.liff?.isLoggedIn?.() ?? null,
+      });
       if (!window.liff.isLoggedIn()) {
+        reportClientLog({
+          event: 'liff_login_redirect',
+          sdkVersion: window.liff?.getVersion?.() || '',
+          lineVersion: window.liff?.getLineVersion?.() || '',
+          inClient: window.liff?.isInClient?.() ?? null,
+          search: window.location.search,
+        });
         window.liff.login({ redirectUri: window.location.href });
         return;
       }
