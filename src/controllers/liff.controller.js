@@ -110,8 +110,13 @@ async function reportClientLog(req, res) {
     event: req.body?.event || 'unknown',
     message: req.body?.message || '',
     code: req.body?.code || '',
+    cause: req.body?.cause || '',
     page: req.body?.page || '',
     href: req.body?.href || '',
+    search: req.body?.search || '',
+    sdkVersion: req.body?.sdkVersion || '',
+    lineVersion: req.body?.lineVersion || '',
+    inClient: req.body?.inClient,
     userAgent: req.body?.userAgent || '',
   }));
 

@@ -40,6 +40,26 @@ function setStatus(message, isError = false) {
   node.hidden = !message;
 }
 
+function serializeDiagnosticValue(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+
+  if (value instanceof Error) {
+    return JSON.stringify({
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+    });
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 async function reportClientLog(payload = {}) {
   try {
     await fetch('/api/liff/client-log', {
@@ -197,6 +217,11 @@ async function initLineProfile() {
         event: 'liff_init_failed',
         message: error?.message || '',
         code: error?.code || '',
+        cause: serializeDiagnosticValue(error?.cause),
+        sdkVersion: window.liff?.getVersion?.() || '',
+        lineVersion: window.liff?.getLineVersion?.() || '',
+        inClient: window.liff?.isInClient?.() ?? null,
+        search: window.location.search,
       });
       setStatus(`LIFF 載入失敗：${error.message || '請確認 LIFF ID 與 Endpoint URL 是否一致'}`, true);
     }
