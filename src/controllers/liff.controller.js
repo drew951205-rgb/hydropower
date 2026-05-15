@@ -71,7 +71,7 @@ function requireVerifiedLineAuth(req, lineUserId, options = {}) {
 
   const { authTs, authSig } = signedAuthFrom(req);
   if (!verifySignedLineAuth(lineUserId, authTs, authSig)) {
-    throw forbidden('Verified LINE session is required');
+    throw forbidden('需要已驗證的 LINE 工作階段，請重新從 LINE 內開啟此頁面');
   }
 }
 
