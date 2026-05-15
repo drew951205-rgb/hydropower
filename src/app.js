@@ -110,13 +110,20 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: '師傅抵嘉 API' });
 });
 
+app.get(['/liff', '/liff/'], (req, res) => {
+  const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
+  return sendLiffPage(res, defaultPage);
+});
+
 app.use('/liff', express.static(path.join(__dirname, '..', 'public', 'liff'), {
   etag: false,
   lastModified: false,
   redirect: false,
   setHeaders: (res) => setNoCache(res),
 }));
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  redirect: false,
+}));
 
 // 首頁路由 - 根據身份動態返回
 app.get('/', (req, res) => {
