@@ -113,6 +113,7 @@ app.get('/health', (req, res) => {
 app.use('/liff', express.static(path.join(__dirname, '..', 'public', 'liff'), {
   etag: false,
   lastModified: false,
+  redirect: false,
   setHeaders: (res) => setNoCache(res),
 }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -127,7 +128,7 @@ app.get('/admin', (req, res) => {
   res.redirect('/admin/');
 });
 
-app.get('/liff', (req, res) => {
+app.get(['/liff', '/liff/'], (req, res) => {
   const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
   return sendLiffPage(res, defaultPage);
 });
