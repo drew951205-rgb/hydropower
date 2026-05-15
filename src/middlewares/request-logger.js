@@ -1,9 +1,13 @@
+const { logger } = require('../config/logger');
 function requestLogger(req, res, next) {
   const startedAt = Date.now();
   res.on('finish', () => {
-    console.log(
-      `${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - startedAt}ms`
-    );
+    logger.info('http_request', {
+      method: req.method,
+      url: req.originalUrl,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    });
   });
   next();
 }

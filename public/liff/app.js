@@ -1,6 +1,7 @@
 const state = {
   profile: null,
   config: null,
+  auth: null,
 };
 
 function params() {
@@ -64,15 +65,41 @@ function lineUserId() {
   );
 }
 
+function authState() {
+  if (state.auth?.auth_ts && state.auth?.auth_sig) return state.auth;
+
+  const search = params();
+  return {
+    auth_ts: search.get('auth_ts') || localStorage.getItem('line_auth_ts') || '',
+    auth_sig: search.get('auth_sig') || localStorage.getItem('line_auth_sig') || '',
+  };
+}
+
+function persistAuth(nextAuth = {}) {
+  state.auth = {
+    auth_ts: nextAuth.auth_ts || '',
+    auth_sig: nextAuth.auth_sig || '',
+  };
+
+  if (state.auth.auth_ts) localStorage.setItem('line_auth_ts', state.auth.auth_ts);
+  if (state.auth.auth_sig) localStorage.setItem('line_auth_sig', state.auth.auth_sig);
+}
+
 function withLineUser(url) {
   const next = new URL(url, window.location.origin);
   if (lineUserId()) next.searchParams.set('line_user_id', lineUserId());
+  const auth = authState();
+  if (auth.auth_ts) next.searchParams.set('auth_ts', auth.auth_ts);
+  if (auth.auth_sig) next.searchParams.set('auth_sig', auth.auth_sig);
   return next.toString();
 }
 
 function liffPath(path) {
   const next = new URL(path, window.location.origin);
   if (lineUserId()) next.searchParams.set('line_user_id', lineUserId());
+  const auth = authState();
+  if (auth.auth_ts) next.searchParams.set('auth_ts', auth.auth_ts);
+  if (auth.auth_sig) next.searchParams.set('auth_sig', auth.auth_sig);
   return `${next.pathname}${next.search}`;
 }
 
@@ -98,6 +125,36 @@ async function api(path, options = {}) {
   return payload.data;
 }
 
+async function createLiffSession() {
+  if (!window.liff || !window.liff.isLoggedIn()) return;
+
+  const accessToken = window.liff.getAccessToken?.();
+  if (!accessToken) return;
+
+  try {
+    const session = await api('/api/liff/session', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (session?.line_user_id) {
+      localStorage.setItem('line_user_id', session.line_user_id);
+    }
+    if (session?.auth_ts && session?.auth_sig) {
+      persistAuth(session);
+      const current = new URL(window.location.href);
+      current.searchParams.set('line_user_id', session.line_user_id);
+      current.searchParams.set('auth_ts', session.auth_ts);
+      current.searchParams.set('auth_sig', session.auth_sig);
+      window.history.replaceState({}, '', current.toString());
+    }
+  } catch (error) {
+    console.warn('[liff:session:error]', error);
+  }
+}
+
 async function initLineProfile() {
   const config = await api('/api/liff/config');
   state.config = config;
@@ -110,6 +167,7 @@ async function initLineProfile() {
         return;
       }
       state.profile = await window.liff.getProfile();
+      await createLiffSession();
     } catch (error) {
       console.error('[liff:init:error]', error);
       setStatus(`LIFF 載入失敗：${error.message || '請確認 LIFF ID 與 Endpoint URL 是否一致'}`, true);
@@ -122,6 +180,8 @@ async function initLineProfile() {
   }
 
   if (lineUserId()) localStorage.setItem('line_user_id', lineUserId());
+  const auth = authState();
+  if (auth.auth_ts && auth.auth_sig) persistAuth(auth);
   const lineInput = $('#line_user_id');
   if (lineInput) lineInput.value = lineUserId();
 }
@@ -135,6 +195,9 @@ function requireLineUser() {
 function formDataWithProfile(form) {
   const data = new FormData(form);
   data.set('line_user_id', lineUserId());
+  const auth = authState();
+  if (auth.auth_ts) data.set('auth_ts', auth.auth_ts);
+  if (auth.auth_sig) data.set('auth_sig', auth.auth_sig);
   if (state.profile?.displayName) data.set('line_display_name', state.profile.displayName);
   if (state.profile?.pictureUrl) data.set('line_picture_url', state.profile.pictureUrl);
   if (state.profile?.language) data.set('line_language', state.profile.language);
@@ -142,9 +205,12 @@ function formDataWithProfile(form) {
 }
 
 function jsonWithLineUser(payload = {}) {
+  const auth = authState();
   return JSON.stringify({
     ...payload,
     line_user_id: lineUserId(),
+    auth_ts: auth.auth_ts,
+    auth_sig: auth.auth_sig,
   });
 }
 
@@ -155,7 +221,7 @@ function formatMoney(value) {
 function orderSummary(order) {
   return [
     `<strong>${order.order_no}</strong>`,
-    `狀態：${order.status}`,
+    `狀態：${statusText(order.status)}`,
     `服務：${order.service_type || '未填'}`,
     `地區：${order.area || '未填'}`,
     `時間：${order.preferred_time_text || '未填'}`,
@@ -448,6 +514,13 @@ async function setupQuote() {
   renderPhotos(order.images || []);
 
   const form = $('#quote-form');
+  const arrivalField = form.estimated_arrival_time;
+  if (arrivalField && !arrivalField.value) {
+    const now = new Date();
+    now.setMinutes(Math.ceil(now.getMinutes() / 5) * 5, 0, 0);
+    arrivalField.min = now.toISOString().slice(0, 16);
+  }
+
   form.addEventListener('input', () => {
     const basic = Number(form.basic_fee.value || 0);
     const material = Number(form.material_fee.value || 0);
@@ -457,9 +530,25 @@ async function setupQuote() {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!requireLineUser()) return;
+    if (!arrivalField?.value) {
+      setStatus('請先選擇師傅預計到場日期與時間。', true);
+      arrivalField?.focus();
+      return;
+    }
     setStatus('正在送出報價...');
     try {
       const data = Object.fromEntries(new FormData(form).entries());
+      const arrival = new Date(arrivalField.value);
+      data.estimated_arrival_time = Number.isNaN(arrival.getTime())
+        ? ''
+        : new Intl.DateTimeFormat('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          }).format(arrival).replace(/\//g, '/');
       await api(`/api/liff/orders/${order.id}/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -663,33 +752,33 @@ async function setupNavigate() {
   if (panel) {
     panel.innerHTML = `
       <section class="hero-card">
-        <p class="eyebrow">? 1 ??????</p>
+        <p class="eyebrow">Step 1｜出發前提醒</p>
         <h2>${escapeHtml(order.order_no || '')}</h2>
-        <p class="muted">??????????????????? Google Maps ???</p>
+        <p class="muted">系統會先通知客戶你即將出發，接著幫你開啟 Google Maps 導航。</p>
       </section>
       <section class="panel subtle-card">
         <dl class="summary-list">
-          <dt>??</dt><dd>${escapeHtml(order.address || '')}</dd>
-          <dt>????</dt><dd>${escapeHtml(order.preferred_time_text || '???')}</dd>
-          <dt>??</dt><dd>${escapeHtml(order.contact_name || '???')}</dd>
-          <dt>??</dt><dd>${escapeHtml(order.contact_phone || '???')}</dd>
+          <dt>地址</dt><dd>${escapeHtml(order.address || '未填')}</dd>
+          <dt>時間需求</dt><dd>${escapeHtml(order.preferred_time_text || '未填')}</dd>
+          <dt>客戶</dt><dd>${escapeHtml(order.contact_name || '未填')}</dd>
+          <dt>電話</dt><dd>${escapeHtml(order.contact_phone || '未填')}</dd>
         </dl>
       </section>
       <section class="panel">
         <div class="photo-head">
-          <strong>?????</strong>
-          <span>???????</span>
+          <strong>出發前提醒</strong>
+          <span>避免白跑一趟</span>
         </div>
         <ol class="step-list">
-          <li><span class="step-index">1</span><div><strong>????</strong><p>?????????????????????</p></div></li>
-          <li><span class="step-index">2</span><div><strong>????</strong><p>?????? Google Maps????????</p></div></li>
-          <li><span class="step-index">3</span><div><strong>?????</strong><p>???????? LINE ????????</p></div></li>
+          <li><span class="step-index">1</span><div><strong>確認地址</strong><p>出發前再看一次案件地址與聯絡方式，避免跑錯地點。</p></div></li>
+          <li><span class="step-index">2</span><div><strong>開始導航</strong><p>系統會直接幫你開啟 Google Maps，方便你立刻出發。</p></div></li>
+          <li><span class="step-index">3</span><div><strong>到場後回報</strong><p>抵達現場後，記得回到 LINE 按下「已到場」。</p></div></li>
         </ol>
       </section>
     `;
   }
 
-  setStatus('????????? Google Maps...');
+  setStatus('正在通知客戶並開啟 Google Maps...');
 
   try {
     const result = await api(`/api/liff/orders/${order.id}/en-route`, {
@@ -702,11 +791,11 @@ async function setupNavigate() {
     if (statusNode) {
       statusNode.hidden = false;
     }
-    setStatus(`${error.message}??????????????`, true);
+    setStatus(`${error.message}，你也可以直接手動開啟導航。`, true);
     if (panel) {
       panel.insertAdjacentHTML(
         'beforeend',
-        `<div class="actions single"><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer"><button type="button">?? Google Maps</button></a></div>`
+        `<div class="actions single"><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer"><button type="button">開啟 Google Maps</button></a></div>`
       );
     }
   }
@@ -719,34 +808,34 @@ function confirmDetailHtml(order, mode) {
   const isChange = mode === 'change' || order.change_request_status === 'pending';
 
   if (mode === 'completion') {
-    return `
-      <h2>????</h2>
+    return       `
+      <h2>完工金額確認</h2>
       <dl class="summary-list">
-        <dt>????</dt><dd>${formatMoney(baseQuote)}</dd>
-        <dt>????</dt><dd>${formatMoney(changeAmount)}</dd>
-        <dt>????</dt><dd>${formatMoney(finalAmount)}</dd>
+        <dt>原始報價</dt><dd>${formatMoney(baseQuote)}</dd>
+        <dt>追加報價</dt><dd>${formatMoney(changeAmount)}</dd>
+        <dt>最終金額</dt><dd>${formatMoney(finalAmount)}</dd>
       </dl>
     `;
   }
 
   if (isChange) {
     return `
-      <h2>??????</h2>
+      <h2>追加報價確認</h2>
       <dl class="summary-list">
-        <dt>????</dt><dd>${formatMoney(baseQuote)}</dd>
-        <dt>????</dt><dd>${formatMoney(changeAmount)}</dd>
-        <dt>????</dt><dd>${escapeHtml(order.service_type || '')}</dd>
-        <dt>??????</dt><dd>${escapeHtml(order.estimated_arrival_time || '??????')}</dd>
+        <dt>原始報價</dt><dd>${formatMoney(baseQuote)}</dd>
+        <dt>追加金額</dt><dd>${formatMoney(changeAmount)}</dd>
+        <dt>服務項目</dt><dd>${escapeHtml(order.service_type || '未填')}</dd>
+        <dt>師傅預計到場時間</dt><dd>${escapeHtml(order.estimated_arrival_time || '尚未提供')}</dd>
       </dl>
     `;
   }
 
   return `
-    <h2>????</h2>
+    <h2>報價確認</h2>
     <dl class="summary-list">
-      <dt>????</dt><dd>${formatMoney(baseQuote)}</dd>
-      <dt>????</dt><dd>${escapeHtml(order.service_type || '')}</dd>
-      <dt>??????</dt><dd>${escapeHtml(order.estimated_arrival_time || '??????')}</dd>
+      <dt>報價金額</dt><dd>${formatMoney(baseQuote)}</dd>
+      <dt>服務項目</dt><dd>${escapeHtml(order.service_type || '未填')}</dd>
+      <dt>師傅預計到場時間</dt><dd>${escapeHtml(order.estimated_arrival_time || '尚未提供')}</dd>
     </dl>
   `;
 }
@@ -767,32 +856,32 @@ async function setupConfirm() {
       actions.innerHTML = handledCard(
         order.status === 'closed'
           ? '此案件已完成結案，這個確認按鈕已失效。'
-          : `此案件目前狀態為 ${order.status}，暫時不能確認結案。`
+          : `此案件目前狀態為 ${order.status}，暫時不能做完工確認。`
       );
       return;
     }
     actions.innerHTML = `
       <form id="completion-form">
-        <label>實付金額
+        <label>實際收款金額
           <input name="paid_amount" type="number" min="0" value="${Number(order.final_amount || order.quote_amount || 0)}" required>
         </label>
         <label>評分
           <select name="rating" required>
-            <option value="5">5 分，非常滿意</option>
+            <option value="5">5 分，很滿意</option>
             <option value="4">4 分，滿意</option>
             <option value="3">3 分，普通</option>
             <option value="2">2 分，不太滿意</option>
-            <option value="1">1 分，不滿意</option>
+            <option value="1">1 分，非常不滿意</option>
           </select>
         </label>
-        <label>評語
-          <textarea name="comment" placeholder="可以留下這次服務心得"></textarea>
+        <label>評論
+          <textarea name="comment" placeholder="可以補充這次服務的感受或提醒"></textarea>
         </label>
-        <button type="submit">確認結案並送出評價</button>
+        <button type="submit">確認完工並送出評分</button>
       </form>
       <div class="dispute-box">
         <a href="${liffPath(`/liff/support?order_id=${order.id}&type=completion_dispute`)}">
-          <button type="button" class="danger">\u6211\u8981\u7533\u8a34</button>
+          <button type="button" class="danger">我要申訴</button>
         </a>
       </div>
     `;
@@ -815,14 +904,14 @@ async function setupConfirm() {
     actions.innerHTML = handledCard(
       order.status === 'closed'
         ? '此案件已完成結案，這個報價確認按鈕已失效。'
-        : `此案件目前狀態為 ${order.status}，這個報價確認按鈕已失效。`
+        : `此案件目前狀態為 ${order.status}，暫時不能進行報價確認。`
     );
     return;
   }
   actions.innerHTML = `
     <div class="actions">
-      <button id="accept-button">同意</button>
-      <button id="reject-button" class="secondary">拒絕</button>
+      <button id="accept-button">確認同意</button>
+      <button id="reject-button" class="secondary">先拒絕</button>
     </div>
   `;
   $('#accept-button').addEventListener('click', () => submitQuoteConfirmSafe(order.id, true));
@@ -835,7 +924,7 @@ async function submitQuoteConfirm(orderId, accepted) {
     headers: { 'Content-Type': 'application/json' },
     body: jsonWithLineUser({ accepted }),
   });
-  setStatus(accepted ? '已同意，師傅會依案件資訊前往。' : '已拒絕，平台會協助後續安排。');
+  setStatus(accepted ? '已確認報價，師傅會依案件安排前往處理。' : '已拒絕這次報價，平台會協助你後續處理。');
 }
 
 async function submitQuoteConfirmSafe(orderId, accepted) {
@@ -844,13 +933,13 @@ async function submitQuoteConfirmSafe(orderId, accepted) {
     headers: { 'Content-Type': 'application/json' },
     body: jsonWithLineUser({ accepted }),
   });
-  setStatus(accepted ? '已送出同意，師傅會依案件資訊處理。' : '已送出拒絕，平台會協助後續安排。');
+  setStatus(accepted ? '已完成確認，師傅會依案件安排前往處理。' : '已送出拒絕，平台會協助後續處理。');
   const actions = $('#confirm-actions');
   if (actions) {
     actions.innerHTML = handledCard(
       accepted
-        ? '已送出同意，這個確認按鈕已關閉。'
-        : '已送出拒絕，這個確認按鈕已關閉。'
+        ? '你已完成確認，平台與師傅會依這次案件安排繼續處理。'
+        : '你已拒絕這次報價，平台會協助你處理後續。'
     );
   }
 }

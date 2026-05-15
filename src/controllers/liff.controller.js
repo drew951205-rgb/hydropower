@@ -10,6 +10,12 @@ const orderRepository = require('../repositories/order.repository');
 const sessionRepository = require('../repositories/session.repository');
 const { env } = require('../config/env');
 const { ORDER_STATUS } = require('../utils/order-status');
+const { logger } = require('../config/logger');
+const {
+  buildSignedLineAuth,
+  fetchLineProfileByAccessToken,
+  verifySignedLineAuth,
+} = require('../services/liff-auth.service');
 
 const ACTIVE_TECHNICIAN_STATUSES = [
   ORDER_STATUS.ASSIGNED,
@@ -41,6 +47,34 @@ function lineUserIdFrom(req) {
   );
 }
 
+function signedAuthFrom(req) {
+  return {
+    authTs:
+      req.body?.auth_ts ||
+      req.query?.auth_ts ||
+      req.headers['x-line-auth-ts'] ||
+      '',
+    authSig:
+      req.body?.auth_sig ||
+      req.query?.auth_sig ||
+      req.headers['x-line-auth-sig'] ||
+      '',
+  };
+}
+
+function requireVerifiedLineAuth(req, lineUserId, options = {}) {
+  const { allowUnsignedOutsideProduction = false } = options;
+
+  if (allowUnsignedOutsideProduction && env.nodeEnv !== 'production') {
+    return;
+  }
+
+  const { authTs, authSig } = signedAuthFrom(req);
+  if (!verifySignedLineAuth(lineUserId, authTs, authSig)) {
+    throw forbidden('Verified LINE session is required');
+  }
+}
+
 function isAccepted(value) {
   return value === true || value === 'true' || value === 'on' || value === '1';
 }
@@ -69,6 +103,36 @@ async function getConfig(req, res) {
       publicBaseUrl: env.publicBaseUrl,
     },
   });
+}
+
+async function createSession(req, res, next) {
+  try {
+    const authorization = req.header('authorization') || '';
+    const bearerToken = authorization.startsWith('Bearer ')
+      ? authorization.slice('Bearer '.length).trim()
+      : '';
+    const accessToken =
+      bearerToken ||
+      req.header('x-line-access-token') ||
+      String(req.body?.access_token || '').trim();
+
+    if (!accessToken) throw badRequest('Missing LINE access token');
+
+    const profile = await fetchLineProfileByAccessToken(accessToken);
+    if (!profile?.userId) {
+      throw forbidden('Unable to verify LINE session');
+    }
+
+    const auth = buildSignedLineAuth(profile.userId);
+    res.json({
+      data: {
+        line_user_id: profile.userId,
+        ...auth,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 async function getCustomerProfile(req, res, next) {
@@ -133,7 +197,7 @@ async function updateCustomerProfileWithFallback(userId, changes) {
       return await userRepository.updateUser(userId, attempt);
     } catch (error) {
       lastError = error;
-      console.warn('[customer-profile:update:fallback]', JSON.stringify({
+      logger.warn('[customer-profile:update:fallback]', JSON.stringify({
         userId,
         message: error.message,
       }));
@@ -202,6 +266,9 @@ async function createRepair(req, res, next) {
 async function getOrder(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const order = await orderService.getOrderDetail(req.params.id);
     if (
       String(order.customer_id) !== String(user.id) &&
@@ -222,6 +289,9 @@ async function getOrder(req, res, next) {
 async function listTechnicianOrders(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     if (user.role !== 'technician') throw forbidden('Technician role required');
 
     const lists = await Promise.all(
@@ -238,6 +308,9 @@ async function listTechnicianOrders(req, res, next) {
 async function listCustomerOrders(req, res, next) {
   try {
     const user = await resolveUser(req, { role: 'customer' });
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const orders = await orderRepository.listOrders({ customer_id: user.id });
     const sorted = orders
       .slice()
@@ -251,6 +324,9 @@ async function listCustomerOrders(req, res, next) {
 async function submitQuote(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const order = await orderRepository.findById(req.params.id);
     if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.technician_id) !== String(user.id)) {
@@ -264,14 +340,16 @@ async function submitQuote(req, res, next) {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw badRequest('Quote amount must be greater than 0');
     }
+    const estimatedArrivalTime = String(req.body.estimated_arrival_time || '').trim();
+    if (!estimatedArrivalTime) {
+      throw badRequest('請填寫師傅預計到場時間');
+    }
 
     const note = [
       `基本費：${basicFee}`,
       `材料費：${materialFee}`,
       `工資：${laborFee}`,
-      req.body.estimated_arrival_time
-        ? `預計到場：${req.body.estimated_arrival_time}`
-        : '',
+      `預計到場：${estimatedArrivalTime}`,
       req.body.note ? `備註：${req.body.note}` : '',
     ].filter(Boolean).join('\n');
 
@@ -280,7 +358,7 @@ async function submitQuote(req, res, next) {
       {
         amount,
         note,
-        estimated_arrival_time: String(req.body.estimated_arrival_time || '').trim() || null,
+        estimated_arrival_time: estimatedArrivalTime,
       },
       user.id
     );
@@ -293,6 +371,9 @@ async function submitQuote(req, res, next) {
 async function submitChangeRequest(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const order = await orderRepository.findById(req.params.id);
     if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.technician_id) !== String(user.id)) {
@@ -323,6 +404,9 @@ async function submitChangeRequest(req, res, next) {
 async function notifyTechnicianEnRoute(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     if (user.role !== 'technician') throw forbidden('Technician role required');
     const data = await completionService.notifyEnRoute(req.params.id, user.id);
     res.json({ data });
@@ -334,6 +418,9 @@ async function notifyTechnicianEnRoute(req, res, next) {
 async function confirmQuote(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const order = await orderRepository.findById(req.params.id);
     if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.customer_id) !== String(user.id)) {
@@ -353,6 +440,9 @@ async function confirmQuote(req, res, next) {
 async function confirmCompletion(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const order = await orderRepository.findById(req.params.id);
     if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.customer_id) !== String(user.id)) {
@@ -381,6 +471,9 @@ async function confirmCompletion(req, res, next) {
 async function submitCustomerReview(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const data = await completionService.submitCustomerReview(
       req.params.id,
       {
@@ -398,6 +491,9 @@ async function submitCustomerReview(req, res, next) {
 async function submitTechnicianReview(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const data = await completionService.submitTechnicianReview(
       req.params.id,
       user.id,
@@ -412,6 +508,9 @@ async function submitTechnicianReview(req, res, next) {
 async function submitSupportTicket(req, res, next) {
   try {
     const user = await resolveUser(req, { role: 'customer' });
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const images = await uploadFormImages(req.files, 'support');
     const data = await supportTicketService.createSupportTicket(user, {
       ...req.body,
@@ -426,6 +525,9 @@ async function submitSupportTicket(req, res, next) {
 async function cancelOrderByCustomer(req, res, next) {
   try {
     const user = await resolveUser(req, { role: 'customer' });
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     const data = await supportTicketService.cancelOrderByCustomer(
       user,
       req.params.id,
@@ -440,6 +542,9 @@ async function cancelOrderByCustomer(req, res, next) {
 async function cancelOrderByTechnician(req, res, next) {
   try {
     const user = await resolveUser(req);
+    requireVerifiedLineAuth(req, user.line_user_id, {
+      allowUnsignedOutsideProduction: true,
+    });
     if (user.role !== 'technician') throw forbidden('Technician role required');
     const data = await supportTicketService.cancelOrderByTechnician(
       user,
@@ -453,6 +558,7 @@ async function cancelOrderByTechnician(req, res, next) {
 }
 
 module.exports = {
+  createSession,
   getConfig,
   getCustomerProfile,
   updateCustomerProfile,

@@ -8,29 +8,54 @@
 </head>
 <body data-page="change-request">
   <main class="page">
-    <p class="eyebrow">師傅抵嘉</p>
-    <h1>追加報價</h1>
-    <p class="lead">現場有額外項目時，請填追加金額與原因，顧客確認後再施作。</p>
+    <header class="page-header">
+      <div class="hero-card">
+        <p class="eyebrow">師傅抵嘉</p>
+        <h1>追加報價</h1>
+        <p class="lead">現場若發現額外項目，把原因與金額寫清楚，客戶確認後才能繼續施工。</p>
+      </div>
+    </header>
+
     <p id="status" class="notice" hidden></p>
     <section id="order-panel" class="panel">載入案件中...</section>
     <section id="photos" class="photo-grid"></section>
-    <form id="change-form">
-      <label>追加金額
-        <input name="amount" type="number" min="1" required>
-      </label>
-      <label>追加原因
-        <textarea name="reason" placeholder="例如：止水閥老化，需要更換零件。" required></textarea>
-      </label>
-      <label>現場照片
-        <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-      </label>
-      <label>
-        <span>是否需要顧客確認</span>
-        <select name="needs_customer_confirm">
-          <option value="true">需要，送出後等待顧客同意</option>
-        </select>
-      </label>
-      <button type="submit">送出追加報價</button>
+
+    <form id="change-form" class="form-shell">
+      <section class="form-section">
+        <div class="section-title">
+          <h2>追加內容</h2>
+          <p>請把這次要追加的金額和原因講清楚，客戶會更容易理解。</p>
+        </div>
+
+        <label>追加金額
+          <input name="amount" type="number" min="1" required>
+        </label>
+
+        <label>追加原因
+          <textarea name="reason" placeholder="例如：現場拆開後發現止水閥老化，需要一起更換。" required></textarea>
+        </label>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">
+          <h2>現場佐證</h2>
+          <p>若有補拍現場照片，建議一起上傳，會更容易讓客戶放心確認。</p>
+        </div>
+
+        <label>現場照片
+          <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+        </label>
+
+        <label>是否需要客戶確認
+          <select name="needs_customer_confirm">
+            <option value="true">需要，追加報價送出後由客戶確認</option>
+          </select>
+        </label>
+      </section>
+
+      <div class="page-actions">
+        <button type="submit">送出追加報價</button>
+      </div>
     </form>
   </main>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>

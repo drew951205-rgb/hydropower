@@ -1,9 +1,10 @@
 const orderRepository = require('../repositories/order.repository');
 const logRepository = require('../repositories/log.repository');
 const { ORDER_STATUS } = require('../utils/order-status');
+const { logger } = require('../config/logger');
 
 async function runStaleOrderJob() {
-  console.log('[job] Running stale order job...');
+  logger.info('[job] Running stale order job...');
 
   try {
     // 查詢非terminal狀態且超過24小時未更新的orders
@@ -34,12 +35,12 @@ async function runStaleOrderJob() {
         note: `Order has been stale for ${staleHours} hours`,
       });
 
-      console.log(`[job] Marked order ${order.order_no} as stale`);
+      logger.info(`[job] Marked order ${order.order_no} as stale`);
     }
 
-    console.log(`[job] Checked ${staleOrders.length} stale orders`);
+    logger.info(`[job] Checked ${staleOrders.length} stale orders`);
   } catch (error) {
-    console.error('[job] Stale order job failed:', error);
+    logger.error('[job] Stale order job failed:', error);
   }
 }
 

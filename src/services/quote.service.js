@@ -2,6 +2,7 @@ const orderRepository = require('../repositories/order.repository');
 const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
+const { logger } = require('../config/logger');
 const {
   quoteMessage,
   changeRequestMessage,
@@ -36,7 +37,7 @@ async function submitQuote(orderId, payload, technicianId = null) {
     );
   } catch (error) {
     if (!/estimated_arrival_time/i.test(error.message || '')) throw error;
-    console.warn('[quote:estimated-arrival:fallback]', JSON.stringify({
+    logger.warn('[quote:estimated-arrival:fallback]', JSON.stringify({
       orderId,
       message: error.message,
     }));
@@ -123,7 +124,7 @@ async function submitChangeRequest(orderId, payload, technicianId = null) {
 async function pushToCustomer(order, message) {
   const customer = await userRepository.findById(order.customer_id);
   if (!customer?.line_user_id) {
-    console.warn('[quote:customer-push:skip]', JSON.stringify({
+    logger.warn('[quote:customer-push:skip]', JSON.stringify({
       orderId: order.id,
       customerId: order.customer_id,
       reason: 'missing_customer_line_user_id'
@@ -137,7 +138,7 @@ async function pushToCustomer(order, message) {
 async function pushToTechnician(order, message) {
   const technician = await userRepository.findById(order.technician_id);
   if (!technician?.line_user_id) {
-    console.warn('[quote:technician-push:skip]', JSON.stringify({
+    logger.warn('[quote:technician-push:skip]', JSON.stringify({
       orderId: order.id,
       technicianId: order.technician_id,
       reason: 'missing_technician_line_user_id'
@@ -145,7 +146,7 @@ async function pushToTechnician(order, message) {
     return { skipped: true };
   }
 
-  console.log('[quote:technician-push]', JSON.stringify({
+  logger.info('[quote:technician-push]', JSON.stringify({
     orderId: order.id,
     orderNo: order.order_no,
     technicianId: technician.id,

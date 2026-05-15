@@ -6,6 +6,7 @@ const completionService = require('../services/completion.service');
 const disputeService = require('../services/dispute.service');
 const lineMessageService = require('../services/line-message.service');
 const userRepository = require('../repositories/user.repository');
+const { logger } = require('../config/logger');
 const {
   reviewApprovedMessage,
   platformCancelledMessage,
@@ -15,7 +16,7 @@ const { ORDER_STATUS } = require('../utils/order-status');
 async function notifyCustomerReviewApproved(order) {
   const customer = await userRepository.findById(order.customer_id);
   if (!customer?.line_user_id) {
-    console.warn(
+    logger.warn(
       '[review:customer-approved-push:skip]',
       JSON.stringify({
         reason: 'missing_customer_line_user_id',
@@ -26,7 +27,7 @@ async function notifyCustomerReviewApproved(order) {
     return;
   }
 
-  console.log(
+  logger.info(
     '[review:customer-approved-push]',
     JSON.stringify({
       orderId: order.id,
@@ -44,7 +45,7 @@ async function notifyCustomerReviewApproved(order) {
 async function notifyCustomerPlatformCancelled(order) {
   const customer = await userRepository.findById(order.customer_id);
   if (!customer?.line_user_id) {
-    console.warn(
+    logger.warn(
       '[cancel:customer-push:skip]',
       JSON.stringify({
         reason: 'missing_customer_line_user_id',
@@ -55,7 +56,7 @@ async function notifyCustomerPlatformCancelled(order) {
     return;
   }
 
-  console.log(
+  logger.info(
     '[cancel:customer-push]',
     JSON.stringify({
       orderId: order.id,

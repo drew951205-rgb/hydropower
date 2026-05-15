@@ -6,8 +6,10 @@ process.env.SUPABASE_URL = '';
 process.env.SUPABASE_SERVICE_ROLE_KEY = '';
 process.env.LINE_CHANNEL_ACCESS_TOKEN = '';
 process.env.LINE_CHANNEL_SECRET = '';
+process.env.SKIP_LINE_SIGNATURE = 'true';
 process.env.ADMIN_API_KEY = 'change-me';
 process.env.DISPATCH_TIMEOUT_MINUTES = '1';
+process.env.NODE_ENV = 'test';
 
 const { app } = require('../src/app');
 const { resetRateLimit } = require('../src/middlewares/rate-limit');

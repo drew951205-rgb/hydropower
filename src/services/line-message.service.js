@@ -1,6 +1,8 @@
 const { lineConfig } = require('../config/line');
 const { textMessage } = require('../utils/format-message');
 const { hasReplyToken } = require('../utils/reply-token');
+const { logger } = require('../config/logger');
+const { buildSignedLineAuth } = require('./liff-auth.service');
 
 function normalizeMessages(messagesOrText) {
   if (Array.isArray(messagesOrText)) return messagesOrText;
@@ -19,9 +21,12 @@ function withLineUserId(uri, lineUserId) {
       ['/repair', '/quote', '/change-request', '/confirm', '/my-cases', '/profile', '/review', '/support', '/faq', '/cancel', '/navigate'].includes(url.pathname)
     ) {
       url.searchParams.set('line_user_id', lineUserId);
+      const auth = buildSignedLineAuth(lineUserId);
+      url.searchParams.set('auth_ts', auth.auth_ts);
+      url.searchParams.set('auth_sig', auth.auth_sig);
     }
     return url.toString();
-  } catch (_error) {
+  } catch {
     return uri;
   }
 }
@@ -48,11 +53,11 @@ async function sendLineMessage(mode, endpoint, body) {
   const messageTypes = messages.map((message) => message.type).join(',');
 
   if (!lineConfig.channelAccessToken) {
-    console.log('[line:dry-run]', JSON.stringify({ mode, messageTypes, endpoint, body }));
+    logger.info('[line:dry-run]', JSON.stringify({ mode, messageTypes, endpoint, body }));
     return { dryRun: true, ok: true };
   }
 
-  console.log('[line:send]', JSON.stringify({
+  logger.info('[line:send]', JSON.stringify({
     mode,
     messageTypes,
     messageCount: messages.length,
@@ -71,7 +76,7 @@ async function sendLineMessage(mode, endpoint, body) {
     });
 
     const responseText = await response.text();
-    console.log('[line:response]', JSON.stringify({
+    logger.info('[line:response]', JSON.stringify({
       mode,
       status: response.status,
       ok: response.ok,
@@ -79,7 +84,7 @@ async function sendLineMessage(mode, endpoint, body) {
     }));
 
     if (!response.ok) {
-      console.error('[line:error]', JSON.stringify({
+      logger.error('[line:error]', JSON.stringify({
         mode,
         status: response.status,
         body: responseText || null
@@ -88,7 +93,7 @@ async function sendLineMessage(mode, endpoint, body) {
 
     return { ok: response.ok, status: response.status, body: responseText };
   } catch (error) {
-    console.error('[line:error]', JSON.stringify({
+    logger.error('[line:error]', JSON.stringify({
       mode,
       message: error.message
     }));
@@ -98,7 +103,7 @@ async function sendLineMessage(mode, endpoint, body) {
 
 async function replyMessages(event, messagesOrText) {
   if (!hasReplyToken(event)) {
-    console.warn('[line:skip]', JSON.stringify({ mode: 'reply', reason: 'missing_reply_token' }));
+    logger.warn('[line:skip]', JSON.stringify({ mode: 'reply', reason: 'missing_reply_token' }));
     return { skipped: true, ok: false };
   }
 
@@ -116,7 +121,7 @@ async function replyText(event, text) {
 
 async function pushMessages(to, messagesOrText) {
   if (!to) {
-    console.warn('[line:skip]', JSON.stringify({ mode: 'push', reason: 'missing_to' }));
+    logger.warn('[line:skip]', JSON.stringify({ mode: 'push', reason: 'missing_to' }));
     return { skipped: true, ok: false };
   }
 
@@ -132,7 +137,7 @@ async function getProfile(lineUserId) {
   if (!lineUserId) return null;
 
   if (!lineConfig.channelAccessToken) {
-    console.log('[line:dry-run]', JSON.stringify({
+    logger.info('[line:dry-run]', JSON.stringify({
       mode: 'profile',
       lineUserId
     }));
@@ -140,7 +145,7 @@ async function getProfile(lineUserId) {
   }
 
   const endpoint = `https://api.line.me/v2/bot/profile/${encodeURIComponent(lineUserId)}`;
-  console.log('[line:profile]', JSON.stringify({ lineUserId }));
+  logger.info('[line:profile]', JSON.stringify({ lineUserId }));
 
   try {
     const response = await fetch(endpoint, {
@@ -151,7 +156,7 @@ async function getProfile(lineUserId) {
     });
 
     const responseText = await response.text();
-    console.log('[line:profile:response]', JSON.stringify({
+    logger.info('[line:profile:response]', JSON.stringify({
       status: response.status,
       ok: response.ok,
       body: responseText || null
@@ -160,7 +165,7 @@ async function getProfile(lineUserId) {
     if (!response.ok) return null;
     return responseText ? JSON.parse(responseText) : null;
   } catch (error) {
-    console.error('[line:profile:error]', JSON.stringify({
+    logger.error('[line:profile:error]', JSON.stringify({
       lineUserId,
       message: error.message
     }));
@@ -172,7 +177,7 @@ async function getMessageContent(messageId) {
   if (!messageId) return null;
 
   if (!lineConfig.channelAccessToken) {
-    console.log('[line:dry-run]', JSON.stringify({
+    logger.info('[line:dry-run]', JSON.stringify({
       mode: 'content',
       messageId
     }));
@@ -180,7 +185,7 @@ async function getMessageContent(messageId) {
   }
 
   const endpoint = `https://api-data.line.me/v2/bot/message/${encodeURIComponent(messageId)}/content`;
-  console.log('[line:content]', JSON.stringify({ messageId }));
+  logger.info('[line:content]', JSON.stringify({ messageId }));
 
   try {
     const response = await fetch(endpoint, {
@@ -192,7 +197,7 @@ async function getMessageContent(messageId) {
 
     if (!response.ok) {
       const responseText = await response.text();
-      console.error('[line:content:error]', JSON.stringify({
+      logger.error('[line:content:error]', JSON.stringify({
         messageId,
         status: response.status,
         body: responseText || null
@@ -207,7 +212,7 @@ async function getMessageContent(messageId) {
       size: Number(response.headers.get('content-length') || arrayBuffer.byteLength),
     };
   } catch (error) {
-    console.error('[line:content:error]', JSON.stringify({
+    logger.error('[line:content:error]', JSON.stringify({
       messageId,
       message: error.message
     }));
@@ -216,7 +221,7 @@ async function getMessageContent(messageId) {
 }
 
 async function sendLineMessageLegacy() {
-  console.warn('[line] sendLineMessage is deprecated, use replyMessages or pushMessages instead');
+  logger.warn('[line] sendLineMessage is deprecated, use replyMessages or pushMessages instead');
   return { deprecated: true };
 }
 

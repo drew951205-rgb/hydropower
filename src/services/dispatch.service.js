@@ -4,6 +4,7 @@ const userRepository = require('../repositories/user.repository');
 const orderService = require('./order.service');
 const lineMessageService = require('./line-message.service');
 const dispatchCandidateService = require('./dispatch-candidate.service');
+const { logger } = require('../config/logger');
 const {
   assignmentMessage,
   assignedMessage,
@@ -58,11 +59,51 @@ async function dispatchOrder(
     });
     assignments.push(assignment);
     const technician = await userRepository.findById(technicianId);
-    if (technician?.line_user_id)
-      await lineMessageService.pushMessages(
-        technician.line_user_id,
-        assignmentMessage(orderDetail || order, assignment)
+    if (!technician?.line_user_id) {
+      logger.warn(
+        '[dispatch:technician-push:skip]',
+        JSON.stringify({
+          orderId: order.id,
+          orderNo: order.order_no,
+          assignmentId: assignment.id,
+          technicianId,
+          reason: 'missing_technician_line_user_id',
+        })
       );
+      continue;
+    }
+
+    logger.info(
+      '[dispatch:technician-push]',
+      JSON.stringify({
+        orderId: order.id,
+        orderNo: order.order_no,
+        assignmentId: assignment.id,
+        technicianId,
+        technicianLineUserId: technician.line_user_id,
+      })
+    );
+
+    const pushResult = await lineMessageService.pushMessages(
+      technician.line_user_id,
+      assignmentMessage(orderDetail || order, assignment)
+    );
+
+    if (pushResult?.ok === false) {
+      logger.error(
+        '[dispatch:technician-push:failed]',
+        JSON.stringify({
+          orderId: order.id,
+          orderNo: order.order_no,
+          assignmentId: assignment.id,
+          technicianId,
+          technicianLineUserId: technician.line_user_id,
+          status: pushResult.status || null,
+          body: pushResult.body || null,
+          error: pushResult.error?.message || null,
+        })
+      );
+    }
   }
 
   await orderService.transitionOrder(
@@ -182,7 +223,7 @@ async function assignOrder(
 async function notifyCustomerAssigned(order, technician) {
   const customer = await userRepository.findById(order.customer_id);
   if (!customer?.line_user_id) {
-    console.warn('[dispatch:customer-assigned-push:skip]', JSON.stringify({
+    logger.warn('[dispatch:customer-assigned-push:skip]', JSON.stringify({
       orderId: order.id,
       orderNo: order.order_no,
       customerId: order.customer_id,
@@ -192,7 +233,7 @@ async function notifyCustomerAssigned(order, technician) {
     return { skipped: true };
   }
 
-  console.log('[dispatch:customer-assigned-push]', JSON.stringify({
+  logger.info('[dispatch:customer-assigned-push]', JSON.stringify({
     orderId: order.id,
     orderNo: order.order_no,
     customerId: customer.id,

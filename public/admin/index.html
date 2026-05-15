@@ -3,192 +3,431 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>師傅抵嘉後台</title>
+    <title>師傅抵嘉後台營運中心</title>
     <link rel="stylesheet" href="/admin/styles.css">
   </head>
   <body>
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">師傅抵嘉</p>
-        <h1>管理後台</h1>
+    <aside class="admin-shell__sidebar">
+      <div class="brand-block">
+        <p class="brand-block__eyebrow">師傅抵嘉</p>
+        <h1 class="brand-block__title">後台營運中心</h1>
+        <p class="brand-block__meta">Service Control Console</p>
       </div>
-      <div class="auth">
-        <label for="adminKey">管理金鑰</label>
-        <input id="adminKey" type="password" autocomplete="current-password" placeholder="x-admin-api-key">
-        <button id="saveKeyButton" type="button">儲存</button>
-      </div>
-    </header>
 
-    <main class="workspace">
-      <section class="orders-section" aria-labelledby="ordersTitle">
-        <div class="section-head">
-          <div>
-            <h2 id="ordersTitle">案件</h2>
-            <p id="statusText">尚未載入</p>
-          </div>
-          <div class="filters">
-            <select id="statusFilter" aria-label="案件狀態">
-              <option value="">全部狀態</option>
-              <option value="pending_review">待平台審核</option>
-              <option value="pending_dispatch">待派單</option>
-              <option value="dispatching">派單中</option>
-              <option value="assigned">已指派</option>
-              <option value="quoted">待顧客確認報價</option>
-              <option value="in_progress">施工中</option>
-              <option value="arrived">已到場</option>
-              <option value="completed_pending_customer">待顧客確認完工</option>
-              <option value="closed">已結案</option>
-              <option value="platform_review">平台審核中</option>
-              <option value="dispute_review">申訴處理中</option>
-            </select>
-            <button id="refreshButton" type="button">重新整理</button>
-          </div>
+      <nav class="side-nav" aria-label="後台導覽">
+        <a class="side-nav__item" data-nav-view="dashboard" href="#dashboard">
+          <span class="side-nav__icon">◫</span>
+          <span>營運總覽</span>
+        </a>
+        <a class="side-nav__item side-nav__item--active" data-nav-view="cases" href="#cases">
+          <span class="side-nav__icon">▣</span>
+          <span>案件管理</span>
+        </a>
+        <a class="side-nav__item" data-nav-view="disputes" href="#disputes">
+          <span class="side-nav__icon">!</span>
+          <span>申訴中心</span>
+        </a>
+        <a class="side-nav__item" data-nav-view="technicians" href="#technicians">
+          <span class="side-nav__icon">工</span>
+          <span>師傅 CRM</span>
+        </a>
+        <a class="side-nav__item" data-nav-view="customers" href="#customers">
+          <span class="side-nav__icon">客</span>
+          <span>客戶 CRM</span>
+        </a>
+        <a class="side-nav__item" data-nav-view="settings" href="#settings">
+          <span class="side-nav__icon">設</span>
+          <span>系統設定</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a class="side-nav__item" data-nav-view="support" href="#support">
+          <span class="side-nav__icon">?</span>
+          <span>操作說明</span>
+        </a>
+      </div>
+    </aside>
+
+    <div class="admin-shell__main">
+      <header class="topbar">
+        <div class="topbar__titles">
+          <p class="topbar__eyebrow">Admin Console</p>
+          <h2>案件調度與營運工作台</h2>
         </div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>案件編號</th>
-                <th>狀態</th>
-                <th>區域</th>
-                <th>服務類型</th>
-                <th>預約時間</th>
-                <th>師傅</th>
-                <th>下一步</th>
-                <th>建立時間</th>
-              </tr>
-            </thead>
-            <tbody id="ordersTable"></tbody>
-          </table>
+        <div class="topbar__auth">
+          <label for="adminKey">管理員 API Key</label>
+          <input id="adminKey" type="password" autocomplete="current-password" placeholder="x-admin-api-key">
+          <button id="saveKeyButton" type="button">儲存</button>
         </div>
+      </header>
 
-        <section class="support-section support-main-section" aria-labelledby="supportTitle">
-          <div class="section-head compact">
+      <main class="admin-canvas">
+        <section class="view-panel" data-view-panel="dashboard" id="dashboard">
+          <div class="panel__head panel__head--standalone">
             <div>
-              <h2 id="supportTitle">申訴中心</h2>
-              <p id="supportStatus">尚未載入</p>
+              <p class="panel__eyebrow">營運總覽</p>
+              <h3>今天的接案、申訴與會員動態</h3>
             </div>
-            <div class="mini-filter">
-              <select id="supportStatusFilter" aria-label="申訴狀態">
-                <option value="">全部狀態</option>
-                <option value="open">待處理</option>
-                <option value="in_progress">處理中</option>
-                <option value="resolved">已處理</option>
-                <option value="closed">已結束</option>
-              </select>
-              <select id="supportTypeFilter" aria-label="申訴類型">
-                <option value="">全部類型</option>
-                <option value="completion_dispute">完工申訴</option>
-                <option value="quote_dispute">報價申訴</option>
-                <option value="technician_no_show">師傅未到場</option>
-                <option value="service_quality">施工品質</option>
-                <option value="cancel_order">取消案件爭議</option>
-                <option value="customer_cancel">客戶取消</option>
-                <option value="technician_cancel">師傅取消</option>
-              </select>
-              <button id="loadSupportButton" type="button">載入</button>
-            </div>
+            <p class="panel__meta">你可以從這裡快速掌握整體狀態，再切到各自工作區處理。</p>
           </div>
-          <div id="supportTicketList" class="support-ticket-list"></div>
+          <section class="hero-grid">
+            <article class="hero-card hero-card--primary">
+              <p class="hero-card__label">今日案件池</p>
+              <strong class="hero-card__value" id="statusTextDashboard">載入中</strong>
+              <span class="hero-card__hint">目前案件總數與即時狀態</span>
+            </article>
+            <article class="hero-card">
+              <p class="hero-card__label">申訴工單量</p>
+              <strong class="hero-card__value" id="supportStatusDashboard">載入中...</strong>
+              <span class="hero-card__hint">待處理與進行中的申訴</span>
+            </article>
+            <article class="hero-card">
+              <p class="hero-card__label">客戶資料庫</p>
+              <strong class="hero-card__value" id="customerStatusDashboard">載入中</strong>
+              <span class="hero-card__hint">會員資料與歷史交易</span>
+            </article>
+            <article class="hero-card">
+              <p class="hero-card__label">可用師傅</p>
+              <strong class="hero-card__value" id="technicianStatusDashboard">載入中</strong>
+              <span class="hero-card__hint">接案人力與排班狀態</span>
+            </article>
+          </section>
         </section>
-      </section>
 
-      <aside class="side-panel" aria-labelledby="detailTitle">
-        <img class="panel-image" src="/admin/tools.svg" alt="">
+        <section class="view-panel view-panel--active" data-view-panel="cases" id="cases">
+          <div id="casesListStage" class="case-stage case-stage--active">
+            <section class="hero-grid">
+              <article class="hero-card hero-card--primary">
+                <p class="hero-card__label">今日案件池</p>
+                <strong class="hero-card__value" id="statusText">載入中</strong>
+                <span class="hero-card__hint">目前案件總數與即時狀態</span>
+              </article>
+              <article class="hero-card">
+                <p class="hero-card__label">中斷工作量</p>
+                <strong class="hero-card__value" id="casesWaitingValue">載入中...</strong>
+                <span class="hero-card__hint">待處理與進行中案件</span>
+              </article>
+              <article class="hero-card">
+                <p class="hero-card__label">客戶資料庫</p>
+                <strong class="hero-card__value" id="customerStatusMirror">載入中</strong>
+                <span class="hero-card__hint">會員資料與歷史交易</span>
+              </article>
+              <article class="hero-card">
+                <p class="hero-card__label">可用師傅</p>
+                <strong class="hero-card__value" id="technicianStatusMirror">載入中</strong>
+                <span class="hero-card__hint">接案人力與排班狀態</span>
+              </article>
+            </section>
 
-        <section class="detail-section">
-          <div class="section-head compact">
-            <div>
-              <h2 id="detailTitle">案件詳情</h2>
-              <p id="detailHint">選擇一張案件</p>
-            </div>
+            <section class="toolbar-card">
+              <div>
+                <p class="toolbar-card__eyebrow">案件篩選</p>
+                <h3>快速鎖定要處理的訂單</h3>
+              </div>
+              <div class="toolbar-card__controls toolbar-card__controls--wide">
+                <label class="field-inline">
+                  <span>案件狀態</span>
+                  <select id="statusFilter" aria-label="案件狀態">
+                    <option value="">全部狀態</option>
+                    <option value="pending_review">待審核</option>
+                    <option value="waiting_customer_info">待客戶補件</option>
+                    <option value="pending_dispatch">待派單</option>
+                    <option value="dispatching">派單中</option>
+                    <option value="assigned">已指派</option>
+                    <option value="quoted">待客戶確認報價</option>
+                    <option value="in_progress">進行中</option>
+                    <option value="arrived">師傅已到場</option>
+                    <option value="completed_pending_customer">待客戶確認完工</option>
+                    <option value="closed">已結案</option>
+                    <option value="platform_review">平台審核中</option>
+                    <option value="dispute_review">申訴處理中</option>
+                  </select>
+                </label>
+                <button id="refreshButton" type="button">重新整理</button>
+              </div>
+            </section>
+
+            <section class="panel panel--orders panel--orders-standalone">
+              <div class="panel__head">
+                <div>
+                  <p class="panel__eyebrow">案件清單</p>
+                  <h3>現場工作隊列</h3>
+                </div>
+                <p class="panel__meta">點一張案件，就會切到完整的案件詳細與操作區。</p>
+              </div>
+              <div class="table-wrap table-wrap--cases">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>案件編號</th>
+                      <th>狀態</th>
+                      <th>區域</th>
+                      <th>服務類型</th>
+                      <th>預約時間</th>
+                      <th>師傅</th>
+                      <th>下一步</th>
+                      <th>建立時間</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersTable"></tbody>
+                </table>
+              </div>
+            </section>
           </div>
-          <dl id="orderDetail" class="detail-list"></dl>
-        </section>
 
-        <section class="customer-replies-section" aria-labelledby="customerRepliesTitle">
-          <div class="section-head compact">
-            <div>
-              <h2 id="customerRepliesTitle">對話紀錄</h2>
-              <p>顧客 LINE 回覆、申訴與平台處理紀錄會集中在這裡。</p>
-            </div>
+          <div id="casesDetailStage" class="case-stage">
+            <section class="toolbar-card toolbar-card--detail">
+              <div>
+                <p class="toolbar-card__eyebrow">案件詳細與操作區</p>
+                <h3 id="selectedOrderHeadline">請先選一張案件</h3>
+              </div>
+              <div class="detail-toolbar__actions">
+                <div class="detail-badges">
+                  <span id="caseDetailStatusPill" class="status-pill">未選擇</span>
+                  <span id="caseDetailNextStep" class="detail-next-step">請先回到案件列表點選案件</span>
+                </div>
+                <button id="backToOrdersButton" type="button" class="button-secondary button-secondary--inline">返回案件列表</button>
+              </div>
+            </section>
+
+            <section class="progress-panel">
+              <div class="progress-panel__head">
+                <div>
+                  <p class="progress-panel__eyebrow">案件執行進度</p>
+                  <h4>跟著案件狀態掌握目前處理階段</h4>
+                </div>
+                <span class="progress-panel__hint">Case Progress</span>
+              </div>
+              <div id="orderProgress" class="order-progress">
+                <p class="empty compact-empty">請先選一張案件查看進度</p>
+              </div>
+            </section>
+
+            <section class="detail-workspace">
+              <div class="detail-column detail-column--left">
+                <article class="subpanel">
+                  <div class="subpanel__head">
+                    <h4 id="detailHint">案件概要</h4>
+                    <span>Order Snapshot</span>
+                  </div>
+                  <dl id="orderDetail" class="detail-list"></dl>
+                </article>
+
+                <article class="subpanel">
+                  <div class="subpanel__head">
+                    <h4>案件重點與原因</h4>
+                    <span>Issue Notes</span>
+                  </div>
+                  <div id="orderReasons" class="reason-list"></div>
+                </article>
+
+                <article class="subpanel">
+                  <div class="subpanel__head">
+                    <h4>案件進度軌跡</h4>
+                    <span>Timeline</span>
+                  </div>
+                  <div id="orderTimeline"></div>
+                </article>
+              </div>
+
+              <div class="detail-column detail-column--center">
+                <article class="subpanel subpanel--conversation subpanel--conversation-tall">
+                  <div class="subpanel__head">
+                    <h4>客戶與平台對話</h4>
+                    <span>Conversation Thread</span>
+                  </div>
+                  <div id="customerReplies" class="conversation-shell conversation-shell--tall"></div>
+                </article>
+              </div>
+
+              <div class="detail-column detail-column--right">
+                <article class="subpanel">
+                  <div class="subpanel__head">
+                    <h4>案件操作</h4>
+                    <span>Actions</span>
+                  </div>
+                  <div id="actions" class="actions"></div>
+                </article>
+
+                <article class="subpanel">
+                  <div class="subpanel__head">
+                    <h4>管理員內部備註</h4>
+                    <span>Notes</span>
+                  </div>
+                  <div id="adminNotes"></div>
+                </article>
+              </div>
+            </section>
           </div>
-          <div id="customerReplies" class="note-list"></div>
         </section>
 
-        <section class="actions-section" aria-labelledby="actionsTitle">
-          <h2 id="actionsTitle">案件操作</h2>
-          <div id="actions" class="actions"></div>
-        </section>
-
-        <section class="crm-section" aria-labelledby="customersTitle">
-          <div class="section-head compact">
-            <div>
-              <h2 id="customersTitle">客戶名單</h2>
-              <p id="customerStatus">尚未載入</p>
+        <section class="view-panel" data-view-panel="disputes" id="disputes">
+          <section class="panel panel--single">
+            <div class="panel__head">
+              <div>
+                <p class="panel__eyebrow">申訴中心</p>
+                <h3>集中處理報價、完工、取消等爭議</h3>
+              </div>
+              <p class="panel__meta">每張申訴都可以直接切回對應案件，方便平台一起處理。</p>
             </div>
-            <button id="loadCustomersButton" type="button">載入</button>
-          </div>
-          <div id="customerList" class="customer-list"></div>
-          <div id="customerDetail" class="customer-detail"></div>
-
-          <form id="memberBroadcastForm" class="stack-form">
-            <h3>會員通知</h3>
-            <label>
-              標題
-              <input name="title" maxlength="40" required placeholder="例如：雨季提醒">
-            </label>
-            <label>
-              內容
-              <textarea name="message" maxlength="500" required placeholder="輸入要發送給會員的訊息內容"></textarea>
-            </label>
-            <button type="submit">發送給會員</button>
-          </form>
-        </section>
-
-        <section class="technicians-section" aria-labelledby="techniciansTitle">
-          <div class="section-head compact">
-            <div>
-              <h2 id="techniciansTitle">師傅</h2>
-              <p id="technicianStatus">尚未載入</p>
+            <div class="subpanel">
+              <div class="filters filters--support">
+                <label class="field-inline">
+                  <span>狀態</span>
+                  <select id="supportStatusFilter" aria-label="申訴狀態">
+                    <option value="">全部狀態</option>
+                    <option value="open">待處理</option>
+                    <option value="in_progress">處理中</option>
+                    <option value="resolved">已處理</option>
+                    <option value="closed">已結束</option>
+                  </select>
+                </label>
+                <label class="field-inline">
+                  <span>類型</span>
+                  <select id="supportTypeFilter" aria-label="申訴類型">
+                    <option value="">全部類型</option>
+                    <option value="completion_dispute">完工申訴</option>
+                    <option value="quote_dispute">報價申訴</option>
+                    <option value="technician_no_show">師傅未到場</option>
+                    <option value="service_quality">施工品質</option>
+                    <option value="cancel_order">取消爭議</option>
+                    <option value="customer_cancel">客戶取消</option>
+                    <option value="technician_cancel">師傅取消</option>
+                  </select>
+                </label>
+                <button id="loadSupportButton" type="button">載入</button>
+              </div>
+              <div id="supportTicketList" class="support-ticket-list"></div>
             </div>
-            <button id="loadTechniciansButton" type="button">載入</button>
-          </div>
-
-          <div id="technicianList" class="technician-list"></div>
-
-          <form id="createTechnicianForm" class="stack-form">
-            <h3>新增師傅</h3>
-            <label>
-              LINE user ID
-              <input name="line_user_id" required placeholder="Uxxxxxxxx">
-            </label>
-            <label>
-              姓名
-              <input name="name" required placeholder="王師傅">
-            </label>
-            <label>
-              電話
-              <input name="phone" placeholder="0911222333">
-            </label>
-            <label>
-              服務區域
-              <input name="service_areas" placeholder="西區,東區">
-            </label>
-            <label>
-              服務類型
-              <input name="service_types" placeholder="漏水,馬桶,熱水器">
-            </label>
-            <label>
-              可接時段
-              <input name="available_time_text" placeholder="平日 18:00 後、週六上午">
-            </label>
-            <button type="submit">新增師傅</button>
-          </form>
+          </section>
         </section>
-      </aside>
-    </main>
+
+        <section class="view-panel" data-view-panel="technicians" id="technicians">
+          <section class="panel panel--single">
+            <div class="panel__head">
+              <div>
+                <p class="panel__eyebrow">師傅 CRM</p>
+                <h3>管理接案師傅、服務區域與可接案時段</h3>
+              </div>
+              <p class="panel__meta">你可以快速建立師傅資料，或複製師傅 ID 進行派單。</p>
+            </div>
+            <div class="stack-layout">
+              <div id="technicianList" class="technician-list"></div>
+              <form id="createTechnicianForm" class="stack-form">
+                <h5>新增師傅</h5>
+                <label>
+                  LINE user ID
+                  <input name="line_user_id" required placeholder="Uxxxxxxxx">
+                </label>
+                <label>
+                  姓名
+                  <input name="name" required placeholder="王師傅">
+                </label>
+                <label>
+                  電話
+                  <input name="phone" placeholder="0911222333">
+                </label>
+                <label>
+                  服務區域
+                  <input name="service_areas" placeholder="西區,東區,民雄">
+                </label>
+                <label>
+                  服務類型
+                  <input name="service_types" placeholder="漏水,馬桶,熱水器">
+                </label>
+                <label>
+                  可接時段
+                  <input name="available_time_text" placeholder="平日 18:00 後、週六上午">
+                </label>
+                <button type="submit">新增師傅資料</button>
+              </form>
+              <button id="loadTechniciansButton" type="button" class="button-secondary">重新載入師傅資料</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" data-view-panel="customers" id="customers">
+          <section class="panel panel--single">
+            <div class="panel__head">
+              <div>
+                <p class="panel__eyebrow">客戶 CRM</p>
+                <h3>查看會員資料、歷史案件與推播通知</h3>
+              </div>
+              <p class="panel__meta">可以從客戶資料直接切回他的案件，也能推送會員訊息。</p>
+            </div>
+            <div class="stack-layout">
+              <div id="customerList" class="customer-list"></div>
+              <div id="customerDetail" class="customer-detail"></div>
+              <form id="memberBroadcastForm" class="stack-form">
+                <h5>會員推播</h5>
+                <label>
+                  標題
+                  <input name="title" maxlength="40" required placeholder="例如：梅雨季漏水提醒">
+                </label>
+                <label>
+                  內容
+                  <textarea name="message" maxlength="500" required placeholder="輸入要推播給所有會員的內容"></textarea>
+                </label>
+                <button type="submit">發送會員通知</button>
+              </form>
+              <button id="loadCustomersButton" type="button" class="button-secondary">重新載入客戶資料</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" data-view-panel="settings" id="settings-panel">
+          <section class="panel panel--single">
+            <div class="panel__head">
+              <div>
+                <p class="panel__eyebrow">系統設定</p>
+                <h3>目前後台驗證與操作設定</h3>
+              </div>
+              <p class="panel__meta">這裡先保留管理員金鑰說明，之後可以再加角色與通知規則。</p>
+            </div>
+            <div class="subpanel">
+              <div class="stack-form stack-form--narrow">
+                <h5>管理員 API Key</h5>
+                <p class="help-text">後台所有管理操作都會使用右上角輸入的 API Key 驗證。</p>
+                <label>
+                  目前驗證方式
+                  <input type="text" value="x-admin-api-key header" disabled>
+                </label>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" data-view-panel="support" id="support">
+          <section class="panel panel--single">
+            <div class="panel__head">
+              <div>
+                <p class="panel__eyebrow">操作說明</p>
+                <h3>後台使用流程</h3>
+              </div>
+              <p class="panel__meta">先從案件管理進入，遇到糾紛切到申訴中心，CRM 區則用來查客戶和師傅資料。</p>
+            </div>
+            <div class="subpanel">
+              <div class="note-list">
+                <article>
+                  <strong>案件管理</strong>
+                  <p>先看案件列表，點進案件後可以處理派單、報價確認、取消與內部備註。</p>
+                </article>
+                <article>
+                  <strong>申訴中心</strong>
+                  <p>若有客訴或糾紛，先在這裡更新狀態，再切回對應案件一起追蹤。</p>
+                </article>
+                <article>
+                  <strong>客戶 / 師傅 CRM</strong>
+                  <p>需要查歷史交易、常用區域、服務類型或聯絡方式時，從這兩區處理最快。</p>
+                </article>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="/admin/app.js"></script>

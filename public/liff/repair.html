@@ -8,82 +8,133 @@
 </head>
 <body data-page="repair">
   <main class="page">
-    <p class="eyebrow">師傅抵嘉</p>
-    <h1>我要報修</h1>
-    <p class="lead">請盡量填完整，平台會先審核資料，再幫你安排合適的師傅。</p>
+    <header class="page-header">
+      <div class="hero-card">
+        <p class="eyebrow">師傅抵嘉</p>
+        <h1>我要報修</h1>
+        <p class="lead">把案件資料填完整，平台會先協助審核，再安排合適的師傅與你聯繫。</p>
+      </div>
+      <div class="metric-strip">
+        <article class="metric-card">
+          <span>Step 1</span>
+          <strong>填寫資料</strong>
+        </article>
+        <article class="metric-card">
+          <span>Step 2</span>
+          <strong>平台審核</strong>
+        </article>
+        <article class="metric-card">
+          <span>Step 3</span>
+          <strong>安排師傅</strong>
+        </article>
+      </div>
+    </header>
+
     <p id="status" class="notice" hidden></p>
-    <form id="repair-form">
+
+    <form id="repair-form" class="form-shell">
       <input id="line_user_id" name="line_user_id" type="hidden">
 
-      <label>姓名 / 稱呼
-        <input name="contact_name" autocomplete="name" placeholder="王小姐" required>
-      </label>
+      <section class="form-section">
+        <div class="section-title">
+          <h2>聯絡資料</h2>
+          <p>先留下稱呼和電話，平台與師傅後續比較好聯絡你。</p>
+        </div>
 
-      <label>服務類型
-        <select name="service_type" required>
-          <option value="">請選擇</option>
-          <option>漏水</option>
-          <option>馬桶堵塞</option>
-          <option>插座故障</option>
-          <option>熱水器問題</option>
-          <option>其他維修</option>
-        </select>
-      </label>
+        <label>姓名 / 稱呼
+          <input name="contact_name" autocomplete="name" placeholder="例如：王小姐" required>
+        </label>
 
-      <label>案件區域
-        <select name="area" required>
-          <option value="">請選擇案件區域</option>
-          <option value="西區">西區</option>
-          <option value="東區">東區</option>
-          <option value="民雄">民雄</option>
-          <option value="太保">太保</option>
-          <option value="番路">番路</option>
-          <option value="竹崎">竹崎</option>
-        </select>
-      </label>
+        <label>聯絡電話
+          <input name="contact_phone" inputmode="tel" placeholder="0912345678" required>
+        </label>
+      </section>
 
-      <label>報修地址
-        <input name="address" placeholder="嘉義市西區中山路100號" required>
-      </label>
+      <section class="form-section">
+        <div class="section-title">
+          <h2>案件資訊</h2>
+          <p>地址、區域、服務類型與時間越清楚，師傅評估與報價會越準。</p>
+        </div>
 
-      <label>希望處理時間
-        <input name="preferred_time_text" placeholder="例如：今天下午、今晚 7 點後、週六上午" required>
-      </label>
+        <label>服務類型
+          <select name="service_type" required>
+            <option value="">請選擇服務類型</option>
+            <option>漏水</option>
+            <option>馬桶堵塞</option>
+            <option>插座故障</option>
+            <option>熱水器問題</option>
+            <option>其他維修</option>
+          </select>
+        </label>
 
-      <label>問題描述
-        <textarea name="issue_description" placeholder="請寫清楚位置、狀況、發生多久了，越清楚越方便報價。" required></textarea>
-      </label>
+        <label>案件區域
+          <select name="area" required>
+            <option value="">請選擇案件區域</option>
+            <option value="西區">西區</option>
+            <option value="東區">東區</option>
+            <option value="民雄">民雄</option>
+            <option value="太保">太保</option>
+            <option value="番路">番路</option>
+            <option value="竹崎">竹崎</option>
+          </select>
+        </label>
 
-      <label>案件照片
-        <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-      </label>
+        <label>報修地址
+          <input name="address" placeholder="例如：嘉義市西區中山路100號" required>
+        </label>
 
-      <label>聯絡電話
-        <input name="contact_phone" inputmode="tel" placeholder="0912345678" required>
-      </label>
+        <label>希望處理時間
+          <input name="preferred_time_text" placeholder="例如：今天下午、今晚7點後、週六上午" required>
+        </label>
+      </section>
 
-      <details class="terms-box">
-        <summary>點我查看報修平台條款</summary>
-        <ol>
-          <li>本平台僅提供媒合服務，不參與實際交易、報價及收款流程。</li>
-          <li>用戶不得私下與服務提供者進行交易以規避平台機制，違者平台有權限制或終止帳號使用。</li>
-          <li>所有服務內容、施工方式及價格，均由用戶與服務提供者自行約定，本平台不負擔履約責任。</li>
-          <li>本平台不保證案件一定媒合成功，亦不保證服務提供者之到達時間。</li>
-          <li>本平台不保證服務提供者之專業能力、證照資格或施工品質。</li>
-          <li>因施工所產生之任何損害、風險或安全問題，由用戶與服務提供者自行負責。</li>
-          <li>若服務過程中產生價格或履約爭議，應由雙方自行協商解決，本平台得依通訊紀錄提供協助調解。</li>
-          <li>用戶應確保所填寫之報修資料正確，因資料錯誤導致之損失，由用戶自行負責。</li>
-          <li>若會員有詐騙、惡意棄單、騷擾他人或其他違法行為，本平台有權停權或終止服務。</li>
-          <li>本平台保留帳號管理、服務調整及終止服務之權利。</li>
-        </ol>
-      </details>
+      <section class="form-section">
+        <div class="section-title">
+          <h2>問題描述</h2>
+          <p>先描述目前狀況，若有現場照片也建議一起附上，方便師傅先做判斷。</p>
+        </div>
 
-      <label class="checkbox-label">
-        <input name="terms_accepted" type="checkbox" value="true" required>
-        <span>我已閱讀並同意報修平台條款</span>
-      </label>
+        <label>問題描述
+          <textarea name="issue_description" placeholder="請描述位置、狀況、發生多久了，越清楚越有助於師傅報價。" required></textarea>
+        </label>
 
-      <button type="submit">送出報修</button>
+        <label>案件照片
+          <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+        </label>
+        <p class="field-hint">最多可附上多張照片，漏水點、損壞零件、現場空間都可以拍。</p>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">
+          <h2>平台條款</h2>
+          <p>送出前請先閱讀條款並勾選同意，避免後續對流程有落差。</p>
+        </div>
+
+        <details class="terms-box">
+          <summary>點我查看報修平台條款</summary>
+          <ol>
+            <li>本平台僅提供媒合服務，不參與實際交易、報價及收款流程。</li>
+            <li>用戶不得私下與服務提供者進行交易以規避平台機制，違者平台有權限制或終止帳號使用。</li>
+            <li>所有服務內容、施工方式及價格，均由用戶與服務提供者自行約定，本平台不負擔履約責任。</li>
+            <li>本平台不保證案件一定媒合成功，亦不保證服務提供者之到達時間。</li>
+            <li>本平台不保證服務提供者之專業能力、證照資格或施工品質。</li>
+            <li>因施工所產生之任何損害、風險或安全問題，由用戶與服務提供者自行負責。</li>
+            <li>若服務過程中產生價格或履約爭議，應由雙方自行協商解決，本平台得依通訊紀錄提供協助調解。</li>
+            <li>用戶應確保所填寫之報修資料正確，因資料錯誤導致之損失，由用戶自行負責。</li>
+            <li>若會員有詐騙、惡意棄單、騷擾他人或其他違法行為，本平台有權停權或終止服務。</li>
+            <li>本平台保留帳號管理、服務調整及終止服務之權利。</li>
+          </ol>
+        </details>
+
+        <label class="checkbox-label">
+          <input name="terms_accepted" type="checkbox" value="true" required>
+          <span>我已閱讀並同意平台條款</span>
+        </label>
+      </section>
+
+      <div class="page-actions">
+        <button type="submit">送出報修</button>
+      </div>
     </form>
   </main>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>

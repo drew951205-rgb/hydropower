@@ -6,6 +6,7 @@ const userRepository = require('../repositories/user.repository');
 const messageRepository = require('../repositories/message.repository');
 const assignmentRepository = require('../repositories/assignment.repository');
 const { ORDER_STATUS } = require('../utils/order-status');
+const { logger } = require('../config/logger');
 
 const cancellableStatuses = new Set([
   'pending_review',
@@ -118,7 +119,7 @@ async function createSupportTicket(user, payload = {}) {
     image_urls: payload.image_urls || [],
   });
 
-  console.log('[support-ticket:new]', JSON.stringify({
+  logger.info('[support-ticket:new]', JSON.stringify({
     ticket_no: ticket.ticket_no,
     type: ticket.type,
     user_id: ticket.user_id,
@@ -187,7 +188,7 @@ async function cancelOrderByCustomer(user, orderId, payload = {}) {
     image_urls: [],
   });
 
-  console.log('[support-ticket:customer-cancel]', JSON.stringify({
+  logger.info('[support-ticket:customer-cancel]', JSON.stringify({
     ticket_no: ticket.ticket_no,
     user_id: user.id,
     order_id: order.id,
@@ -257,7 +258,7 @@ async function cancelOrderByTechnician(user, orderId, payload = {}) {
     image_urls: [],
   });
 
-  console.log('[support-ticket:technician-cancel]', JSON.stringify({
+  logger.info('[support-ticket:technician-cancel]', JSON.stringify({
     ticket_no: ticket.ticket_no,
     technician_id: user.id,
     order_id: order.id,

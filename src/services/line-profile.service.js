@@ -1,5 +1,6 @@
 const userRepository = require('../repositories/user.repository');
 const lineMessageService = require('./line-message.service');
+const { logger } = require('../config/logger');
 
 function buildProfileChanges(user, profile) {
   const changes = {};
@@ -24,7 +25,7 @@ async function syncLineProfile(user) {
   try {
     return await userRepository.updateUser(user.id, changes);
   } catch (error) {
-    console.warn('[line-profile:sync:partial-fallback]', JSON.stringify({
+    logger.warn('[line-profile:sync:partial-fallback]', JSON.stringify({
       userId: user.id,
       lineUserId: user.line_user_id,
       message: error.message

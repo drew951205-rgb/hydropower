@@ -1,4 +1,5 @@
 const { env } = require('../config/env');
+const { buildSignedLineAuth } = require('../services/liff-auth.service');
 
 function publicBaseUrl() {
   const explicit = String(env.publicBaseUrl || '').trim();
@@ -26,6 +27,15 @@ function liffPageUrl(path, params = {}) {
   return `${base}${normalizedPath}${query ? `?${query}` : ''}`;
 }
 
+function signedLiffParams(lineUserId, params = {}) {
+  if (!lineUserId) return params;
+  return {
+    ...params,
+    line_user_id: lineUserId,
+    ...buildSignedLineAuth(lineUserId),
+  };
+}
+
 function uriAction(label, path, params = {}) {
   return {
     type: 'uri',
@@ -34,4 +44,4 @@ function uriAction(label, path, params = {}) {
   };
 }
 
-module.exports = { liffPageUrl, uriAction };
+module.exports = { liffPageUrl, uriAction, signedLiffParams };

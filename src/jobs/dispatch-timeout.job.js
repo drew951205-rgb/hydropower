@@ -6,9 +6,10 @@ const lineMessageService = require('../services/line-message.service');
 const { dispatchTimeoutMessage } = require('../templates/customer-messages');
 const { ORDER_STATUS } = require('../utils/order-status');
 const { env } = require('../config/env');
+const { logger } = require('../config/logger');
 
 async function runDispatchTimeoutJob() {
-  console.log('[job] Running dispatch timeout job...');
+  logger.info('[job] Running dispatch timeout job...');
 
   try {
     const timeoutMs = Math.max(1, env.dispatchTimeoutMinutes) * 60 * 1000;
@@ -51,16 +52,16 @@ async function runDispatchTimeoutJob() {
       }
     }
 
-    console.log(`[job] Expired ${staleAssignments.length} stale assignments`);
+    logger.info(`[job] Expired ${staleAssignments.length} stale assignments`);
   } catch (error) {
-    console.error('[job] Dispatch timeout job failed:', error);
+    logger.error('[job] Dispatch timeout job failed:', error);
   }
 }
 
 async function notifyCustomerDispatchTimeout(order) {
   const customer = await userRepository.findById(order.customer_id);
   if (!customer?.line_user_id) {
-    console.warn('[dispatch-timeout:customer-push:skip]', JSON.stringify({
+    logger.warn('[dispatch-timeout:customer-push:skip]', JSON.stringify({
       orderId: order.id,
       orderNo: order.order_no,
       customerId: order.customer_id,
@@ -69,7 +70,7 @@ async function notifyCustomerDispatchTimeout(order) {
     return { skipped: true };
   }
 
-  console.log('[dispatch-timeout:customer-push]', JSON.stringify({
+  logger.info('[dispatch-timeout:customer-push]', JSON.stringify({
     orderId: order.id,
     orderNo: order.order_no,
     customerId: customer.id,

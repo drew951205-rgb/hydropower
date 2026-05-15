@@ -1,5 +1,6 @@
+const { logger } = require('../config/logger');
 function runUnpaidFollowupJob() {
-  console.log(
+  logger.info(
     '[job] unpaid-followup placeholder: MVP does not collect payments'
   );
 }

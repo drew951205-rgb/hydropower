@@ -9,11 +9,28 @@ const orderRoutes = require('./routes/order.routes');
 const technicianRoutes = require('./routes/technician.routes');
 const adminRoutes = require('./routes/admin.routes');
 const liffRoutes = require('./routes/liff.routes');
+const { logger } = require('./config/logger');
 const { rateLimit } = require('./middlewares/rate-limit');
 const { requestLogger } = require('./middlewares/request-logger');
 const { notFound, errorHandler } = require('./middlewares/error-handler');
 
 const app = express();
+app.set('etag', false);
+
+function setNoCache(res) {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+}
+
+function sendLiffPage(res, page) {
+  setNoCache(res);
+  return res.sendFile(path.join(__dirname, '..', 'public', 'liff', page), {
+    lastModified: false,
+    cacheControl: false,
+  });
+}
 
 // CORS configuration - allow specific origins only
 const corsOptions = {
@@ -38,7 +55,7 @@ const corsOptions = {
 
     // Deny all other origins in production
     if (env.nodeEnv === 'production') {
-      console.warn(`CORS denied for origin: ${origin}`);
+      logger.warn(`CORS denied for origin: ${origin}`);
       return callback(new Error('Not allowed by CORS'));
     }
 
@@ -93,12 +110,17 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: '師傅抵嘉 API' });
 });
 
+app.use('/liff', express.static(path.join(__dirname, '..', 'public', 'liff'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => setNoCache(res),
+}));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // 首頁路由 - 根據身份動態返回
 app.get('/', (req, res) => {
   const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
-  res.sendFile(path.join(__dirname, '..', 'public', 'liff', defaultPage));
+  return sendLiffPage(res, defaultPage);
 });
 
 app.get('/admin', (req, res) => {
@@ -107,7 +129,7 @@ app.get('/admin', (req, res) => {
 
 app.get('/liff', (req, res) => {
   const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
-  res.sendFile(path.join(__dirname, '..', 'public', 'liff', defaultPage));
+  return sendLiffPage(res, defaultPage);
 });
 
 // LIFF 頁面 - 對師傅隱藏某些頁面
@@ -134,7 +156,7 @@ const commonPages = ['quote', 'change-request', 'confirm', 'faq', 'cancel', 'nav
       return res.status(403).json({ error: 'Forbidden: This page is for customers only' });
     }
 
-    res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
+    return sendLiffPage(res, `${page}.html`);
   });
 
   app.get(`/${page}`, (req, res) => {
@@ -143,7 +165,7 @@ const commonPages = ['quote', 'change-request', 'confirm', 'faq', 'cancel', 'nav
       return res.status(403).json({ error: 'Forbidden: This page is for customers only' });
     }
 
-    res.sendFile(path.join(__dirname, '..', 'public', 'liff', `${page}.html`));
+    return sendLiffPage(res, `${page}.html`);
   });
 });
 
@@ -166,7 +188,7 @@ app.get('*', (req, res, next) => {
 
   // Fallback：根據用戶身份返回正確的首頁
   const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
-  return res.sendFile(path.join(__dirname, '..', 'public', 'liff', defaultPage));
+  return sendLiffPage(res, defaultPage);
 });
 
 app.use(notFound);

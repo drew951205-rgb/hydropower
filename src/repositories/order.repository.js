@@ -20,6 +20,7 @@ async function createOrder(payload) {
       payload.contact_name !== undefined &&
       String(error.message || '').includes("'contact_name' column")
     ) {
+      // eslint-disable-next-line no-unused-vars
       const { contact_name, ...fallbackPayload } = payload;
       ({ data, error } = await supabase
         .from('orders')
