@@ -42,6 +42,15 @@ function shouldInitLiff() {
   );
 }
 
+function isPrimaryRedirectContext() {
+  const search = params();
+  return pageName() === 'launch' && (
+    search.has('liff.state') ||
+    search.has('access_token') ||
+    search.has('id_token')
+  );
+}
+
 function $(selector) {
   return document.querySelector(selector);
 }
@@ -248,6 +257,10 @@ async function initLineProfile() {
         search: window.location.search,
         isLoggedIn: window.liff?.isLoggedIn?.() ?? null,
       });
+      if (isPrimaryRedirectContext()) {
+        setStatus('LINE 驗證完成，正在開啟頁面...', false);
+        return;
+      }
       if (!window.liff.isLoggedIn()) {
         reportClientLog({
           event: 'liff_login_redirect',
@@ -290,6 +303,11 @@ async function initLineProfile() {
 }
 
 async function setupLaunch() {
+  if (isPrimaryRedirectContext()) {
+    setStatus('LINE 驗證完成，正在開啟頁面...', false);
+    return;
+  }
+
   if (window.liff && !window.liff.isLoggedIn()) {
     setStatus('正在導向 LINE 登入...', false);
     return;
