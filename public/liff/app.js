@@ -12,10 +12,15 @@ function pageName() {
   return document.body.dataset.page;
 }
 
+function isLikelyLineClient() {
+  const agent = navigator.userAgent || '';
+  return /Line\//i.test(agent) || /LIFF/i.test(agent);
+}
+
 function shouldInitLiff() {
   const search = params();
   return (
-    (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') ||
+    isLikelyLineClient() ||
     window.location.hostname === 'liff.line.me' ||
     search.has('liff.state') ||
     search.has('liff.referrer') ||
