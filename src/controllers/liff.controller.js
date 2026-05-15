@@ -105,6 +105,19 @@ async function getConfig(req, res) {
   });
 }
 
+async function reportClientLog(req, res) {
+  logger.warn('[liff:client-log]', JSON.stringify({
+    event: req.body?.event || 'unknown',
+    message: req.body?.message || '',
+    code: req.body?.code || '',
+    page: req.body?.page || '',
+    href: req.body?.href || '',
+    userAgent: req.body?.userAgent || '',
+  }));
+
+  res.json({ data: { ok: true } });
+}
+
 async function createSession(req, res, next) {
   try {
     const authorization = req.header('authorization') || '';
@@ -560,6 +573,7 @@ async function cancelOrderByTechnician(req, res, next) {
 module.exports = {
   createSession,
   getConfig,
+  reportClientLog,
   getCustomerProfile,
   updateCustomerProfile,
   createRepair,

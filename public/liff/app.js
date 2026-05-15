@@ -40,6 +40,23 @@ function setStatus(message, isError = false) {
   node.hidden = !message;
 }
 
+async function reportClientLog(payload = {}) {
+  try {
+    await fetch('/api/liff/client-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        page: pageName(),
+        href: window.location.href,
+        userAgent: navigator.userAgent || '',
+      }),
+    });
+  } catch (error) {
+    console.warn('[liff:client-log:error]', error);
+  }
+}
+
 function showSubmitDone(form, title, message, actions = []) {
   setStatus(message);
   let panel = form.nextElementSibling;
@@ -176,6 +193,11 @@ async function initLineProfile() {
       await createLiffSession();
     } catch (error) {
       console.error('[liff:init:error]', error);
+      reportClientLog({
+        event: 'liff_init_failed',
+        message: error?.message || '',
+        code: error?.code || '',
+      });
       setStatus(`LIFF 載入失敗：${error.message || '請確認 LIFF ID 與 Endpoint URL 是否一致'}`, true);
     }
   } else if (window.liff && config.liffId) {

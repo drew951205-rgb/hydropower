@@ -13,6 +13,7 @@ const upload = multer({
 });
 
 router.get('/config', liffController.getConfig);
+router.post('/client-log', express.json(), liffController.reportClientLog);
 router.post('/session', liffController.createSession);
 router.get('/customer-profile', liffController.getCustomerProfile);
 router.post('/customer-profile', liffController.updateCustomerProfile);
