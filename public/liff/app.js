@@ -19,6 +19,20 @@ function isLikelyLineClient() {
 
 function shouldInitLiff() {
   const search = params();
+  const page = pageName();
+
+  if (
+    page !== 'launch' &&
+    !search.has('liff.state') &&
+    !search.has('liff.referrer') &&
+    !search.has('access_token') &&
+    lineUserId() &&
+    authState().auth_ts &&
+    authState().auth_sig
+  ) {
+    return false;
+  }
+
   return (
     isLikelyLineClient() ||
     window.location.hostname === 'liff.line.me' ||
@@ -146,6 +160,27 @@ function liffPath(path) {
   return `${next.pathname}${next.search}`;
 }
 
+function launchTargetPath() {
+  const search = params();
+  const page = search.get('page') || '';
+  const stateValue = search.get('liff.state') || '';
+  const raw = stateValue ? decodeURIComponent(stateValue) : (page ? `/${page}` : '');
+
+  if (!raw) return '/liff/repair';
+
+  const target = new URL(raw, window.location.origin);
+  const pathname = target.pathname.startsWith('/liff/')
+    ? target.pathname
+    : `/liff${target.pathname.startsWith('/') ? target.pathname : `/${target.pathname}`}`;
+
+  const auth = authState();
+  if (lineUserId()) target.searchParams.set('line_user_id', lineUserId());
+  if (auth.auth_ts) target.searchParams.set('auth_ts', auth.auth_ts);
+  if (auth.auth_sig) target.searchParams.set('auth_sig', auth.auth_sig);
+
+  return `${pathname}${target.search}${target.hash}`;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -237,6 +272,22 @@ async function initLineProfile() {
   if (auth.auth_ts && auth.auth_sig) persistAuth(auth);
   const lineInput = $('#line_user_id');
   if (lineInput) lineInput.value = lineUserId();
+}
+
+async function setupLaunch() {
+  if (window.liff && !window.liff.isLoggedIn()) {
+    setStatus('正在導向 LINE 登入...', false);
+    return;
+  }
+
+  if (!lineUserId()) {
+    setStatus('LINE 驗證尚未完成，請稍候再試一次。', true);
+    return;
+  }
+
+  const target = launchTargetPath();
+  setStatus('驗證完成，正在開啟頁面...', false);
+  window.location.replace(target);
 }
 
 function requireLineUser() {
@@ -1089,6 +1140,10 @@ async function main() {
   try {
     await initLineProfile();
     const page = pageName();
+    if (page === 'launch') {
+      await setupLaunch();
+      return;
+    }
     if (page === 'repair') await setupRepair();
     if (page === 'quote') await setupQuote();
     if (page === 'change-request') await setupChangeRequest();

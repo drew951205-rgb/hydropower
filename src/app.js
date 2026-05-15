@@ -124,8 +124,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get(['/liff', '/liff/'], (req, res) => {
-  const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
-  return sendLiffPage(res, defaultPage);
+  return sendLiffPage(res, 'launch.html');
 });
 
 app.use('/liff', express.static(path.join(__dirname, '..', 'public', 'liff'), {
@@ -149,8 +148,7 @@ app.get('/admin', (req, res) => {
 });
 
 app.get(['/liff', '/liff/'], (req, res) => {
-  const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
-  return sendLiffPage(res, defaultPage);
+  return sendLiffPage(res, 'launch.html');
 });
 
 // LIFF 頁面 - 對師傅隱藏某些頁面
