@@ -106,6 +106,19 @@ app.use(express.json({
 app.use(requestLogger);
 app.use(roleRouter);
 
+app.use('/liff', (req, res, next) => {
+  res.removeHeader('Cross-Origin-Opener-Policy');
+  res.removeHeader('Cross-Origin-Resource-Policy');
+  res.removeHeader('Origin-Agent-Cluster');
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self' https://line.me https://*.line.me https://liff.line.me; img-src 'self' data: https:; object-src 'none'; script-src 'self' https://static.line-scdn.net; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.line.me https://access.line.me https://liff.line.me https://*.line.me; frame-src 'self' https://access.line.me https://liff.line.me https://*.line.me"
+  );
+  next();
+});
+
 app.get('/health', (req, res) => {
   res.json({ ok: true, service: '師傅抵嘉 API' });
 });
