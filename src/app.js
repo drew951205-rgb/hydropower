@@ -32,6 +32,37 @@ function sendLiffPage(res, page) {
   });
 }
 
+const LIFF_PAGE_NAMES = new Set([
+  'probe',
+  'repair',
+  'quote',
+  'change-request',
+  'confirm',
+  'my-cases',
+  'profile',
+  'review',
+  'support',
+  'faq',
+  'cancel',
+  'navigate',
+]);
+
+function isLiffLaunchRequest(req) {
+  return Boolean(
+    req.query?.['liff.state'] ||
+    req.query?.access_token ||
+    req.query?.id_token
+  );
+}
+
+function isRootLiffPageRequest(req) {
+  return LIFF_PAGE_NAMES.has(String(req.path || '').replace(/^\/+/, ''));
+}
+
+function isLiffRequest(req) {
+  return req.path.startsWith('/liff') || isLiffLaunchRequest(req) || isRootLiffPageRequest(req);
+}
+
 // CORS configuration - allow specific origins only
 const corsOptions = {
   origin: (origin, callback) => {
@@ -106,7 +137,9 @@ app.use(express.json({
 app.use(requestLogger);
 app.use(roleRouter);
 
-app.use('/liff', (req, res, next) => {
+app.use((req, res, next) => {
+  if (!isLiffRequest(req)) return next();
+
   res.removeHeader('Cross-Origin-Opener-Policy');
   res.removeHeader('Cross-Origin-Resource-Policy');
   res.removeHeader('Origin-Agent-Cluster');
@@ -139,6 +172,9 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
 
 // 首頁路由 - 根據身份動態返回
 app.get('/', (req, res) => {
+  if (isLiffLaunchRequest(req)) {
+    return sendLiffPage(res, 'launch.html');
+  }
   const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
   return sendLiffPage(res, defaultPage);
 });
