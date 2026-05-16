@@ -32,6 +32,7 @@ const env = {
   publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
   liffId: process.env.LIFF_ID || '',
   useLiffLaunchUrl: resolveUseLiffLaunchUrl(),
+  liffLaunchDefaultPath: process.env.LIFF_LAUNCH_DEFAULT_PATH || '/liff/repair',
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60000),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 120),
   dispatchTimeoutMinutes: Number(process.env.DISPATCH_TIMEOUT_MINUTES || 10),

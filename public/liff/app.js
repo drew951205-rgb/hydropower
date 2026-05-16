@@ -175,7 +175,12 @@ function launchTargetPath() {
   const stateValue = search.get('liff.state') || '';
   const raw = stateValue ? decodeURIComponent(stateValue) : (page ? `/${page}` : '');
 
-  if (!raw) return '/liff/repair';
+  if (!raw) {
+    const configuredDefault = state.config?.launchDefaultPath || '/liff/repair';
+    return configuredDefault.startsWith('/liff/')
+      ? configuredDefault
+      : `/liff${configuredDefault.startsWith('/') ? configuredDefault : `/${configuredDefault}`}`;
+  }
 
   const target = new URL(raw, window.location.origin);
   const pathname = target.pathname.startsWith('/liff/')

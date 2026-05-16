@@ -101,6 +101,7 @@ async function getConfig(req, res) {
     data: {
       liffId: env.liffId,
       publicBaseUrl: env.publicBaseUrl,
+      launchDefaultPath: env.liffLaunchDefaultPath,
     },
   });
 }
