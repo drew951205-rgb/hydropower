@@ -157,6 +157,7 @@ const technicianPages = ['my-cases', 'quote', 'confirm', 'support', 'faq', 'canc
 const commonPages = ['quote', 'change-request', 'confirm', 'faq', 'cancel', 'navigate', 'support'];
 
 [
+  'probe',
   'repair',
   'quote',
   'change-request',
