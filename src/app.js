@@ -172,11 +172,7 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
 
 // 首頁路由 - 根據身份動態返回
 app.get('/', (req, res) => {
-  if (isLiffLaunchRequest(req)) {
-    return sendLiffPage(res, 'launch.html');
-  }
-  const defaultPage = req.userRole === 'technician' ? 'my-cases.html' : 'repair.html';
-  return sendLiffPage(res, defaultPage);
+  return sendLiffPage(res, 'launch.html');
 });
 
 app.get('/admin', (req, res) => {
