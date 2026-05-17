@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LIFF Sandbox</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef4f2;
+      --card: #ffffff;
+      --ink: #17202a;
+      --muted: #5f6b66;
+      --line: #d4dfda;
+      --ok-bg: #effaf6;
+      --ok-ink: #135f4d;
+      --err-bg: #fff3f3;
+      --err-ink: #9f1d1d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f6faf8 0%, var(--bg) 100%);
+    }
+
+    main {
+      width: min(680px, 100%);
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    section {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+      box-shadow: 0 12px 28px rgba(23, 32, 42, 0.08);
+    }
+
+    p {
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .eyebrow {
+      color: #1f8a70;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: 32px;
+      line-height: 1.15;
+    }
+
+    .lead {
+      color: var(--muted);
+    }
+
+    .notice {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid #c7e6dc;
+      border-radius: 8px;
+      background: var(--ok-bg);
+      color: var(--ok-ink);
+    }
+
+    .notice.error {
+      border-color: #f3b5b5;
+      background: var(--err-bg);
+      color: var(--err-ink);
+    }
+
+    pre {
+      margin: 16px 0 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f7fbf9;
+      color: var(--muted);
+      font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <p class="eyebrow">LIFF Sandbox</p>
+      <h1>純淨初始化測試</h1>
+      <p class="lead">這頁不使用共用 app.js，也不抓後端 config，直接以固定 LIFF ID 測試最基本的 <code>liff.init()</code>。</p>
+      <div id="sandbox-status" class="notice">初始化中...</div>
+      <pre id="sandbox-output"></pre>
+    </section>
+  </main>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="/liff/sandbox.js"></script>
+</body>
+</html>

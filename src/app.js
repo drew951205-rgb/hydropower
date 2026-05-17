@@ -16,6 +16,7 @@ const { notFound, errorHandler } = require('./middlewares/error-handler');
 
 const app = express();
 app.set('etag', false);
+app.set('trust proxy', 1);
 
 function setNoCache(res) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -33,6 +34,7 @@ function sendLiffPage(res, page) {
 }
 
 const LIFF_PAGE_NAMES = new Set([
+  'sandbox',
   'probe',
   'repair',
   'quote',
@@ -156,10 +158,6 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: '師傅抵嘉 API' });
 });
 
-app.get(['/liff', '/liff/'], (req, res) => {
-  return sendLiffPage(res, 'launch.html');
-});
-
 app.use('/liff', express.static(path.join(__dirname, '..', 'public', 'liff'), {
   etag: false,
   lastModified: false,
@@ -189,6 +187,7 @@ const technicianPages = ['my-cases', 'quote', 'confirm', 'support', 'faq', 'canc
 const commonPages = ['quote', 'change-request', 'confirm', 'faq', 'cancel', 'navigate', 'support'];
 
 [
+  'sandbox',
   'probe',
   'repair',
   'quote',
