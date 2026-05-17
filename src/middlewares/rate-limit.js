@@ -5,6 +5,9 @@ const rateLimit = expressRateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    forwardedHeader: false,
+  },
   skip: () => process.env.NODE_ENV === 'test',
   message: {
     error: 'Too many requests',
