@@ -30,12 +30,25 @@ function badRequest(message) {
   return Object.assign(new Error(message), { statusCode: 400 });
 }
 
+function orderCreatedReviewMessage(order) {
+  return [
+    '已收到你的報修申請，平台正在審核訂單。',
+    '',
+    `案件編號：${order.order_no}`,
+    `服務類型：${order.service_type}`,
+    `地區：${order.area}`,
+    '目前狀態：平台審核中',
+  ].join('\n');
+}
+
 function forbidden(message) {
   return Object.assign(new Error(message), { statusCode: 403 });
 }
 
 function serviceModeFromText(text = '') {
-  return /越快|馬上|立即|急|現在|今天/.test(String(text)) ? 'urgent' : 'scheduled';
+  return /越快|馬上|立即|急|現在|今天/.test(String(text))
+    ? 'urgent'
+    : 'scheduled';
 }
 
 function lineUserIdFrom(req) {
@@ -107,20 +120,23 @@ async function getConfig(req, res) {
 }
 
 async function reportClientLog(req, res) {
-  logger.warn('[liff:client-log]', JSON.stringify({
-    event: req.body?.event || 'unknown',
-    message: req.body?.message || '',
-    code: req.body?.code || '',
-    cause: req.body?.cause || '',
-    page: req.body?.page || '',
-    href: req.body?.href || '',
-    search: req.body?.search || '',
-    sdkVersion: req.body?.sdkVersion || '',
-    lineVersion: req.body?.lineVersion || '',
-    inClient: req.body?.inClient,
-    isLoggedIn: req.body?.isLoggedIn,
-    userAgent: req.body?.userAgent || '',
-  }));
+  logger.warn(
+    '[liff:client-log]',
+    JSON.stringify({
+      event: req.body?.event || 'unknown',
+      message: req.body?.message || '',
+      code: req.body?.code || '',
+      cause: req.body?.cause || '',
+      page: req.body?.page || '',
+      href: req.body?.href || '',
+      search: req.body?.search || '',
+      sdkVersion: req.body?.sdkVersion || '',
+      lineVersion: req.body?.lineVersion || '',
+      inClient: req.body?.inClient,
+      isLoggedIn: req.body?.isLoggedIn,
+      userAgent: req.body?.userAgent || '',
+    })
+  );
 
   res.json({ data: { ok: true } });
 }
@@ -178,10 +194,15 @@ async function updateCustomerProfile(req, res, next) {
       preferred_area: String(req.body.preferred_area || '').trim() || null,
       is_member: true,
       member_terms_accepted_at: new Date().toISOString(),
-      role: user.role === 'admin' || user.role === 'technician' ? user.role : 'customer',
+      role:
+        user.role === 'admin' || user.role === 'technician'
+          ? user.role
+          : 'customer',
       status: user.status || 'active',
-      line_display_name: String(req.body.line_display_name || '').trim() || undefined,
-      line_picture_url: String(req.body.line_picture_url || '').trim() || undefined,
+      line_display_name:
+        String(req.body.line_display_name || '').trim() || undefined,
+      line_picture_url:
+        String(req.body.line_picture_url || '').trim() || undefined,
       line_language: String(req.body.line_language || '').trim() || undefined,
     };
 
@@ -217,10 +238,13 @@ async function updateCustomerProfileWithFallback(userId, changes) {
       return await userRepository.updateUser(userId, attempt);
     } catch (error) {
       lastError = error;
-      logger.warn('[customer-profile:update:fallback]', JSON.stringify({
-        userId,
-        message: error.message,
-      }));
+      logger.warn(
+        '[customer-profile:update:fallback]',
+        JSON.stringify({
+          userId,
+          message: error.message,
+        })
+      );
     }
   }
 
@@ -268,14 +292,31 @@ async function createRepair(req, res, next) {
       images,
     });
 
-    await userRepository.updateUser(user.id, {
-      name: req.body.contact_name,
-      phone: req.body.contact_phone,
-      default_address: req.body.address,
-      preferred_area: req.body.area,
-    }).catch(() =>
-      userRepository.updateUser(user.id, { phone: req.body.contact_phone })
-    );
+    await userRepository
+      .updateUser(user.id, {
+        name: req.body.contact_name,
+        phone: req.body.contact_phone,
+        default_address: req.body.address,
+        preferred_area: req.body.area,
+      })
+      .catch(() =>
+        userRepository.updateUser(user.id, { phone: req.body.contact_phone })
+      );
+
+    if (user.line_user_id) {
+      await lineMessageService
+        .pushMessages(user.line_user_id, orderCreatedReviewMessage(order))
+        .catch((pushError) => {
+          logger.warn(
+            '[liff:repair:push-order-created-failed]',
+            JSON.stringify({
+              orderId: order.id,
+              lineUserId: user.line_user_id,
+              message: pushError.message,
+            })
+          );
+        });
+    }
 
     res.status(201).json({ data: order });
   } catch (error) {
@@ -334,7 +375,9 @@ async function listCustomerOrders(req, res, next) {
     const orders = await orderRepository.listOrders({ customer_id: user.id });
     const sorted = orders
       .slice()
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      .sort(
+        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      );
     res.json({ data: sorted });
   } catch (error) {
     next(error);
@@ -348,7 +391,8 @@ async function submitQuote(req, res, next) {
       allowUnsignedOutsideProduction: true,
     });
     const order = await orderRepository.findById(req.params.id);
-    if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
+    if (!order)
+      throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.technician_id) !== String(user.id)) {
       throw forbidden('Technician does not own this order');
     }
@@ -360,7 +404,9 @@ async function submitQuote(req, res, next) {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw badRequest('Quote amount must be greater than 0');
     }
-    const estimatedArrivalTime = String(req.body.estimated_arrival_time || '').trim();
+    const estimatedArrivalTime = String(
+      req.body.estimated_arrival_time || ''
+    ).trim();
     if (!estimatedArrivalTime) {
       throw badRequest('請填寫師傅預計到場時間');
     }
@@ -371,7 +417,9 @@ async function submitQuote(req, res, next) {
       `工資：${laborFee}`,
       `預計到場：${estimatedArrivalTime}`,
       req.body.note ? `備註：${req.body.note}` : '',
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const data = await quoteService.submitQuote(
       order.id,
@@ -395,7 +443,8 @@ async function submitChangeRequest(req, res, next) {
       allowUnsignedOutsideProduction: true,
     });
     const order = await orderRepository.findById(req.params.id);
-    if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
+    if (!order)
+      throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.technician_id) !== String(user.id)) {
       throw forbidden('Technician does not own this order');
     }
@@ -442,7 +491,8 @@ async function confirmQuote(req, res, next) {
       allowUnsignedOutsideProduction: true,
     });
     const order = await orderRepository.findById(req.params.id);
-    if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
+    if (!order)
+      throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.customer_id) !== String(user.id)) {
       throw forbidden('Customer does not own this order');
     }
@@ -464,7 +514,8 @@ async function confirmCompletion(req, res, next) {
       allowUnsignedOutsideProduction: true,
     });
     const order = await orderRepository.findById(req.params.id);
-    if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
+    if (!order)
+      throw Object.assign(new Error('Order not found'), { statusCode: 404 });
     if (String(order.customer_id) !== String(user.id)) {
       throw forbidden('Customer does not own this order');
     }
@@ -480,7 +531,10 @@ async function confirmCompletion(req, res, next) {
     );
     if (data.status === ORDER_STATUS.CLOSED && user.line_user_id) {
       await sessionRepository.clearForUser(user.id);
-      await lineMessageService.pushMessages(user.line_user_id, customerReviewThanksMessage());
+      await lineMessageService.pushMessages(
+        user.line_user_id,
+        customerReviewThanksMessage()
+      );
     }
     res.json({ data });
   } catch (error) {
