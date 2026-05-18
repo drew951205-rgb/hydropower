@@ -12,7 +12,7 @@
       "action": {
         "type": "uri",
         "label": "我要報修",
-        "uri": "https://liff.line.me/2009816775-KChdhHA3/repair"
+        "uri": "https://shi-fu-di-jia-platform.vercel.app/liff/repair"
       }
     },
     {

@@ -3,7 +3,22 @@ const { buildSignedLineAuth } = require('../services/liff-auth.service');
 
 function publicBaseUrl() {
   const explicit = String(env.publicBaseUrl || '').trim();
-  return (explicit || `http://localhost:${env.port || 3000}`).replace(/\/+$/, '');
+  return (explicit || `http://localhost:${env.port || 3000}`).replace(
+    /\/+$/,
+    ''
+  );
+}
+
+function toQuery(params = {}) {
+  return Object.entries(params)
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== ''
+    )
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`
+    )
+    .join('&');
 }
 
 function liffPageUrl(path, params = {}) {
@@ -12,18 +27,19 @@ function liffPageUrl(path, params = {}) {
   const liffPath = normalizedPath.startsWith('/liff/')
     ? normalizedPath.replace(/^\/liff/, '')
     : normalizedPath;
-  const query = Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .map(
-      ([key, value]) =>
-        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`
-    )
-    .join('&');
+  const query = toQuery(params);
 
   if (env.liffId && env.useLiffLaunchUrl) {
     return `https://liff.line.me/${env.liffId}${liffPath}${query ? `?${query}` : ''}`;
   }
 
+  return `${base}${normalizedPath}${query ? `?${query}` : ''}`;
+}
+
+function webPageUrl(path, params = {}) {
+  const base = publicBaseUrl();
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const query = toQuery(params);
   return `${base}${normalizedPath}${query ? `?${query}` : ''}`;
 }
 
@@ -44,4 +60,32 @@ function uriAction(label, path, params = {}) {
   };
 }
 
-module.exports = { liffPageUrl, uriAction, signedLiffParams };
+function webUriAction(label, path, params = {}) {
+  return {
+    type: 'uri',
+    label,
+    uri: webPageUrl(path, params),
+  };
+}
+
+function signedWebPageUrl(path, lineUserId, params = {}) {
+  return webPageUrl(path, signedLiffParams(lineUserId, params));
+}
+
+function signedWebUriAction(label, path, lineUserId, params = {}) {
+  return {
+    type: 'uri',
+    label,
+    uri: signedWebPageUrl(path, lineUserId, params),
+  };
+}
+
+module.exports = {
+  liffPageUrl,
+  webPageUrl,
+  uriAction,
+  webUriAction,
+  signedLiffParams,
+  signedWebPageUrl,
+  signedWebUriAction,
+};

@@ -1,5 +1,5 @@
 const { orderSummary } = require('../utils/format-message');
-const { uriAction } = require('../utils/liff-url');
+const { webUriAction } = require('../utils/liff-url');
 
 function postbackAction(label, data, displayText = label) {
   return { type: 'postback', label, data, displayText };
@@ -60,14 +60,14 @@ function button(action, style = 'secondary') {
 }
 
 function cancelAction(order) {
-  return uriAction('取消案件', '/liff/cancel', {
+  return webUriAction('取消案件', '/liff/cancel', {
     order_id: order.id,
     role: 'technician',
   });
 }
 
 function navigateAction(order) {
-  return uriAction('即將趕往現場', '/liff/navigate', {
+  return webUriAction('即將趕往現場', '/liff/navigate', {
     order_id: order.id,
   });
 }
@@ -86,7 +86,14 @@ function preferredTimeLabel(order) {
   return order.preferred_time_text || '未指定時段';
 }
 
-function technicianCard({ altText, title, status, summary, rows, actions = [] }) {
+function technicianCard({
+  altText,
+  title,
+  status,
+  summary,
+  rows,
+  actions = [],
+}) {
   return {
     type: 'flex',
     altText,
@@ -153,7 +160,11 @@ function assignmentMessage(order, assignment) {
     ],
     actions: [
       button(
-        postbackAction('接單', `technician:accept_assignment:${assignment.id}`, '接單'),
+        postbackAction(
+          '接單',
+          `technician:accept_assignment:${assignment.id}`,
+          '接單'
+        ),
         'primary'
       ),
     ],
@@ -178,7 +189,10 @@ function assignedMessage(order) {
       infoRow('問題描述', order.issue_description),
     ],
     actions: [
-      button(uriAction('前往報價', '/liff/quote', { order_id: order.id }), 'primary'),
+      button(
+        webUriAction('前往報價', '/liff/quote', { order_id: order.id }),
+        'primary'
+      ),
       button(cancelAction(order)),
     ],
   });
@@ -203,7 +217,10 @@ function quotePromptMessage(order) {
       infoRow('操作提示', '例如：報價 1500 更換止水閥'),
     ],
     actions: [
-      button(uriAction('送出報價', '/liff/quote', { order_id: order.id }), 'primary'),
+      button(
+        webUriAction('送出報價', '/liff/quote', { order_id: order.id }),
+        'primary'
+      ),
       button(cancelAction(order)),
     ],
   });
@@ -217,11 +234,17 @@ function changeRequestPromptMessage(order) {
     summary: '請說明追加原因與金額，顧客確認後才能繼續施工。',
     rows: [
       infoRow('案件編號', order.order_no),
-      infoRow('原始報價', `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`),
+      infoRow(
+        '原始報價',
+        `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`
+      ),
       infoRow('操作提示', '例如：追加 500 更換零件'),
     ],
     actions: [
-      button(uriAction('送出追加', '/liff/change-request', { order_id: order.id }), 'primary'),
+      button(
+        webUriAction('送出追加', '/liff/change-request', { order_id: order.id }),
+        'primary'
+      ),
       button(cancelAction(order)),
     ],
   });
@@ -243,9 +266,19 @@ function acceptedQuoteTechnicianMessage(order) {
     ],
     actions: [
       button(navigateAction(order), 'primary'),
-      button(postbackAction('已到場', `technician:arrived:${order.id}`, '已到場')),
-      button(uriAction('追加報價', '/liff/change-request', { order_id: order.id })),
-      button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報')),
+      button(
+        postbackAction('已到場', `technician:arrived:${order.id}`, '已到場')
+      ),
+      button(
+        webUriAction('追加報價', '/liff/change-request', { order_id: order.id })
+      ),
+      button(
+        postbackAction(
+          '完工回報',
+          `technician:complete:${order.id}`,
+          '完工回報'
+        )
+      ),
       button(cancelAction(order)),
     ],
   });
@@ -259,15 +292,30 @@ function acceptedChangeRequestTechnicianMessage(order) {
     summary: '顧客已確認追加金額，若現場內容都完成了，可以直接送出完工回報。',
     rows: [
       infoRow('案件編號', order.order_no),
-      infoRow('原始報價', `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`),
-      infoRow('追加金額', `${Number(order.change_request_amount || 0).toLocaleString('zh-TW')} 元`),
+      infoRow(
+        '原始報價',
+        `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`
+      ),
+      infoRow(
+        '追加金額',
+        `${Number(order.change_request_amount || 0).toLocaleString('zh-TW')} 元`
+      ),
       infoRow('追加原因', order.change_request_reason || '未填寫'),
       infoRow('案件地址', order.address),
       infoRow('聯絡電話', order.contact_phone || '未填寫'),
     ],
     actions: [
-      button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報'), 'primary'),
-      button(uriAction('再次追加', '/liff/change-request', { order_id: order.id })),
+      button(
+        postbackAction(
+          '完工回報',
+          `technician:complete:${order.id}`,
+          '完工回報'
+        ),
+        'primary'
+      ),
+      button(
+        webUriAction('再次追加', '/liff/change-request', { order_id: order.id })
+      ),
       button(cancelAction(order)),
     ],
   });
@@ -278,17 +326,33 @@ function arrivedTechnicianMessage(order) {
     altText: `已到場 ${order.order_no}`,
     status: '第 2 步：已到場',
     title: '確認是否還要追加，再完工回報',
-    summary: '若現場發現要新增項目，可先送追加報價；若已施工完成，就直接完工回報。',
+    summary:
+      '若現場發現要新增項目，可先送追加報價；若已施工完成，就直接完工回報。',
     rows: [
       infoRow('案件編號', order.order_no),
-      infoRow('原始報價', `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`),
-      infoRow('追加金額', `${Number(order.change_request_amount || 0).toLocaleString('zh-TW')} 元`),
+      infoRow(
+        '原始報價',
+        `${Number(order.quote_amount || 0).toLocaleString('zh-TW')} 元`
+      ),
+      infoRow(
+        '追加金額',
+        `${Number(order.change_request_amount || 0).toLocaleString('zh-TW')} 元`
+      ),
       infoRow('案件地址', order.address),
       infoRow('聯絡電話', order.contact_phone || '未填寫'),
     ],
     actions: [
-      button(postbackAction('完工回報', `technician:complete:${order.id}`, '完工回報'), 'primary'),
-      button(uriAction('追加報價', '/liff/change-request', { order_id: order.id })),
+      button(
+        postbackAction(
+          '完工回報',
+          `technician:complete:${order.id}`,
+          '完工回報'
+        ),
+        'primary'
+      ),
+      button(
+        webUriAction('追加報價', '/liff/change-request', { order_id: order.id })
+      ),
       button(cancelAction(order)),
     ],
   });

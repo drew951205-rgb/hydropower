@@ -1,5 +1,5 @@
 const { orderSummary } = require('../utils/format-message');
-const { uriAction } = require('../utils/liff-url');
+const { uriAction, webUriAction } = require('../utils/liff-url');
 
 const customerMessages = {
   welcome:
@@ -134,7 +134,7 @@ function orderCard({ altText, title, status, summary, rows, actions = [] }) {
 
 function welcomeMessage() {
   return textWithQuickReply(customerMessages.welcome, [
-    uriAction('我要報修', '/liff/repair'),
+    webUriAction('我要報修', '/liff/repair'),
     uriAction('加入會員', '/liff/profile'),
   ]);
 }
@@ -168,14 +168,14 @@ function quoteMessage(order) {
     ],
     actions: [
       button(
-        uriAction('查看並確認', '/liff/confirm', {
+        webUriAction('查看並確認', '/liff/confirm', {
           order_id: order.id,
           mode: 'quote',
         }),
         'primary'
       ),
       button(
-        uriAction('取消案件', '/liff/cancel', {
+        webUriAction('取消案件', '/liff/cancel', {
           order_id: order.id,
         })
       ),
@@ -196,14 +196,14 @@ function changeRequestMessage(order) {
     ],
     actions: [
       button(
-        uriAction('查看並確認', '/liff/confirm', {
+        webUriAction('查看並確認', '/liff/confirm', {
           order_id: order.id,
           mode: 'change',
         }),
         'primary'
       ),
       button(
-        uriAction('取消案件', '/liff/cancel', {
+        webUriAction('取消案件', '/liff/cancel', {
           order_id: order.id,
         })
       ),
@@ -272,14 +272,14 @@ function completionMessage(order) {
     ],
     actions: [
       button(
-        uriAction('確認結案與評價', '/liff/confirm', {
+        webUriAction('確認結案與評價', '/liff/confirm', {
           order_id: order.id,
           mode: 'completion',
         }),
         'primary'
       ),
       button(
-        uriAction('我要申訴', '/liff/support', {
+        webUriAction('我要申訴', '/liff/support', {
           order_id: order.id,
           type: 'completion_dispute',
         })
@@ -294,17 +294,16 @@ function customerReviewRatingMessage(order) {
       '謝謝你確認結案。',
       `案件編號：${order.order_no}`,
       '',
-      '請給這次服務 1 到 5 分，5 分代表非常滿意。'
+      '請給這次服務 1 到 5 分，5 分代表非常滿意。',
     ].join('\n'),
     [1, 2, 3, 4, 5].map((score) => messageAction(`${score} 分`, String(score)))
   );
 }
 
 function customerReviewCommentPrompt(rating) {
-  return [
-    `已收到 ${rating} 分。`,
-    '請留下這次服務評語，或輸入「略過」。'
-  ].join('\n');
+  return [`已收到 ${rating} 分。`, '請留下這次服務評語，或輸入「略過」。'].join(
+    '\n'
+  );
 }
 
 function customerReviewThanksMessage() {
@@ -313,7 +312,7 @@ function customerReviewThanksMessage() {
       '謝謝你的評價，平台已收到。',
       '感謝你使用師傅抵嘉，期待下次繼續為你服務。',
     ].join('\n'),
-    [uriAction('再次報修', '/liff/repair')]
+    [webUriAction('再次報修', '/liff/repair')]
   );
 }
 
