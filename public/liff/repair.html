@@ -31,6 +31,7 @@
     </header>
 
     <p id="status" class="notice" hidden></p>
+    <p id="browser-fallback-hint" class="notice" hidden>目前以瀏覽器模式填單，送出後一樣會建立案件；之後可再回 LINE 查看進度。</p>
 
     <form id="repair-form" class="form-shell">
       <input id="line_user_id" name="line_user_id" type="hidden">
@@ -138,6 +139,7 @@
     </form>
   </main>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="/liff/repair-browser.js"></script>
   <script src="/liff/app.js"></script>
 </body>
 </html>
