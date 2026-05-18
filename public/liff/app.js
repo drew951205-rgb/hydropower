@@ -92,6 +92,14 @@ function showBrowserContinue(targetPath = '/liff/repair') {
   panel.appendChild(wrap);
 }
 
+function triggerBrowserFallback(targetPath = '/liff/repair') {
+  setStatus('LIFF 載入異常，正在改用瀏覽器繼續...', true);
+  showBrowserContinue(targetPath);
+  window.setTimeout(() => {
+    window.location.assign(browserFallbackUrl(targetPath));
+  }, 800);
+}
+
 function liffInitWithTimeout(liffId) {
   return Promise.race([
     window.liff.init({ liffId }),
@@ -337,7 +345,7 @@ async function initLineProfile() {
         (error?.message === 'LIFF_TIMEOUT' || String(error?.message || '').includes('Load failed'));
 
       if (shouldOfferBrowserFallback) {
-        showBrowserContinue('/liff/repair');
+        triggerBrowserFallback('/liff/repair');
       }
     }
   } else if (window.liff && config.liffId) {

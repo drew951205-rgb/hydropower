@@ -48,6 +48,13 @@ function showBrowserContinue() {
   panel.appendChild(wrap);
 }
 
+function triggerBrowserFallback() {
+  showBrowserContinue();
+  window.setTimeout(() => {
+    window.location.assign(browserFallbackUrl());
+  }, 800);
+}
+
 function initWithTimeout(liffId) {
   return Promise.race([
     window.liff.init({ liffId }),
@@ -99,7 +106,8 @@ async function main() {
     const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent || '');
     const isInLine = /Line\//i.test(navigator.userAgent || '') || /LIFF/i.test(navigator.userAgent || '');
     if (isIOS && isInLine && (detail.message === 'LIFF_TIMEOUT' || detail.message.includes('Load failed'))) {
-      showBrowserContinue();
+      render('LIFF init 失敗，正在改用瀏覽器繼續...', detail, true);
+      triggerBrowserFallback();
     }
   }
 }
