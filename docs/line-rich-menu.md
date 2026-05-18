@@ -1,123 +1,94 @@
-# LINE Rich Menu 重新發布指南
+# LINE Rich Menu ?�新?��??��?
 
-這份文件整理目前專案的 Rich Menu 發布方式，目標是讓我們每次改完入口網址後，都能穩定重新發布，不用再靠記憶操作。
+?�份?�件?��??��?專�???Rich Menu ?��??��?，目標是讓�??��?次改完入??��?�後�??�能穩�??�新?��?，�??��??��??��?作�?
+## ?��?檔�?位置
 
-## 目前檔案位置
+- 設�?檔�?`line-rich-menu/customer-rich-menu.json`
+- ?��?檔�?`line-rich-menu/customer-rich-menu.png`
+- 上傳?�本：`scripts/create-rich-menu.js`
 
-- 設定檔：`line-rich-menu/customer-rich-menu.json`
-- 圖片檔：`line-rich-menu/customer-rich-menu.png`
-- 上傳腳本：`scripts/create-rich-menu.js`
+## ?��??�口策略
 
-## 目前入口策略
+?��??�們已?��??��?要報修」改?��??�網站網?�，避?�卡??LIFF�?
+- ?��??�修�?  `https://shi-fu-di-jia-platform.vercel.app/liff/repair`
 
-目前我們已先把「我要報修」改成一般網站網址，避免卡在 LIFF：
+?��?三格?��?仍�??�既?�設定�?之�?如�?要�?起改?��??�網?�?�簽?�網?�策略，�??�步?�新 `customer-rich-menu.json`??
+## ?��??�檢??
+?��??��?確�??��?件�?�?
+1. `line-rich-menu/customer-rich-menu.json` 已�??��?要�??�?�網?�
+2. `line-rich-menu/customer-rich-menu.png` ?��??��?�?3. `.env` ?�正確�? `LINE_CHANNEL_ACCESS_TOKEN`
 
-- 我要報修：
-  `https://shi-fu-di-jia-platform.vercel.app/liff/repair`
-
-其餘三格目前仍保留既有設定，之後如果要一起改成一般網址或簽名網址策略，再同步更新 `customer-rich-menu.json`。
-
-## 發布前檢查
-
-發布前先確認這三件事：
-
-1. `line-rich-menu/customer-rich-menu.json` 已經是你要的最新網址
-2. `line-rich-menu/customer-rich-menu.png` 是最新圖檔
-3. `.env` 有正確的 `LINE_CHANNEL_ACCESS_TOKEN`
-
-`.env` 至少要有：
-
+`.env` ?��?要�?�?
 ```env
-LINE_CHANNEL_ACCESS_TOKEN=你的 Messaging API channel access token
+LINE_CHANNEL_ACCESS_TOKEN=你�? Messaging API channel access token
 ```
 
-## 重新發布指令
+## ?�新?��??�令
 
-在專案根目錄執行：
-
+?��?案根?��??��?�?
 ```bash
 npm run line:rich-menu
 ```
 
-這個腳本會自動做三件事：
-
-1. 建立一個新的 Rich Menu
+?�個腳?��??��??��?件�?�?
+1. 建�?一?�新??Rich Menu
 2. 上傳 `customer-rich-menu.png`
-3. 把新的 Rich Menu 設成全體使用者的預設選單
+3. ?�新??Rich Menu 設�??��?使用?��??�設?�單
 
-成功時會看到：
-
+?��??��??�到�?
 ```text
 Created and set default rich menu: richmenu-xxxxxxxxxxxxxxxx
 ```
 
-請把這個 `richMenuId` 記下來，之後若要清理舊選單會用到。
+請�??��?`richMenuId` 記�?來�?之�??��?清�??�選?��??�到??
+## 標�??�新?��?流�?
 
-## 標準重新發布流程
-
-建議每次都照這個順序做：
-
+建議每次?�照?�個�?序�?�?
 1. 修改 `line-rich-menu/customer-rich-menu.json`
-2. 如果版面有調整，重新輸出 `line-rich-menu/customer-rich-menu.png`
-3. 在本機確認 `.env` 的 `LINE_CHANNEL_ACCESS_TOKEN`
-4. 執行：
-
+2. 如�??�面?�調?��??�新輸出 `line-rich-menu/customer-rich-menu.png`
+3. ?�本機確�?`.env` ??`LINE_CHANNEL_ACCESS_TOKEN`
+4. ?��?�?
    ```bash
    npm run line:rich-menu
    ```
 
-5. 到 LINE 手機端確認：
-   - 新的 Rich Menu 是否顯示
-   - 「我要報修」是否打開一般網站報修頁
+5. ??LINE ?��?端確認�?
+   - ?��? Rich Menu ?�否顯示
+   - ?��?要報修」是?��??��??�網站報修�?
 
-## 建議驗證項目
+## 建議驗�??�目
 
-重新發布後，至少驗這兩條：
+?�新?��?後�??��?驗這兩條�?
 
-1. 點 Rich Menu 的「我要報修」
-   - 應該打開：
-     `https://shi-fu-di-jia-platform.vercel.app/liff/repair`
+1. �?Rich Menu ?�「�?要報修�?   - ?�該?��?�?     `https://shi-fu-di-jia-platform.vercel.app/liff/repair`
 
-2. 送出報修單
-   - 應成功建立案件
-   - 客戶應收到一則「平台正在審核訂單」通知
+2. ?�出?�修??   - ?��??�建立�?�?   - 客戶?�收?��??�「平?�正?�審?��??�」通知
 
-## 如果要手動在 LINE 後台檢查
+## 如�?要�??�在 LINE 後台檢查
 
-可以到 LINE Official Account Manager / LINE Developers 後台確認：
+?�以??LINE Official Account Manager / LINE Developers 後台確�?�?
+1. 已�??��? Rich Menu
+2. ?�設 Rich Menu 已�??��??�那�?3. 如�??��??��??��??�要�??�刪??
+## 常�??��?
 
-1. 已有新的 Rich Menu
-2. 預設 Rich Menu 已指向最新那組
-3. 如有舊版本，可視需要手動刪除
-
-## 常見問題
-
-### 1. 為什麼我改了 JSON，手機上沒變？
-
-因為改檔不會自動同步到 LINE。
-
-你一定要重新執行：
-
+### 1. ?��?麼�??��? JSON，�?機�?沒�?�?
+?�為?��?不�??��??�步??LINE??
+你�?定�??�新?��?�?
 ```bash
 npm run line:rich-menu
 ```
 
-### 2. 為什麼圖片沒更新？
+### 2. ?��?麼�??��??�新�?
+?�本?��?上傳 `line-rich-menu/customer-rich-menu.png`??
+如�?你改?�是設�?稿�? SVG，�?得�??�新輸出 PNG，�??��??��???
+### 3. ?��?麼�??��??��?網�?�?
+請�?序檢?��?
 
-腳本只會上傳 `line-rich-menu/customer-rich-menu.png`。
+1. `customer-rich-menu.json` ?�否已改�?2. ?�否?��??�新?��?�?`npm run line:rich-menu`
+3. LINE ?��?端是?��??��??��?快�??�面
 
-如果你改的是設計稿或 SVG，記得先重新輸出 PNG，再執行發布。
+## ?�薦?��??��?
 
-### 3. 為什麼還是打開舊網址？
-
-請依序檢查：
-
-1. `customer-rich-menu.json` 是否已改對
-2. 是否真的重新執行了 `npm run line:rich-menu`
-3. LINE 手機端是否還在看舊的快取畫面
-
-## 推薦操作原則
-
-- 入口型功能（例如我要報修）優先用一般網站網址
-- 敏感案件操作保留聊天室按鈕，但改走簽名網址策略
-- Rich Menu 每次修改後都重新發布，不假設 LINE 會自動同步
+- ?�口?��??��?例�??��??�修）優?�用一?�網站網?�
+- ?��?案件?��?保�??�天室�??��?但改走簽?�網?�策略
+- Rich Menu 每次修改後都?�新?��?，�??�設 LINE ?�自?��?�?

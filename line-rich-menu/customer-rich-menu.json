@@ -4,14 +4,14 @@
     "height": 1686
   },
   "selected": true,
-  "name": "師傅抵嘉顧客選單",
-  "chatBarText": "選單",
+  "name": "師�??��?顧客?�單",
+  "chatBarText": "?�單",
   "areas": [
     {
       "bounds": { "x": 0, "y": 0, "width": 2500, "height": 843 },
       "action": {
         "type": "uri",
-        "label": "我要報修",
+        "label": "?��??�修",
         "uri": "https://shi-fu-di-jia-platform.vercel.app/liff/repair"
       }
     },
@@ -19,25 +19,26 @@
       "bounds": { "x": 0, "y": 843, "width": 833, "height": 843 },
       "action": {
         "type": "uri",
-        "label": "加入會員",
-        "uri": "https://liff.line.me/2009816775-KChdhHA3/profile"
+        "label": "?�入?�員",
+        "uri": "https://shi-fu-di-jia-platform.vercel.app/liff/profile"
       }
     },
     {
       "bounds": { "x": 833, "y": 843, "width": 834, "height": 843 },
       "action": {
         "type": "uri",
-        "label": "我的案件",
-        "uri": "https://liff.line.me/2009816775-KChdhHA3/my-cases"
+        "label": "?��?案件",
+        "uri": "https://shi-fu-di-jia-platform.vercel.app/liff/my-cases"
       }
     },
     {
       "bounds": { "x": 1667, "y": 843, "width": 833, "height": 843 },
       "action": {
         "type": "uri",
-        "label": "常見問題",
-        "uri": "https://liff.line.me/2009816775-KChdhHA3/faq"
+        "label": "常�??��?",
+        "uri": "https://shi-fu-di-jia-platform.vercel.app/liff/faq"
       }
     }
   ]
 }
+
