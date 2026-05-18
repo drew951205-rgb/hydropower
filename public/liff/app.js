@@ -4,6 +4,8 @@ const state = {
   auth: null,
 };
 
+const LIFF_INIT_TIMEOUT_MS = 2500;
+
 function params() {
   return new URLSearchParams(window.location.search);
 }
@@ -61,6 +63,42 @@ function setStatus(message, isError = false) {
   node.textContent = message || '';
   node.className = `notice${isError ? ' error' : ''}`;
   node.hidden = !message;
+}
+
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/i.test(navigator.userAgent || '');
+}
+
+function browserFallbackUrl(targetPath = '/liff/repair') {
+  const next = new URL(targetPath, window.location.origin);
+  next.searchParams.set('openExternalBrowser', '1');
+  next.searchParams.set('browser_fallback', '1');
+  next.searchParams.set('from_liff_error', '1');
+  return next.toString();
+}
+
+function showBrowserContinue(targetPath = '/liff/repair') {
+  const panel = document.querySelector('.launch-panel, .panel');
+  if (!panel || panel.querySelector('[data-browser-fallback-link]')) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'actions';
+  wrap.style.marginTop = '16px';
+  wrap.innerHTML = `
+    <a data-browser-fallback-link href="${escapeHtml(browserFallbackUrl(targetPath))}">
+      <button type="button">改用瀏覽器繼續</button>
+    </a>
+  `;
+  panel.appendChild(wrap);
+}
+
+function liffInitWithTimeout(liffId) {
+  return Promise.race([
+    window.liff.init({ liffId }),
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error('LIFF_TIMEOUT')), LIFF_INIT_TIMEOUT_MS);
+    }),
+  ]);
 }
 
 function serializeDiagnosticValue(value) {
@@ -253,7 +291,7 @@ async function initLineProfile() {
 
   if (window.liff && config.liffId && shouldInitLiff()) {
     try {
-      await window.liff.init({ liffId: config.liffId });
+      await liffInitWithTimeout(config.liffId);
       reportClientLog({
         event: 'liff_init_resolved',
         sdkVersion: window.liff?.getVersion?.() || '',
@@ -292,6 +330,15 @@ async function initLineProfile() {
         search: window.location.search,
       });
       setStatus(`LIFF 載入失敗：${error.message || '請確認 LIFF ID 與 Endpoint URL 是否一致'}`, true);
+
+      const shouldOfferBrowserFallback =
+        isLikelyLineClient() &&
+        isIOSDevice() &&
+        (error?.message === 'LIFF_TIMEOUT' || String(error?.message || '').includes('Load failed'));
+
+      if (shouldOfferBrowserFallback) {
+        showBrowserContinue('/liff/repair');
+      }
     }
   } else if (window.liff && config.liffId) {
     console.info('[liff:init:skipped]', {

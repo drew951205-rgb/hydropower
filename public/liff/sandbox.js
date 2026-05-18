@@ -1,4 +1,5 @@
 const SANDBOX_LIFF_ID = '2010103872-fF2upqTo';
+const LIFF_INIT_TIMEOUT_MS = 2500;
 
 async function logSandbox(payload) {
   try {
@@ -26,9 +27,40 @@ function renderSandbox(status, detail, isError) {
     typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2);
 }
 
+function browserFallbackUrl(targetPath = '/liff/repair') {
+  const next = new URL(targetPath, window.location.origin);
+  next.searchParams.set('openExternalBrowser', '1');
+  next.searchParams.set('browser_fallback', '1');
+  next.searchParams.set('from_liff_sandbox', '1');
+  return next.toString();
+}
+
+function showBrowserContinue() {
+  const panel = document.querySelector('section');
+  if (!panel || panel.querySelector('[data-browser-fallback-link]')) return;
+
+  const wrap = document.createElement('div');
+  wrap.style.marginTop = '16px';
+  wrap.innerHTML = `
+    <a data-browser-fallback-link href="${browserFallbackUrl()}">
+      <button type="button">改用瀏覽器繼續</button>
+    </a>
+  `;
+  panel.appendChild(wrap);
+}
+
+function initWithTimeout() {
+  return Promise.race([
+    window.liff.init({ liffId: SANDBOX_LIFF_ID }),
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error('LIFF_TIMEOUT')), LIFF_INIT_TIMEOUT_MS);
+    }),
+  ]);
+}
+
 async function main() {
   try {
-    await window.liff.init({ liffId: SANDBOX_LIFF_ID });
+    await initWithTimeout();
     const detail = {
       event: 'sandbox_init_ok',
       liffId: SANDBOX_LIFF_ID,
@@ -56,6 +88,12 @@ async function main() {
     };
     renderSandbox('LIFF init 失敗', detail, true);
     await logSandbox(detail);
+
+    const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent || '');
+    const isInLine = /Line\//i.test(navigator.userAgent || '') || /LIFF/i.test(navigator.userAgent || '');
+    if (isIOS && isInLine && (detail.message === 'LIFF_TIMEOUT' || detail.message.includes('Load failed'))) {
+      showBrowserContinue();
+    }
   }
 }
 

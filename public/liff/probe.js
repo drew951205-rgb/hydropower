@@ -1,3 +1,5 @@
+const LIFF_INIT_TIMEOUT_MS = 2500;
+
 async function logClient(payload) {
   try {
     await fetch('/api/liff/client-log', {
@@ -24,6 +26,37 @@ function render(status, detail, isError) {
     typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2);
 }
 
+function browserFallbackUrl(targetPath = '/liff/repair') {
+  const next = new URL(targetPath, window.location.origin);
+  next.searchParams.set('openExternalBrowser', '1');
+  next.searchParams.set('browser_fallback', '1');
+  next.searchParams.set('from_liff_probe', '1');
+  return next.toString();
+}
+
+function showBrowserContinue() {
+  const panel = document.querySelector('.launch-panel');
+  if (!panel || panel.querySelector('[data-browser-fallback-link]')) return;
+
+  const wrap = document.createElement('div');
+  wrap.style.marginTop = '16px';
+  wrap.innerHTML = `
+    <a data-browser-fallback-link href="${browserFallbackUrl()}">
+      <button type="button">改用瀏覽器繼續</button>
+    </a>
+  `;
+  panel.appendChild(wrap);
+}
+
+function initWithTimeout(liffId) {
+  return Promise.race([
+    window.liff.init({ liffId }),
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error('LIFF_TIMEOUT')), LIFF_INIT_TIMEOUT_MS);
+    }),
+  ]);
+}
+
 async function main() {
   const configResponse = await fetch('/api/liff/config');
   const configPayload = await configResponse.json();
@@ -36,7 +69,7 @@ async function main() {
   }
 
   try {
-    await window.liff.init({ liffId });
+    await initWithTimeout(liffId);
     const detail = {
       event: 'probe_init_ok',
       sdkVersion: window.liff?.getVersion?.() || '',
@@ -62,6 +95,12 @@ async function main() {
     };
     render('LIFF init 失敗', detail, true);
     await logClient(detail);
+
+    const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent || '');
+    const isInLine = /Line\//i.test(navigator.userAgent || '') || /LIFF/i.test(navigator.userAgent || '');
+    if (isIOS && isInLine && (detail.message === 'LIFF_TIMEOUT' || detail.message.includes('Load failed'))) {
+      showBrowserContinue();
+    }
   }
 }
 
